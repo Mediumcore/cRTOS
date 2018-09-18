@@ -46,6 +46,8 @@
 
 #include "up_internal.h"
 
+uint64_t g_latency_trace[8];
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -209,6 +211,8 @@ uint64_t *irq_handler(uint64_t *regs, uint64_t irq_no)
 
   /* Get the IRQ number */
   irq = (int)irq_no;
+
+  /*g_latency_trace[0] = _rdtsc();*/
 
   /* Dispatch the interrupt */
   ret = common_handler(irq, regs);

@@ -85,9 +85,6 @@
 /* These APIs are not implemented and/or can be synthesized from
  * supported APIs.
  */
-
-#define putc(c,s)  fputc((c),(s))
-#define putchar(c) fputc(c, stdout)
 #define getc(s)    fgetc(s)
 #define getchar()  fgetc(stdin)
 #define rewind(s)  ((void)fseek((s),0,SEEK_SET))
@@ -172,6 +169,8 @@ int    ungetc(int c, FAR FILE *stream);
 
 int    printf(FAR const IPTR char *format, ...);
 int    puts(FAR const char *s);
+int    putc(char c, FAR FILE *s);
+int    putchar(char c);
 int    rename(FAR const char *oldpath, FAR const char *newpath);
 int    sprintf(FAR char *buf, FAR const IPTR char *format, ...);
 int    asprintf (FAR char **ptr, FAR const IPTR char *fmt, ...);

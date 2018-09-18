@@ -19,7 +19,7 @@ config ARCH_INTEL64
 endchoice
 
 config ARCH_CHIP_JAILHOUSE
-	bool "Qemu x86_64 emulation"
+	bool "Jailhouse x86_64 cell"
 	default n
 	---help---
 		Intel intel64 architecture

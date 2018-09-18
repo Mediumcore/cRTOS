@@ -178,3 +178,14 @@ int fputs(FAR const char *s, FAR FILE *stream)
   return nput;
 }
 #endif
+
+int putc(char c, FAR FILE *s){
+    fputc((c),(s));
+    return;
+}
+
+int putchar(char c){
+    fputc((c), stdout);
+    return;
+}
+

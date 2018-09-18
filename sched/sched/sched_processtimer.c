@@ -182,6 +182,7 @@ static inline void sched_process_scheduler(void)
  *   None
  *
  ****************************************************************************/
+extern uint64_t g_latency_trace[8];
 
 void sched_process_timer(void)
 {
@@ -193,6 +194,7 @@ void sched_process_timer(void)
 
   /* Increment the system time (if in the link) */
 
+  /*g_latency_trace[2] = _rdtsc();*/
 #ifdef CONFIG_HAVE_WEAKFUNCTIONS
   if (clock_timer != NULL)
 #endif
@@ -217,9 +219,11 @@ void sched_process_timer(void)
    * timeslice.
    */
 
+  /*g_latency_trace[3] = _rdtsc();*/
   sched_process_scheduler();
 
   /* Process watchdogs */
 
+  /*g_latency_trace[4] = _rdtsc();*/
   wd_timer();
 }

@@ -198,7 +198,8 @@ double    strtod(FAR const char *str, FAR char **endptr);
 long double strtold(FAR const char *str, FAR char **endptr);
 #endif
 
-#define atoi(nptr)  ((int)strtol((nptr), NULL, 10))
+int atoi(FAR char* nptr);
+//#define atoi(nptr)  ((int)strtol((nptr), NULL, 10))
 #define atol(nptr)  strtol((nptr), NULL, 10)
 #ifdef CONFIG_HAVE_LONG_LONG
 #define atoll(nptr) strtoll((nptr), NULL, 10)

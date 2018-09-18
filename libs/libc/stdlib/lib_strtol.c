@@ -122,3 +122,7 @@ long strtol(FAR const char *nptr, FAR char **endptr, int base)
 
   return (long)accum;
 }
+
+int atoi(char* nptr){
+    return (int)strtol((nptr), NULL, 10);
+}

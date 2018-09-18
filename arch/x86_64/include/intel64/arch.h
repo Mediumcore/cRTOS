@@ -119,6 +119,23 @@ begin_packed_struct struct idt_ptr_s
 
 #ifndef __ASSEMBLY__
 
+static inline uint64_t rdtsc(void)
+{
+	uint32_t lo, hi;
+
+	asm volatile("rdtscp" : "=a" (lo), "=d" (hi)::"memory");
+	return (uint64_t)lo | (((uint64_t)hi) << 32);
+}
+
+static inline uint64_t _rdtsc(void)
+{
+	uint32_t lo, hi;
+
+	asm volatile("rdtsc" : "=a" (lo), "=d" (hi)::"memory");
+	return (uint64_t)lo | (((uint64_t)hi) << 32);
+}
+
+
 static inline unsigned long read_msr(unsigned int msr)
 {
 	uint32_t low, high;

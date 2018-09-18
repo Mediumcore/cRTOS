@@ -55,6 +55,8 @@
 #include "up_internal.h"
 #include "up_arch.h"
 
+#include <stdio.h>
+
 #include "chip.h"
 #include "jailhouse.h"
 
@@ -86,14 +88,6 @@ static bool tsc_deadline;
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-
-static uint64_t rdtsc(void)
-{
-	uint32_t lo, hi;
-
-	asm volatile("rdtsc" : "=a" (lo), "=d" (hi));
-	return (uint64_t)lo | (((uint64_t)hi) << 32);
-}
 
 /****************************************************************************
  * Function:  tsc_init
@@ -149,11 +143,13 @@ void apic_timer_set(unsigned long timeout_ns)
  *   of the systems.
  *
  ****************************************************************************/
+extern uint64_t g_latency_trace[8];
 
 static int jailhouse_timerisr(int irq, uint32_t *regs, void *arg)
 {
   /* Process timer interrupt */
 
+  /*g_latency_trace[1] = _rdtsc();*/
   switch (comm_region->msg_to_cell) {
   case JAILHOUSE_MSG_SHUTDOWN_REQUEST:
     comm_region->cell_state = JAILHOUSE_CELL_SHUT_DOWN;
@@ -165,6 +161,7 @@ static int jailhouse_timerisr(int irq, uint32_t *regs, void *arg)
   default:
     break;
   }
+  /*g_latency_trace[2] = _rdtsc();*/
   sched_process_timer();
   apic_timer_set(CONFIG_USEC_PER_TICK * NS_PER_USEC);
   return 0;
