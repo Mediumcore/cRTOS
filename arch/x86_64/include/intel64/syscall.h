@@ -72,9 +72,15 @@ extern "C"
 #define EXTERN extern
 #endif
 
+void enable_syscall(void);
+void syscall_entry(void);
+uint64_t syscall_handler(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+                          uintptr_t parm6);
+
 /* SWI with SYS_ call number and six parameters */
 
-uintptr_t sys_call6(unsigned int nbr, uintptr_t parm1, uintptr_t parm2,
+static inline uintptr_t sys_call6(unsigned int nbr, uintptr_t parm1, uintptr_t parm2,
                     uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                     uintptr_t parm6);
 
@@ -124,6 +130,31 @@ static inline uintptr_t sys_call5(unsigned int nbr, uintptr_t parm1,
                                   uintptr_t parm4, uintptr_t parm5)
 {
   return sys_call6(nbr, parm1, parm2, parm3, parm4, parm5, 0);
+}
+
+static inline uintptr_t sys_call6(unsigned int nbr, uintptr_t parm1,
+                                  uintptr_t parm2, uintptr_t parm3,
+                                  uintptr_t parm4, uintptr_t parm5,
+                                  uintptr_t parm6)
+{
+  register long reg0 __asm__("rax") = (long)(nbr);
+  register long reg1 __asm__("rdi") = (long)(parm1);
+  register long reg2 __asm__("rsi") = (long)(parm2);
+  register long reg3 __asm__("rdx") = (long)(parm3);
+  register long reg4 __asm__("r10") = (long)(parm4);
+  register long reg5 __asm__("r8") = (long)(parm5);
+  register long reg6 __asm__("r9") = (long)(parm6);
+
+  __asm__ __volatile__
+  (
+    "syscall"
+    : "=r"(reg0)
+    : "r"(reg0), "r"(reg1), "r"(reg2),
+      "r"(reg3), "r"(reg4), "r"(reg5), "r"(reg6)
+    : "memory"
+  );
+
+  return reg0;
 }
 
 #undef EXTERN

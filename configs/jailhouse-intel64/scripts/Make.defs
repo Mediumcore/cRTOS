@@ -60,7 +60,8 @@ else
   MKDEP = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
   ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
   ARCHXXINCLUDES = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
-  ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/jailhouse.ld
+  ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/memory.ld
+  ARCHSCRIPT += -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/kernel-space.ld
 endif
 
 ARCHCPUFLAGS = -fno-builtin -fno-stack-protector

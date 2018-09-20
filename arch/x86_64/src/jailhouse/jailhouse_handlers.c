@@ -43,6 +43,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
 #include <arch/io.h>
+#include <syscall.h>
 
 #include "up_internal.h"
 
@@ -173,8 +174,31 @@ uint64_t *isr_handler(uint64_t *regs, uint64_t irq)
   return regs;               /* To keep the compiler happy */
 #else
   uint64_t *ret;
-  asm("mov %0, %%rcx; mov %1, %%rbx; mov $500, %%eax;vmcall;"::"g" (irq), "g" (regs[REG_RBP]):"eax", "rcx", "rbx");
-  asm("mov %0, %%rcx; mov %1, %%rbx; mov $500, %%eax;vmcall;"::"g" (regs[REG_ERRCODE]), "g" (regs[REG_RIP]):"eax", "rcx", "rbx");
+  int i, j;
+  printf("----------------CUT HERE-----------------\n");
+  printf("PANIC:\n");
+  printf("Exception %lld occurred with error code %lld:\n", irq, regs[REG_ERRCODE]);
+  printf("Gerneral Informations:\n");
+  printf("CPL: %d, RPL: %d\n", regs[REG_CS] & 0x3, regs[REG_DS] & 0x3);
+  printf("RIP: %016llx, RSP: %016llx\n", regs[REG_RIP], regs[REG_RSP]);
+  printf("RBP: %016llx, RFLAGS: %016llx\n", regs[REG_RBP], regs[REG_RFLAGS]);
+  printf("MSR_STAR: %016llx, MSR_LSTAR: %016llx\n", read_msr(0xc0000081), read_msr(0xc0000082));
+  printf("Selector Dump:\n");
+  printf("CS: %016llx, DS: %016llx, SS: %016llx\n", regs[REG_CS], regs[REG_DS], regs[REG_SS]);
+  printf("Register Dump:\n");
+  printf("RAX: %016llx, RBX: %016llx\n", regs[REG_RAX], regs[REG_RBX]);
+  printf("RCX: %016llx, RDX: %016llx\n", regs[REG_RCX], regs[REG_RDX]);
+  printf("RDI: %016llx, RSI: %016llx\n", regs[REG_RDI], regs[REG_RSI]);
+  printf("Stack Dump (64 bytes):\n");
+  for(i = 0; i < 8; i++){
+    for(j = 0; j < 8; j++){
+      printf("%02x ", *((uint8_t*)(regs[REG_RSP] + i * 8 + j)));
+    }
+    printf("  %016llx ", *((uint64_t*)(regs[REG_RSP] + i * 8)));
+    printf("\n");
+  }
+  printf("-----------------------------------------\n");
+
   /*asm("mov $1300, %%eax;vmcall;":::"eax");*/
   asm("mov $0, %%al":::);
   asm("mov $0xfa, %%dx":::);
@@ -224,3 +248,36 @@ uint64_t *irq_handler(uint64_t *regs, uint64_t irq_no)
 #endif
 }
 
+/****************************************************************************
+ * Name: syscall_handler
+ *
+ * Description:
+ *   syscall fast calling interface will go here
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_LIB_SYSCALL
+uint64_t syscall_handler(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+                          uintptr_t parm6)
+{
+  uint64_t ret;
+
+  svcinfo("SYSCALL Entry: cmd: %lld\n", nbr);
+  svcinfo("  PARAM: %016llx %016llx %016llx\n",
+          parm1,  parm2,  parm3);
+  svcinfo("       : %016llx %016llx %016llx\n",
+          parm4,  parm5,  parm6);
+
+  /* Verify that the SYS call number is within range */
+
+  DEBUGASSERT(cmd >= CONFIG_SYS_RESERVED && cmd < SYS_maxsyscall);
+
+  /* Call syscall from table. */
+  nbr -= CONFIG_SYS_RESERVED;
+  ret = ((uint64_t(*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t))(g_stublookup + nbr))(parm1, parm2, parm3, parm4, parm5, parm6);
+
+  return ret;
+}
+
+#endif

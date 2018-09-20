@@ -178,6 +178,9 @@ gdt64:
 	.quad	0
     .quad   0x002f98000000ffff
     .quad   0x000f92000000ffff
+    .quad   0x000f98000000ffff
+    .quad   0x000f92000000ffff
+    .quad   0x002f98000000ffff
 
 gdt64_ptr:
 	.short	gdt64_ptr - gdt64 - 1

@@ -13,6 +13,8 @@ choice
 config ARCH_INTEL64
 	bool "intel64"
 	select ARCH_X86_HAVE_64BIT
+	select ARCH_HAVE_MPU
+	select ARCH_USE_MPU
 	---help---
 		Intel x86_64 architecture
 

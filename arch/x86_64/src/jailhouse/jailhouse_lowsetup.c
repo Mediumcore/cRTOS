@@ -77,6 +77,10 @@ void up_lowsetup(void)
    * 2MiB of physical ram to virtual ram
    */
 
+#ifdef CONFIG_LIB_SYSCALL
+    enable_syscall();
+#endif
+
   /* Early serial driver initialization */
 
 #ifdef USE_EARLYSERIALINIT

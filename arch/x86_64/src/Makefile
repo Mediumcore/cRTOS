@@ -80,6 +80,10 @@ COBJS = $(CSRCS:.c=$(OBJEXT))
 SRCS = $(ASRCS) $(CSRCS)
 OBJS = $(AOBJS) $(COBJS)
 
+KBIN = libkarch$(LIBEXT)
+UBIN = libuarch$(LIBEXT)
+BIN  = libarch$(LIBEXT)
+
 # Override in Make.defs if linker is not 'ld'
 
 LDSTARTGROUP ?= --start-group
@@ -136,8 +140,11 @@ $(AOBJS) $(HEAD_OBJ): %$(OBJEXT): %.S
 $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
-libarch$(LIBEXT): $(OBJS)
+$(BIN) $(KBIN): $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
+
+$(UBIN): $(UOBJS)
+	$(call ARCHIVE, $@, $(UOBJS))
 
 board/libboard$(LIBEXT):
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
