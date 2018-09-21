@@ -60,4 +60,5 @@ MEMORY
 
     kram (rwx)      : ORIGIN = 0x00000000, LENGTH = 64M
     /*uram (rwx)      : ORIGIN = 0x00F00000, LENGTH = 48M*/
+    ivshmem (rw)    : ORIGIN = 0x04001000, LENGTH = 1152K
 }

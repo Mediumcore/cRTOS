@@ -296,6 +296,15 @@ config RAW_BINARY
 		different loaders using the GNU objcopy program.  This option
 		should not be selected if you are not using the GNU toolchain.
 
+config RAW_BINARY_EMBED_SYSMAP
+	bool "Embedded the system map into raw binary"
+	default n
+	depends on RAW_BINARY 
+	---help---
+		Create the nuttx.bin in the raw binary format that is used with many
+		different loaders using the GNU objcopy program.  This option
+		should not be selected if you are not using the GNU toolchain.
+
 menuconfig UBOOT_UIMAGE
 	bool "U-Boot uImage"
 	select RAW_BINARY

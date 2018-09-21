@@ -442,6 +442,17 @@ ifeq ($(CONFIG_RAW_BINARY),y)
 	@echo "CP: $(NUTTXNAME).bin"
 	$(Q) $(OBJCOPY) $(OBJCOPYARGS) -O binary $(BIN) $(NUTTXNAME).bin
 endif
+ifeq ($(CONFIG_RAW_BINARY_EMBED_SYSMAP),y)
+	@echo "DD: System.map > $(NUTTXNAME).bin"
+	readelf -a $(BIN) | grep system_map
+	cp $(NUTTXNAME).bin $(NUTTXNAME).sysmap.bin
+	$(eval map_addr = $(shell readelf -a $(BIN) | grep system_map | awk '{print $$2}'))
+	echo $(map_addr)
+	$(eval map_addr_dec = $(shell printf "%d" 0x$(map_addr)))
+	dd if=System.map of=$(NUTTXNAME).sysmap.bin bs=1 seek=$(map_addr_dec) oflag=seek_bytes conv=notrunc
+
+
+endif
 ifeq ($(CONFIG_UBOOT_UIMAGE),y)
 	@echo "MKIMAGE: uImage"
 	$(Q) mkimage -A $(CONFIG_ARCH) -O linux -C none -T kernel -a $(CONFIG_UIMAGE_LOAD_ADDRESS) \

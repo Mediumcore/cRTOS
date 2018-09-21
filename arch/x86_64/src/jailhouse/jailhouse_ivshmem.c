@@ -283,6 +283,12 @@ void up_ivshmem(void)
         return;
     }
 
+    char buf[64];
+    memcpy(devs->shmem + 0x100000, g_system_map, 0x20000);
+    memcpy(buf, devs->shmem + 0x100000, 63);
+    buf[63] = '\0';
+    printf("SYSMAP: %s\n", buf);
+
     sem_init(&ivshmem_input_sem, 0, 0);
 
     ivshmem_initialized = 1;
