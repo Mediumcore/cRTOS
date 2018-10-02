@@ -96,22 +96,22 @@ static void map_shmem_and_bars(struct ivshmem_dev_data *d)
     int cap = pci_find_cap(d->bdf, PCI_CAP_MSIX);
 
     if (cap < 0) {
-        printf("IVSHMEM ERROR: device is not MSI-X capable\n");
+        _err("device is not MSI-X capable\n");
         return;
     }
 
     d->shmemsz = pci_cfg_read64(d->bdf, IVSHMEM_CFG_SHMEM_SZ);
     d->shmem = (void *)pci_cfg_read64(d->bdf, IVSHMEM_CFG_SHMEM_PTR);
 
-    printf("IVSHMEM: shmem is at %p\n", d->shmem);
+    _info("shmem is at %p\n", d->shmem);
     d->registers = (uint32_t *)((uint64_t)(d->shmem + d->shmemsz + PAGE_SIZE - 1)
         & PAGE_MASK);
     pci_cfg_write64(d->bdf, PCI_CFG_BAR, (uint64_t)d->registers);
-    printf("IVSHMEM: bar0 is at %p\n", d->registers);
+    _info("bar0 is at %p\n", d->registers);
     d->bar2sz = get_bar_sz(d->bdf, 2);
     d->msix_table = (uint32_t *)((uint64_t)d->registers + PAGE_SIZE);
     pci_cfg_write64(d->bdf, PCI_CFG_BAR + 16, (uint64_t)d->msix_table);
-    printf("IVSHMEM: bar2 is at %p\n", d->msix_table);
+    _info("bar2 is at %p\n", d->msix_table);
 
     pci_write_config(d->bdf, PCI_CFG_COMMAND,
              (PCI_CMD_MEM | PCI_CMD_MASTER), 2);
@@ -124,7 +124,7 @@ static int get_ivpos(struct ivshmem_dev_data *d)
 
 static void send_irq(struct ivshmem_dev_data *d)
 {
-    /*printf("IVSHMEM: %02x:%02x.%x sending IRQ\n",*/
+    /*_info("IVSHMEM: %02x:%02x.%x sending IRQ\n",*/
            /*d->bdf >> 8, (d->bdf >> 3) & 0x1f, d->bdf & 0x3);*/
     mmio_write32(d->registers + 3, 1);
 }
@@ -133,7 +133,7 @@ static int ivshmem_irq_handler(int irq, uint32_t *regs, void *arg)
 {
     int svalue;
 
-    /*printf("IVSHMEM: got interrupt ... %d\n", irq_counter++);*/
+    /*_info("IVSHMEM: got interrupt ... %d\n", irq_counter++);*/
     sem_getvalue(&ivshmem_input_sem, &svalue);
     if(svalue < 0){
         sem_post(&ivshmem_input_sem);
@@ -254,14 +254,14 @@ void up_ivshmem(void)
 
     while ((ndevices < MAX_NDEV) &&
            (-1 != (bdf = pci_find_device(VENDORID, DEVICEID, bdf)))) {
-        printf("IVSHMEM: Found %04x:%04x at %02x:%02x.%x\n",
+        _info("Found %04x:%04x at %02x:%02x.%x\n",
                pci_read_config(bdf, PCI_CFG_VENDOR_ID, 2),
                pci_read_config(bdf, PCI_CFG_DEVICE_ID, 2),
                bdf >> 8, (bdf >> 3) & 0x1f, bdf & 0x3);
         class_rev = pci_read_config(bdf, 0x8, 4);
         if (class_rev != (PCI_DEV_CLASS_OTHER << 24 |
                   JAILHOUSE_SHMEM_PROTO_UNDEFINED << 8)) {
-            printf("IVSHMEM: class/revision %08x, not supported "
+            _info("class/revision %08x, not supported "
                    "skipping device\n", class_rev);
             bdf++;
             continue;
@@ -270,7 +270,7 @@ void up_ivshmem(void)
         d = devs + ndevices - 1;
         d->bdf = bdf;
         map_shmem_and_bars(d);
-        printf("IVSHMEM: mapped the bars got position %d\n",
+        _info("mapped the bars got position %d\n",
             get_ivpos(d));
         //XXX: conflict with pre-existing x86 IRQ number?
         (void)irq_attach(IRQ0 + ndevices, (xcpt_t)ivshmem_irq_handler, NULL);
@@ -279,15 +279,9 @@ void up_ivshmem(void)
     }
 
     if (!ndevices) {
-        printf("IVSHMEM: No PCI devices found .. nothing to do.\n");
+        _warn("No PCI devices found .. nothing to do.\n");
         return;
     }
-
-    char buf[64];
-    memcpy(devs->shmem + 0x100000, g_system_map, 0x20000);
-    memcpy(buf, devs->shmem + 0x100000, 63);
-    buf[63] = '\0';
-    printf("SYSMAP: %s\n", buf);
 
     sem_init(&ivshmem_input_sem, 0, 0);
 
