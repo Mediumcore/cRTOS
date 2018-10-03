@@ -144,6 +144,15 @@ start32:
 	or $X86_CR4_PAE,%eax
 	mov %eax,%cr4
 
+    // Enable SSE and AVX
+    mov %cr0, %eax
+    and $0xFFFB, %ax
+    or $0x2, %eax 
+    mov %eax, %cr0
+    mov %cr4, %eax
+    or $0x600, %eax 
+    mov %eax, %cr4
+
     // Load the level 4 page table
     // Level 2 and 3 are set at build time in assembelly
     // 2MiB huge page table is used
@@ -218,6 +227,11 @@ clear_bss:
     inc %rbx
     cmp %rbx, %rdx
     jne clear_bss
+
+    //xor %rcx, %rcx
+    //xgetbv 
+    //or 7, %eax 
+    //xsetbv 
 
     // Properly setup RSP to idle stack
     mov $(idle_stack + CONFIG_IDLETHREAD_STACKSIZE), %rsp
