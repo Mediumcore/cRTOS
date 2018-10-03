@@ -82,6 +82,7 @@ void vsyslog(int priority, FAR const IPTR char *fmt, va_list ap)
       va_copy(ap_copy, ap);
 
       (void)nx_vsyslog(priority, fmt, &ap_copy);
+      va_end(ap_copy);
     }
 }
 
