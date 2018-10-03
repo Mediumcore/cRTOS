@@ -283,6 +283,8 @@ void up_ivshmem(void)
         return;
     }
 
+    memcpy(devs->shmem + 0x100000, g_system_map, 0x20000);
+
     sem_init(&ivshmem_input_sem, 0, 0);
 
     ivshmem_initialized = 1;
