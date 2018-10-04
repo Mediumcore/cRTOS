@@ -114,45 +114,49 @@
  * ISR/IRQ interrupt processing.
  */
 
+#define XCPTCONTEXT_XMM_AREA_SIZE 512
+#define XMMAREA_OFFSET  XCPTCONTEXT_XMM_AREA_SIZE / 8
+
 // data segments
-#define REG_FS            (0)  /* "    " "" "     " "" "       " "        " */
-#define REG_GS            (1)  /* "    " "" "     " "" "       " "        " */
-#define REG_ES            (2)  /* "    " "" "     " "" "       " "        " */
-#define REG_DS            (3)  /* Data segment selector */
+#define REG_ALIGN         (0 + XMMAREA_OFFSET)  /* "    " "" "     " "" "       " "        " */
+#define REG_FS            (1 + XMMAREA_OFFSET)  /* "    " "" "     " "" "       " "        " */
+#define REG_GS            (2 + XMMAREA_OFFSET)  /* "    " "" "     " "" "       " "        " */
+#define REG_ES            (3 + XMMAREA_OFFSET)  /* "    " "" "     " "" "       " "        " */
+#define REG_DS            (4 + XMMAREA_OFFSET)  /* Data segment selector */
 
 // Remaining regs
-#define REG_RAX           (4)  /* "   " "" "   " */
-#define REG_RBX           (5)  /* "   " "" "   " */
-#define REG_RBP           (6)  /* "   " "" "   " */
-#define REG_R10           (7)  /* "   " "" "   " */
-#define REG_R11           (8)  /* "   " "" "   " */
-#define REG_R12           (9)  /* "   " "" "   " */
-#define REG_R13          (10)  /* "   " "" "   " */
-#define REG_R14          (11)  /* "   " "" "   " */
-#define REG_R15          (12)  /* "   " "" "   " */
+#define REG_RAX           (5 + XMMAREA_OFFSET)  /* "   " "" "   " */
+#define REG_RBX           (6 + XMMAREA_OFFSET)  /* "   " "" "   " */
+#define REG_RBP           (7 + XMMAREA_OFFSET)  /* "   " "" "   " */
+#define REG_R10           (8 + XMMAREA_OFFSET)  /* "   " "" "   " */
+#define REG_R11           (9 + XMMAREA_OFFSET)  /* "   " "" "   " */
+#define REG_R12          (10 + XMMAREA_OFFSET)  /* "   " "" "   " */
+#define REG_R13          (11 + XMMAREA_OFFSET)  /* "   " "" "   " */
+#define REG_R14          (12 + XMMAREA_OFFSET)  /* "   " "" "   " */
+#define REG_R15          (13 + XMMAREA_OFFSET)  /* "   " "" "   " */
 
 // ABI calling convention
-#define REG_R9           (13)  /* "   " "" "   " */
-#define REG_R8           (14)  /* "   " "" "   " */
-#define REG_RCX          (15)  /* "   " "" "   " */
-#define REG_RDX          (16)  /* "   " "" "   " */
-#define REG_RSI          (17)  /* "   " "" "   " */
-#define REG_RDI          (18)  /* "   " "" "   " */
+#define REG_R9           (14 + XMMAREA_OFFSET)  /* "   " "" "   " */
+#define REG_R8           (15 + XMMAREA_OFFSET)  /* "   " "" "   " */
+#define REG_RCX          (16 + XMMAREA_OFFSET)  /* "   " "" "   " */
+#define REG_RDX          (17 + XMMAREA_OFFSET)  /* "   " "" "   " */
+#define REG_RSI          (18 + XMMAREA_OFFSET)  /* "   " "" "   " */
+#define REG_RDI          (19 + XMMAREA_OFFSET)  /* "   " "" "   " */
 
 // IRQ saved
-#define REG_ERRCODE      (19)  /* Error code (NOTE 2) */
-#define REG_RIP          (20)  /* Pushed by process on interrupt processing */
-#define REG_CS           (21)  /* "    " "" "     " "" "       " "        " */
-#define REG_RFLAGS       (22)  /* "    " "" "     " "" "       " "        " */
-#define REG_RSP          (23)  /* "    " "" "     " "" "       " "        " */
-#define REG_SS           (24)  /* "    " "" "     " "" "       " "        " */
+#define REG_ERRCODE      (20 + XMMAREA_OFFSET)  /* Error code (NOTE 2) */
+#define REG_RIP          (21 + XMMAREA_OFFSET)  /* Pushed by process on interrupt processing */
+#define REG_CS           (22 + XMMAREA_OFFSET)  /* "    " "" "     " "" "       " "        " */
+#define REG_RFLAGS       (23 + XMMAREA_OFFSET)  /* "    " "" "     " "" "       " "        " */
+#define REG_RSP          (24 + XMMAREA_OFFSET)  /* "    " "" "     " "" "       " "        " */
+#define REG_SS           (25 + XMMAREA_OFFSET)  /* "    " "" "     " "" "       " "        " */
 /*
  * NOTE 2: This is not really state data.  Rather, this is just a convenient
  *   way to pass parameters from the interrupt handler to C code.
  */
 
-#define XCPTCONTEXT_REGS (25)
-#define XCPTCONTEXT_SIZE (8 * XCPTCONTEXT_REGS)
+#define XCPTCONTEXT_REGS (26 + XCPTCONTEXT_XMM_AREA_SIZE / 8)
+#define XCPTCONTEXT_SIZE (8 * XCPTCONTEXT_REGS + XCPTCONTEXT_XMM_AREA_SIZE)
 
 /****************************************************************************
  * Public Types

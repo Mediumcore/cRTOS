@@ -110,6 +110,9 @@ up_saveusercontext:
 	movq    %r14, (8*REG_R14)(%rdi)
 	movq    %r15, (8*REG_R15)(%rdi)
 
+    // save xmm registers
+    fxsaveq (%rdi)
+
 	/* Save the value of SP as will be at the time of the IRET that will
 	 * appear to be the return from this function.
 	 *

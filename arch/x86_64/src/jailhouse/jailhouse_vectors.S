@@ -261,6 +261,13 @@ isr_common:
 	mov		%fs, %ax			/* Lower 16-bits of rax. */
 	pushq	%rax				/* Save the data segment descriptor */
 
+    /* align to 16-bytes boundary */
+    leaq -8(%rsp), %rsp
+
+    /* save xmm registers */
+    leaq -512(%rsp), %rsp
+    fxsaveq (%rsp)
+
 	/* The current value of the SP points to the beginning of the state save
 	 * structure.  Save that in RDI as the input parameter to isr_handler.
 	 */
@@ -309,6 +316,13 @@ irq_common:
 	mov		%fs, %ax			/* Lower 16-bits of rax. */
 	pushq	%rax				/* Save the data segment descriptor */
 
+    /* align to 16-bytes boundary */
+    leaq -8(%rsp), %rsp
+
+    /* save xmm registers */
+    leaq -512(%rsp), %rsp
+    fxsaveq (%rsp)
+
 	/* The current value of the SP points to the beginning of the state save
 	 * structure.  Save that in RDI as the input parameter to irq_handler.
 	 */
@@ -338,6 +352,10 @@ irq_common:
 	call	up_fullcontextrestore
 
 .Lnoswitch:
+    fxrstorq (%rsp)
+    leaq 512(%rsp), %rsp
+    leaq 8(%rsp), %rsp
+
     popq   %rax
     mov    %fs, %ax
     popq   %rax

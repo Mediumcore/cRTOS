@@ -152,6 +152,13 @@ start32:
     mov %cr4, %eax
     or $0x600, %eax 
     mov %eax, %cr4
+    // Mas some SSE precision exception
+    // Setup MXCSR
+    //stmxcsr mxcsr_mem
+    //mov mxcsr_mem, %ecx
+    //mov $500, %eax
+    //vmcall
+    ldmxcsr mxcsr_mem
 
     // Load the level 4 page table
     // Level 2 and 3 are set at build time in assembelly
@@ -194,6 +201,9 @@ gdt64:
 gdt64_ptr:
 	.short	gdt64_ptr - gdt64 - 1
 	.long	gdt64
+
+mxcsr_mem:
+    .long   0x00001f80
 
 
     .code64

@@ -114,7 +114,6 @@ up_fullcontextrestore:
 	 *
 	 */
 
-
 	movq    (8*REG_SS)(%rdi), %rbx
 	push    %rbx
 	movq    (8*REG_RSP)(%rdi), %rbx
@@ -160,6 +159,9 @@ up_fullcontextrestore:
 	mov		(8*REG_ES)(%rdi), %es
 	mov		(8*REG_GS)(%rdi), %gs
 	mov		(8*REG_FS)(%rdi), %fs
+
+    /* restore xmm registers */
+    fxrstorq (%rdi)
 
 	/* Restore the correct value of EAX and then return */
 
