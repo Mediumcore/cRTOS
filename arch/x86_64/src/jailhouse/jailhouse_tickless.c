@@ -319,6 +319,8 @@ void up_alarm_expire(void)
   up_timer_gettime(&now);
 
   sched_alarm_expiration(&now);
+
+  return;
 }
 
 #endif /* CONFIG_SCHED_TICKLESS_ALARM */
