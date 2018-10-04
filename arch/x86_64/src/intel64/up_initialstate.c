@@ -85,6 +85,9 @@ void up_initial_state(struct tcb_s *tcb)
 
   memset(xcp, 0, sizeof(struct xcptcontext));
 
+  /* set the MXCSR to 1f80 */
+  xcp->regs[3]      = (uint64_t)0x0000000000001f80;
+
   /* Save the initial stack pointer... the value of the stackpointer before
    * the "interrupt occurs."
    */
