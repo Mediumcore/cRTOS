@@ -90,6 +90,7 @@ void up_initial_state(struct tcb_s *tcb)
    */
 
   xcp->regs[REG_RSP]      = (uint64_t)tcb->adj_stack_ptr;
+  xcp->regs[REG_RBP]      = (uint64_t)tcb->adj_stack_ptr;
 
   /* Save the task entry point */
 
