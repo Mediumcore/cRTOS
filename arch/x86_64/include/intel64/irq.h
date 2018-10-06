@@ -162,9 +162,17 @@
  * Public Types
  ****************************************************************************/
 
-/* This struct defines the way the registers are stored */
 
 #ifndef __ASSEMBLY__
+enum ioapic_trigger_mode {
+ TRIGGER_RISING_EDGE = 0,
+ TRIGGER_FALLING_EDGE = (1 << 13),
+ TRIGGER_LEVEL_ACTIVE_HIGH = 1 << 15,
+ TRIGGER_LEVEL_ACTIVE_LOW = (1 << 15) | (1 << 13),
+};
+
+
+/* This struct defines the way the registers are stored */
 struct xcptcontext
 {
   /* The following function pointer is non-zero if there are pending signals
@@ -278,6 +286,8 @@ static inline unsigned int cpu_id(void)
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+void up_ioapic_pin_set_vector(unsigned int pin, enum ioapic_trigger_mode trigger_mode, unsigned int vector);
 
 #ifdef __cplusplus
 #define EXTERN extern "C"

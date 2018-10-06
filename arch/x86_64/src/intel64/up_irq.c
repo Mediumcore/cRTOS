@@ -55,11 +55,24 @@
 #include "jailhouse.h"
 
 /****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define X2APIC_SPIV		0x80f
+
+#define IOAPIC_BASE             ((void *)0xfec00000)
+#define IOAPIC2_BASE             ((void *)0xfec00000)
+#define IOAPIC_REG_INDEX        0x00
+#define IOAPIC_REG_DATA         0x10
+#define IOAPIC_REDIR_TBL_START  0x10
+
+/****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
 static void idt_outb(uint8_t val, uint16_t addr) noinline_function;
 static void up_apic_init(void);
+static void up_ioapic_init(void);
 static void up_idtentry(unsigned int index, uint64_t base, uint16_t sel,
                         uint8_t flags);
 static inline void up_idtinit(void);
@@ -94,6 +107,26 @@ static void idt_outb(uint8_t val, uint16_t addr)
 }
 
 /****************************************************************************
+ * Name: up_ioapic_pin_set_vector
+ *
+ * Description:
+ *  Bind a hardware IRQ number to APIC IRQ number
+ *
+ ****************************************************************************/
+
+void up_ioapic_pin_set_vector(unsigned int pin, enum ioapic_trigger_mode trigger_mode, unsigned int vector)
+{
+  mmio_write32(IOAPIC_BASE + IOAPIC_REG_INDEX,
+    IOAPIC_REDIR_TBL_START + pin * 2 + 1);
+  mmio_write32(IOAPIC_BASE + IOAPIC_REG_DATA, cpu_id() << (56 - 32));
+
+  mmio_write32(IOAPIC_BASE + IOAPIC_REG_INDEX,
+    IOAPIC_REDIR_TBL_START + pin * 2);
+  mmio_write32(IOAPIC_BASE + IOAPIC_REG_DATA, trigger_mode | vector);
+
+}
+
+/****************************************************************************
  * Name: up_init_apic
  *
  * Description:
@@ -101,10 +134,23 @@ static void idt_outb(uint8_t val, uint16_t addr)
  *
  ****************************************************************************/
 
-#define X2APIC_SPIV		0x80f
 static void up_apic_init(void)
 {
-	write_msr(X2APIC_SPIV, 0x1ff);
+  write_msr(X2APIC_SPIV, 0x1ff);
+}
+
+/****************************************************************************
+ * Name: up_init_ioapic
+ *
+ * Description:
+ *  Initialize the IOAPIC
+ *
+ ****************************************************************************/
+
+static void up_ioapic_init(void)
+{
+    // Already initialized the memory map in head.S using assembly
+    return;
 }
 
 /****************************************************************************
@@ -153,10 +199,6 @@ static inline void up_idtinit(void)
   idt_ptr.base  = (uint64_t)&idt_entries;
 
   memset(&idt_entries, 0, sizeof(struct idt_entry_s)*256);
-
-  /* Initialize the APIC */
-
-  up_apic_init();
 
   /* Set each ISR/IRQ to the appropriate vector with selector=8 and with
    * 32-bit interrupt gate.  Interrupt gate (vs. trap gate) will leave
@@ -231,6 +273,14 @@ void up_irqinitialize(void)
   /* currents_regs is non-NULL only while processing an interrupt */
 
   g_current_regs = NULL;
+
+  /* Initialize the APIC */
+
+  up_apic_init();
+
+  /* Initialize the IOAPIC */
+
+  up_ioapic_init();
 
   /* Initialize the IDT */
 

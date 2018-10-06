@@ -229,6 +229,15 @@ pd_loop:
     dec %rcx
     jnz pd_loop
 
+    //Map ioapic on vmm
+    mov $0x1f6, %rax
+    mov $8, %rbx
+    mul %rbx
+    lea pd_ioapic, %rdi
+    add %rax, %rdi
+    mov $0xfec00093, %rax
+    mov %rax, 0(%rdi)
+
     //clear out bss section
     mov $_sbss, %rbx
     mov $_ebss, %rdx
@@ -276,10 +285,20 @@ pml4:
 	.align(4096)
 pdpt:
 	.quad	pd + 0x003
+	.quad	0x0000000000000000
+	.quad	0x0000000000000000
+	.quad	pd_ioapic + 0x003
 
 	.align(4096)
 pd:
 	.fill 64, 8, 0x83
+	.fill 64, 8, 0x80
+	.fill 128, 8, 0x80
+	.fill 256, 8, 0x80
+
+	.align(4096)
+pd_ioapic:
+	.fill 512, 8, 0x80
 	.align(4096)
 
 /****************************************************************************
