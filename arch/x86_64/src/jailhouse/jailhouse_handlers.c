@@ -175,6 +175,8 @@ uint64_t *isr_handler(uint64_t *regs, uint64_t irq)
 #else
   uint64_t *ret;
   int i, j;
+  uint64_t mxcsr;
+  asm volatile ("stmxcsr %0"::"m"(mxcsr):"memory");
   printf("----------------CUT HERE-----------------\n");
   printf("PANIC:\n");
   printf("Exception %lld occurred with error code %lld:\n", irq, regs[REG_ERRCODE]);
@@ -183,6 +185,7 @@ uint64_t *isr_handler(uint64_t *regs, uint64_t irq)
   printf("RIP: %016llx, RSP: %016llx\n", regs[REG_RIP], regs[REG_RSP]);
   printf("RBP: %016llx, RFLAGS: %016llx\n", regs[REG_RBP], regs[REG_RFLAGS]);
   printf("MSR_STAR: %016llx, MSR_LSTAR: %016llx\n", read_msr(0xc0000081), read_msr(0xc0000082));
+  printf("MXCSR: %016llx\n", mxcsr);
   printf("Selector Dump:\n");
   printf("CS: %016llx, DS: %016llx, SS: %016llx\n", regs[REG_CS], regs[REG_DS], regs[REG_SS]);
   printf("Register Dump:\n");
