@@ -220,6 +220,12 @@ static ssize_t ivshmem_read(file_t *filep, FAR char *buf, size_t buflen)
 {
     int size = MIN(buflen, devs->shmemsz - seek_address);
 
+    printf("READ: %x %x %x %x..\n",
+            seek_address,
+            *((uint32_t*)(devs->shmem + seek_address)),
+            *((uint32_t*)(devs->shmem + seek_address) + 1),
+            *((uint32_t*)(devs->shmem + seek_address) + 2),
+            *((uint32_t*)(devs->shmem + seek_address) + 3));
     memcpy(buf, devs->shmem + seek_address, size);
 
     seek_address += size;
