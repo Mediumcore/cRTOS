@@ -176,6 +176,7 @@ uint64_t *isr_handler(uint64_t *regs, uint64_t irq)
   uint64_t *ret;
   int i, j;
   uint64_t mxcsr;
+  uint64_t rbp;
   asm volatile ("stmxcsr %0"::"m"(mxcsr):"memory");
   printf("----------------CUT HERE-----------------\n");
   printf("PANIC:\n");
@@ -199,6 +200,17 @@ uint64_t *isr_handler(uint64_t *regs, uint64_t irq)
     }
     printf("  %016llx ", *((uint64_t*)(regs[REG_RSP] + i * 8)));
     printf("\n");
+  }
+  printf("Frame Dump (64 bytes):\n");
+  rbp = regs[REG_RBP];
+  for(i = 0; i < 8; i++){
+    printf("  %016llx ", *((uint64_t*)(rbp)));
+    printf("  %016llx ", *((uint64_t*)(rbp + 1 * 8)));
+    printf("\n");
+    if(rbp)
+        rbp = *(uint64_t*)rbp;
+    else
+        break;
   }
   printf("-----------------------------------------\n");
 
