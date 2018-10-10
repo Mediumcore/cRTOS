@@ -128,11 +128,9 @@ void up_alarm_expire(void);
  *
  ****************************************************************************/
 
-void x86_64_timer_initialize(void)
+void x86_64_timer_calibrate_freq(void)
 {
   unsigned long ecx;
-
-  (void)irq_attach(IRQ0, (xcpt_t)up_alarm_expire, NULL);
 
   asm volatile("cpuid" : "=c" (ecx) : "a" (1)
       : "rbx", "rdx", "memory");
@@ -145,6 +143,11 @@ void x86_64_timer_initialize(void)
   }
 
   g_start_tsc = rdtsc();
+}
+
+void x86_64_timer_initialize(void)
+{
+  (void)irq_attach(IRQ0, (xcpt_t)up_alarm_expire, NULL);
 
   /* Enable TSC Deadline interrupt */
   write_msr(X2APIC_LVTT, IRQ0 | LVTT_TSC_DEADLINE);

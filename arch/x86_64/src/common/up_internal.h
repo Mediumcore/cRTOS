@@ -239,6 +239,7 @@ void up_wdtinit(void);
 
 /* Defined in xyz_timerisr.c */
 
+void x86_64_timer_calibrate_freq(void);
 void x86_64_timer_initialize(void);
 
 /* Defined in board/up_network.c */

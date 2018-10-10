@@ -77,6 +77,10 @@ void up_lowsetup(void)
    * 2MiB of physical ram to virtual ram
    */
 
+#ifdef CONFIG_SCHED_TICKLESS
+    x86_64_timer_calibrate_freq();
+#endif
+
 #ifdef CONFIG_LIB_SYSCALL
     enable_syscall();
 #endif
