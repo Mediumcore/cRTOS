@@ -192,7 +192,7 @@ struct xcptcontext
 
   /* Register save area */
 
-   uint64_t regs[XCPTCONTEXT_REGS];
+   uint64_t regs[XCPTCONTEXT_REGS] __attribute__((aligned (16)));
 };
 #endif
 
