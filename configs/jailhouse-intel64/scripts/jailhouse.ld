@@ -39,14 +39,22 @@ SECTIONS
 {
 	. = 0x00000000;
 
-	.text : {
+	.loader : {
+		*(.loader .loader.*)
+	}
+
+	. = 0x20000000;
+
+	.text :
+    {
 		_stext = ABSOLUTE(.);
 		*(.text .text.*)
 		*(.gnu.linkonce.t.*)
 		_etext = ABSOLUTE(.);
 	}
 
-	.text ALIGN (0x1000) : {
+	.text ALIGN (0x1000) : 
+    {
 		_srodata = ABSOLUTE(.);
 		*(.rodata .rodata.*)
 		*(.fixup)
@@ -56,10 +64,12 @@ SECTIONS
 		*(.got)
 		*(.gcc_except_table)
 		*(.gnu.linkonce.r.*)
+        *(.eh_frame)
 		_erodata = ABSOLUTE(.);
 	}
 
-	.data ALIGN (0x1000) : {
+	.data ALIGN (0x1000) : 
+    {
 		_sdata = ABSOLUTE(.);
 		*(.data .data.*)
 		*(.gnu.linkonce.d.*)
@@ -67,7 +77,8 @@ SECTIONS
 		_edata = ABSOLUTE(.);
 	}
 
-	.bss : {
+	.bss : 
+    {
 		_sbss = ABSOLUTE(.);
 		*(.bss .bss.*)
 		*(.gnu.linkonce.b.*)

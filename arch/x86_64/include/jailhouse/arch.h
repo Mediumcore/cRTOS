@@ -49,7 +49,8 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-#define COMM_REGION_BASE 0x4000000
+//This should account we mapped kernel to upper 1GB space
+#define COMM_REGION_BASE 0x40000000
 
 #define JAILHOUSE_MSG_NONE			0
 

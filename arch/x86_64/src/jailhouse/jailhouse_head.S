@@ -75,6 +75,7 @@
  * Public Symbols
  ****************************************************************************/
 	.globl  __reset_entry
+	.globl  __pmode_entry
 	.global	__start						/* Making entry point visible to linker */
 	.global	os_start					/* os_start is defined elsewhere */
 	.global	up_lowsetup					/* up_lowsetup is defined elsewhere */
@@ -107,7 +108,7 @@
     .set    CHECKSUM, -(MAGIC + FLAGS)/* Checksum required */
 
 	.code16
-	.section ".text", "ax"
+	.section ".loader", "ax"
 
     .type   __reset_entry, @function
 
@@ -122,7 +123,7 @@ __reset_entry:
 	mov %eax,%cr0
 
     // Long jump into protected mode
-	ljmpl $0x8,$start32
+	ljmpl $0x8,$(start32)
 
     // Loader GDT and GDTR
 	.align(16)
@@ -136,33 +137,49 @@ loader_gdt_ptr:
 	.short	loader_gdt_ptr - loader_gdt - 1
 	.long	loader_gdt
 
+    .size	__reset_entry, . - __reset_entry
 
 	.code32
+	.section ".text", "ax"
+
+    .type   __pmode_entry, @function
+__pmode_entry:
 start32:
+    mov $0x10, %ax
+    mov %ax, %ss
+    mov %ax, %ds
+
+    // initialize rest of the page directory
+    // Popluate the whole lower 1GB on 1:1 mapping
+    lea pd, %edi
+    mov $0x00000083, %eax
+    mov $520, %ecx
+
+pd_loop: 
+    mov %eax, 0(%edi)
+    add $0x00200000, %eax
+    add $8, %edi
+    dec %ecx
+    jnz pd_loop
+
+    //Map ioapic on vmm
+    mov $0x1f6, %eax
+    mov $8, %ebx
+    mul %ebx
+    lea pd_ioapic, %edi
+    add %eax, %edi
+    mov $0xfec00093, %eax
+    mov %eax, 0(%edi)
+
     // Enable PAE
 	mov %cr4,%eax
 	or $X86_CR4_PAE,%eax
 	mov %eax,%cr4
 
-    // Enable SSE and AVX
-    mov %cr0, %eax
-    and $0xFFFB, %ax
-    or $0x2, %eax 
-    mov %eax, %cr0
-    mov %cr4, %eax
-    or $0x600, %eax 
-    mov %eax, %cr4
-    // Mas some SSE precision exception
-    // Setup MXCSR
-    //stmxcsr mxcsr_mem
-    //mov mxcsr_mem, %ecx
-    //mov $500, %eax
-    //vmcall
-    ldmxcsr mxcsr_mem
-
     // Load the level 4 page table
     // Level 2 and 3 are set at build time in assembelly
     // 2MiB huge page table is used
+    // Kernel mapped to 1GB HiMem
 	mov $pml4,%eax
 	mov %eax,%cr3
 
@@ -176,7 +193,7 @@ start32:
 	or $EFER_LME,%eax
 	wrmsr
 
-    // Enable related Bits in CR0
+    // Enable paging related bits in CR0
 	mov $(X86_CR0_PG | X86_CR0_WP | X86_CR0_PE),%eax
 	mov %eax,%cr0
 
@@ -217,26 +234,17 @@ start64:
     mov %ax, %fs
     mov %ax, %gs
 
-    // initialize rest of the page directory
-    lea pd, %rdi
-    mov $0x00000083, %rax
-    mov $64, %rcx
-
-pd_loop: 
-    mov %rax, 0(%rdi)
-    add $0x00200000, %rax
-    add $8, %rdi
-    dec %rcx
-    jnz pd_loop
-
-    //Map ioapic on vmm
-    mov $0x1f6, %rax
-    mov $8, %rbx
-    mul %rbx
-    lea pd_ioapic, %rdi
-    add %rax, %rdi
-    mov $0xfec00093, %rax
-    mov %rax, 0(%rdi)
+    // Enable SSE and AVX
+    mov %cr0, %rax
+    and $0xFFFB, %ax
+    or $0x2, %rax 
+    mov %rax, %cr0
+    mov %cr4, %rax
+    or $0x600, %rax 
+    mov %rax, %cr4
+    // Mas some SSE precision exception
+    // Setup MXCSR
+    ldmxcsr mxcsr_mem
 
     //clear out bss section
     mov $_sbss, %rbx
@@ -247,17 +255,14 @@ clear_bss:
     cmp %rbx, %rdx
     jne clear_bss
 
-    //xor %rcx, %rcx
-    //xgetbv 
-    //or 7, %eax 
-    //xsetbv 
-
     // Properly setup RSP to idle stack
-    mov $(idle_stack + CONFIG_IDLETHREAD_STACKSIZE), %rsp
+    mov $idle_stack, %rbx
+    add $CONFIG_IDLETHREAD_STACKSIZE, %rbx
+    mov %rbx, %rsp
 
     // Finally, we can start the OS
     jmp __start
-	.size	__reset_entry, . - __reset_entry
+	.size	__pmode_entry, . - __pmode_entry
 
     .type   __start, @function
 
@@ -285,13 +290,20 @@ pml4:
 	.align(4096)
 pdpt:
 	.quad	pd + 0x003
-	.quad	0x0000000000000000
+	.quad	pd_ivshmem + 0x003
 	.quad	0x0000000000000000
 	.quad	pd_ioapic + 0x003
 
 	.align(4096)
 pd:
 	.fill 64, 8, 0x83
+	.fill 64, 8, 0x80
+	.fill 128, 8, 0x80
+	.fill 256, 8, 0x80
+
+	.align(4096)
+pd_ivshmem:
+	.fill 64, 8, 0x80
 	.fill 64, 8, 0x80
 	.fill 128, 8, 0x80
 	.fill 256, 8, 0x80
