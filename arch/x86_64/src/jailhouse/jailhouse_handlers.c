@@ -200,21 +200,32 @@ uint64_t *isr_handler(uint64_t *regs, uint64_t irq)
   printf("RAX: %016llx, RBX: %016llx\n", regs[REG_RAX], regs[REG_RBX]);
   printf("RCX: %016llx, RDX: %016llx\n", regs[REG_RCX], regs[REG_RDX]);
   printf("RDI: %016llx, RSI: %016llx\n", regs[REG_RDI], regs[REG_RSI]);
-  printf("Stack Dump (64 bytes):\n");
-  for(i = 0; i < 8; i++){
+  printf("Stack Dump (+-128 bytes):\n");
+  for(i = 0; i < 16; i++){
+    printf(" %016llx   ", (regs[REG_RSP] + i * 8 - 128));
     for(j = 0; j < 8; j++){
-      printf("%02x ", *((uint8_t*)(regs[REG_RSP] + i * 8 + j)));
+      printf("%02x ", *((uint8_t*)(regs[REG_RSP] + i * 8 + j - 128)));
     }
-    printf("  %016llx ", *((uint64_t*)(regs[REG_RSP] + i * 8)));
+    printf("  %016llx   ", *((uint64_t*)(regs[REG_RSP] + i * 8 - 128)));
+    for(j = 0; j < 8; j++){
+      if(!((*((uint8_t*)(regs[REG_RSP] + i * 8 + j - 128)) > 126) || (*((uint8_t*)(regs[REG_RSP] + i * 8 + j - 128)) < 32)))
+        printf("%c", *((uint8_t*)(regs[REG_RSP] + i * 8 + j - 128)));
+      else
+        printf(".");
+    }
     printf("\n");
   }
   printf("Frame Dump (64 bytes):\n");
   rbp = regs[REG_RBP];
   for(i = 0; i < 8; i++){
+    if(!rbp)
+        break;
+    if(rbp > CONFIG_RAM_SIZE)
+        break;
     printf("  %016llx ", *((uint64_t*)(rbp)));
     printf("  %016llx ", *((uint64_t*)(rbp + 1 * 8)));
     printf("\n");
-    if(rbp)
+    if((rbp) && *((uint64_t*)(rbp + 1 * 8)) )
         rbp = *(uint64_t*)rbp;
     else
         break;
