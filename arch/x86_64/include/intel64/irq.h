@@ -189,10 +189,10 @@ struct xcptcontext
   uint64_t saved_rip;
   uint64_t saved_rflags;
 #endif
-
+  uint64_t page_table[32];
   /* Register save area */
 
-   uint64_t regs[XCPTCONTEXT_REGS] __attribute__((aligned (16)));
+  uint64_t regs[XCPTCONTEXT_REGS] __attribute__((aligned (16)));
 };
 #endif
 

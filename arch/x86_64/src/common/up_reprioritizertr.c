@@ -175,6 +175,9 @@ void up_reprioritize_rtr(struct tcb_s *tcb, uint8_t priority)
                */
 
               rtcb = this_task();
+              for(int i = 0; i < 32; i++){
+                pd[i] = rtcb->xcp.page_table[i];
+              }
 
 #ifdef CONFIG_ARCH_ADDRENV
               /* Make sure that the address environment for the previously

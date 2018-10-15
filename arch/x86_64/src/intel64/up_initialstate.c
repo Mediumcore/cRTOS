@@ -87,6 +87,9 @@ void up_initial_state(struct tcb_s *tcb)
 
   /* set the MXCSR to 1f80 */
   xcp->regs[3]      = (uint64_t)0x0000000000001f80;
+  for(int i = 0; i < 32; i ++){
+    xcp->page_table[i] = (0x200000 * i) | 0x83;
+  }
 
   /* Save the initial stack pointer... the value of the stackpointer before
    * the "interrupt occurs."

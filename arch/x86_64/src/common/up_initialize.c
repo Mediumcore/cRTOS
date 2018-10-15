@@ -239,7 +239,7 @@ void up_initialize(void)
 #ifndef CONFIG_NETDEV_LATEINIT
   /* Initialize the network */
 
-  up_netinitialize();
+  /*up_netinitialize();*/
 #endif
 
 #ifdef CONFIG_NETDEV_LOOPBACK

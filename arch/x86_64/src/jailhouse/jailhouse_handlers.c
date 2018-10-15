@@ -94,6 +94,7 @@ static void idt_outb(uint8_t val, uint16_t addr)
 #ifndef CONFIG_SUPPRESS_INTERRUPTS
 static uint64_t *common_handler(int irq, uint64_t *regs)
 {
+  struct tcb_s* new_task;
   board_autoled_on(LED_INIRQ);
 
   /* Current regs non-zero indicates that we are processing an interrupt;
@@ -124,6 +125,12 @@ static uint64_t *common_handler(int irq, uint64_t *regs)
 
       up_restorefpu((uint64_t*)g_current_regs);
 #endif
+      // Context switch, rearrange MMU
+      new_task = this_task();
+      for(int i = 0; i < 32; i++){
+        pg[i] = new_task->cmn.xcp.page_table[i];
+      }
+
 
 #ifdef CONFIG_ARCH_ADDRENV
       /* Make sure that the address environment for the previously

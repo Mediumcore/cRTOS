@@ -122,6 +122,9 @@ void up_release_pending(void)
            */
 
           rtcb = this_task();
+          for(int i = 0; i < 32; i++){
+            pd[i] = rtcb->xcp.page_table[i];
+          }
 
 #ifdef CONFIG_ARCH_ADDRENV
           /* Make sure that the address environment for the previously
