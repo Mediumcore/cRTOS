@@ -39,7 +39,7 @@ HEAD_ASRC = jailhouse_head.S
 
 # Common x86_64 and intel64 files
 
-CMN_ASRCS  = intel64_utils.S 
+CMN_ASRCS  = intel64_utils.S vfork.S
 CMN_CSRCS += up_allocateheap.c up_assert.c up_blocktask.c up_copystate.c
 CMN_CSRCS += up_createstack.c up_mdelay.c up_udelay.c up_exit.c
 CMN_CSRCS += up_initialize.c up_initialstate.c up_interruptcontext.c
@@ -51,6 +51,7 @@ CMN_CSRCS += up_usestack.c
 CMN_CSRCS += up_pci.c
 CMN_CSRCS += up_rtc.c
 CMN_CSRCS += up_mm.c
+CMN_CSRCS += up_vfork.c
 
 # Required JAILHOUSE files
 

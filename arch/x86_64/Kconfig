@@ -17,6 +17,8 @@ config ARCH_INTEL64
 	select ARCH_USE_MPU
     select ARCH_HAVE_TICKLESS
     select SCHED_TICKLESS_ALARM
+    select ARCH_HAVE_STACKCHECK
+    select ARCH_HAVE_VFORK
 	---help---
 		Intel x86_64 architecture
 
