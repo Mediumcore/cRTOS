@@ -131,7 +131,7 @@ static inline int vfork_stackargsetup(FAR struct tcb_s *parent,
 
       /* Get the address correction */
 
-      offset = child->cmn.xcp.regs[REG_SP] - parent->xcp.regs[REG_SP];
+      offset = child->cmn.xcp.regs[REG_RSP] - parent->xcp.regs[REG_RSP];
 
       /* Change the child argv[] to point into its stack (instead of its
        * parent's stack).
@@ -376,12 +376,12 @@ pid_t task_vforkstart(FAR struct task_tcb_s *child)
 
   /* Duplicate the original argument list in the forked child TCB */
 
-  ret = vfork_argsetup(parent, child);
-  if (ret < 0)
-    {
-      task_vforkabort(child, -ret);
-      return ERROR;
-    }
+  /*ret = vfork_argsetup(parent, child);*/
+  /*if (ret < 0)*/
+    /*{*/
+      /*task_vforkabort(child, -ret);*/
+      /*return ERROR;*/
+    /*}*/
 
   /* Now we have enough in place that we can join the group */
 
