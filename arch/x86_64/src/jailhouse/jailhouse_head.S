@@ -80,6 +80,7 @@
 	.global	os_start					/* os_start is defined elsewhere */
 	.global	up_lowsetup					/* up_lowsetup is defined elsewhere */
 	.global	g_idle_topstack				/* The start of the heap */
+    .global pd
 
 /****************************************************************************
  * .text
