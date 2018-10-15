@@ -83,7 +83,9 @@
 void up_sigdeliver(void)
 {
   struct tcb_s *rtcb = this_task();
-  uint64_t regs[XCPTCONTEXT_REGS];
+  uint64_t regs_area[XCPTCONTEXT_REGS + 8];
+  uint64_t* regs;
+  regs = (uint64_t*)((uint64_t)regs_area & (-(uint64_t)16)); // align regs to 16byte boundary for SSE instrucitons
   sig_deliver_t sigdeliver;
 
   /* Save the errno.  This must be preserved throughout the signal handling
