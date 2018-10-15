@@ -372,7 +372,7 @@
 #  endif
 
 #  if defined(CONFIG_NET_SENDFILE)
-#    define SYS_sendfile,              __SYS_sendfile
+#    define SYS_sendfile               __SYS_sendfile
 #    define __SYS_mountpoint           (__SYS_sendfile+1)
 #  else
 #    define __SYS_mountpoint           __SYS_sendfile
