@@ -95,10 +95,10 @@ void up_lowputc(char ch)
 {
   /* Wait until the Transmitter Holding Register (THR) is empty. */
 
-  while ((inb(COM2_PORT+COM_LSR) & LSR_THRE) == 0);
+  while ((inb(COM1_PORT+COM_LSR) & LSR_THRE) == 0);
 
   /* Then output the character to the THR*/
 
-  outb(ch, COM2_PORT+COM_THR);
+  outb(ch, COM1_PORT+COM_THR);
 }
 
