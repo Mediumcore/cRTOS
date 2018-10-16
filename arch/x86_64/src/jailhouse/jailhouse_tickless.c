@@ -194,7 +194,7 @@ int up_timer_gettime(FAR struct timespec *ts)
 {
   uint64_t diff = (rdtsc() - g_start_tsc);
   ts->tv_sec  = (diff / tsc_freq);
-  ts->tv_nsec = (diff - (ts->tv_sec) * tsc_freq) * NSEC_PER_SEC / tsc_freq;
+  ts->tv_nsec = (((diff - (ts->tv_sec)) * NSEC_PER_SEC) + (tsc_freq >> 1)) / tsc_freq;
   return OK;
 }
 
@@ -285,7 +285,7 @@ int up_alarm_start(FAR const struct timespec *ts)
 {
   irqstate_t flags = enter_critical_section();
   unsigned long long ticks =
-    (unsigned long long)ts->tv_nsec * tsc_freq / NS_PER_SEC + ts->tv_sec * tsc_freq;
+    (unsigned long long) ((uint64_t)ts->tv_nsec * tsc_freq + (NS_PER_SEC>>1)) / NS_PER_SEC + ts->tv_sec * tsc_freq;
   tmrinfo("alarm started: %llu\n", ticks);
   g_alarm_active           = true;
 
