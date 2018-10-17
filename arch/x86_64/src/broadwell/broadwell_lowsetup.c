@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/x86/src/jailhouse/jailhouse_keypad.h
+ *  arch/x86_64/src/broadwell/broadwell_lowsetup.c
  *
- *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012, 2015 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,38 +33,65 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_X86_SRC_JAILHOUSE_JAILHOUSE_KEYPAD_H
-#define __ARCH_X86_SRC_JAILHOUSE_JAILHOUSE_KEYPAD_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
+#include <nuttx/arch.h>
+#include <arch/board/board.h>
+
+#include "up_internal.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Types
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
- * Public Data
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
 /****************************************************************************
- * Name:  jailhouse_keypad
+ * Name: up_lowsetup
  *
  * Description:
- *   Registers the JAILHOUSE keypad driver
+ *   Called from broadwell_head BEFORE starting the operating system in order
+ *   perform any necessary, early initialization.
  *
  ****************************************************************************/
 
-void jailhouse_keypad(void);
+void up_lowsetup(void)
+{
+  /* we should be in long mode at this point*/
+  /* GDT is loaded with dummy 64bit GDT */
+  /* Paging is enabled with a single 2MiB hugepage 1:1 mapped the first
+   * 2MiB of physical ram to virtual ram
+   */
 
-#endif /* __ARCH_X86_SRC_JAILHOUSE_JAILHOUSE_KEYPAD_H */
+#ifdef CONFIG_SCHED_TICKLESS
+    x86_64_timer_calibrate_freq();
+#endif
+
+#ifdef CONFIG_LIB_SYSCALL
+    enable_syscall();
+#endif
+
+  /* Early serial driver initialization */
+
+#ifdef USE_EARLYSERIALINIT
+  up_earlyserialinit();
+#endif
+
+  /* Now perform board-specific initializations */
+  x86_64_boardinitialize();
+}
+

@@ -1,7 +1,7 @@
 /****************************************************************************
- *  arch/x86/src/jailhouse/jailhouse_lowputc.c
+ *  arch/x86_64/src/broadwell/broadwell_serial.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,38 +38,24 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#include <nuttx/arch.h>
+#include <nuttx/serial/uart_16550.h>
+
 #include <arch/io.h>
+
 #include "up_internal.h"
+
+/* This is a "stub" file to suppport up_putc if no real serial driver is
+ * configured.  Normally, drivers/serial/uart_16550.c provides the serial
+ * driver for this platform.
+ */
+
+#ifdef USE_SERIALDRIVER
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-/* COM1 port addresses */
-
-#define COM1_PORT 0x3f8   /* COM1: I/O port 0x3f8, IRQ 4 */
-#define COM2_PORT 0x2f8   /* COM2: I/O port 0x2f8, IRQ 3 */
-#define COM3_PORT 0x3e8   /* COM3: I/O port 0x3e8, IRQ 4 */
-#define COM4_PORT 0x2e8   /* COM4: I/O port 0x2e8, IRQ 3 */
-
-/* 16650 register offsets */
-
-#define COM_RBR   0       /* DLAB=0, Receiver Buffer (read) */
-#define COM_THR   0       /* DLAB=0, Transmitter Holding Register (write) */
-#define COM_DLL   0       /* DLAB=1, Divisor Latch (least significant byte) */
-#define COM_IER   1       /* DLAB=0, Interrupt Enable */
-#define COM_DLM   1       /* DLAB=1, Divisor Latch(most significant byte) */
-#define COM_IIR   2       /* Interrupt Identification (read) */
-#define COM_FCR   2       /* FIFO Control (write) */
-#define COM_LCR   3       /* Line Control */
-#define COM_MCR   4       /* MODEM Control */
-#define COM_LSR   5       /* Line Status */
-#define COM_MSR   6       /* MODEM Status */
-#define COM_SCR   7       /* Scratch */
-
-/* 16650 register bit definitions */
-
-#define LSR_THRE  (1 << 5) /* Bit 5: Transmitter Holding Register Empty */
 
 /****************************************************************************
  * Private Data
@@ -84,21 +70,47 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_lowputc
+ * Name: uart_getreg(), uart_putreg()
  *
  * Description:
- *   Output one byte on the serial console
+ *   These functions must be provided by the processor-specific code in order
+ *   to correctly access 16550 registers
  *
  ****************************************************************************/
 
-void up_lowputc(char ch)
+uart_datawidth_t uart_getreg(uart_addrwidth_t base, unsigned int offset)
 {
-  /* Wait until the Transmitter Holding Register (THR) is empty. */
-
-  while ((inb(COM1_PORT+COM_LSR) & LSR_THRE) == 0);
-
-  /* Then output the character to the THR*/
-
-  outb(ch, COM1_PORT+COM_THR);
+  return inb(base + offset);
 }
 
+void uart_putreg(uart_addrwidth_t base, unsigned int offset, uart_datawidth_t value)
+{
+  outb(value, base + offset);
+}
+
+#else /* USE_SERIALDRIVER */
+
+/****************************************************************************
+ * Name: up_putc
+ *
+ * Description:
+ *   Provide priority, low-level access to support OS debug writes
+ *
+ ****************************************************************************/
+
+int up_putc(int ch)
+{
+  /* Check for LF */
+
+  if (ch == '\n')
+    {
+      /* Add CR */
+
+      up_lowputc('\r');
+    }
+
+  up_lowputc(ch);
+  return ch;
+}
+
+#endif /* USE_SERIALDRIVER */

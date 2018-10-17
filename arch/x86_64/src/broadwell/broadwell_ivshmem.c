@@ -12,7 +12,7 @@
 #include <arch/io.h>
 #include <arch/pci.h>
 
-#include "jailhouse_ivshmem.h"
+#include "broadwell_ivshmem.h"
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
@@ -266,7 +266,7 @@ void up_ivshmem(void)
                bdf >> 8, (bdf >> 3) & 0x1f, bdf & 0x3);
         class_rev = pci_read_config(bdf, 0x8, 4);
         if (class_rev != (PCI_DEV_CLASS_OTHER << 24 |
-                  JAILHOUSE_SHMEM_PROTO_UNDEFINED << 8)) {
+                  BROADWELL_SHMEM_PROTO_UNDEFINED << 8)) {
             _info("class/revision %08x, not supported "
                    "skipping device\n", class_rev);
             bdf++;

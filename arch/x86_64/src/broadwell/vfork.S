@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/x86_64/src/jailhouse/vfork.S
+ * arch/x86_64/src/broadwell/vfork.S
  *
  *   Copyright (C) 2013, 2015 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

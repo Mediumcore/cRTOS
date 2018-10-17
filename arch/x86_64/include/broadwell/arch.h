@@ -1,7 +1,7 @@
 /****************************************************************************
- *  arch/x86_64/src/jailhouse/jailhouse_serial.c
+ * arch/x86_64/include/broadwell/arch.h
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,84 +33,51 @@
  *
  ****************************************************************************/
 
+/* This file should never be included directed but, rather,
+ * only indirectly through nuttx/arch.h
+ */
+
+#ifndef __ARCH_X86_64_INCLUDE_BROADWELL_ARCH_H
+#define __ARCH_X86_64_INCLUDE_BROADWELL_ARCH_H
+
+#include <stdint.h>
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-
-#include <nuttx/config.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/serial/uart_16550.h>
-
-#include <arch/io.h>
-
-#include "up_internal.h"
-
-/* This is a "stub" file to suppport up_putc if no real serial driver is
- * configured.  Normally, drivers/serial/uart_16550.c provides the serial
- * driver for this platform.
- */
-
-#ifdef USE_SERIALDRIVER
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Private Data
+ * Inline functions
  ****************************************************************************/
 
 /****************************************************************************
- * Private Functions
+ * Public Types
  ****************************************************************************/
 
 /****************************************************************************
- * Public Functions
+ * Public Data
  ****************************************************************************/
 
 /****************************************************************************
- * Name: uart_getreg(), uart_putreg()
- *
- * Description:
- *   These functions must be provided by the processor-specific code in order
- *   to correctly access 16550 registers
- *
+ * Public Function Prototypes
  ****************************************************************************/
 
-uart_datawidth_t uart_getreg(uart_addrwidth_t base, unsigned int offset)
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
 {
-  return inb(base + offset);
+#else
+#define EXTERN extern
+#endif
+
+#undef EXTERN
+#ifdef __cplusplus
 }
+#endif
 
-void uart_putreg(uart_addrwidth_t base, unsigned int offset, uart_datawidth_t value)
-{
-  outb(value, base + offset);
-}
+#endif /* __ARCH_X86_64_INCLUDE_BROADWELL_ARCH_H */
 
-#else /* USE_SERIALDRIVER */
-
-/****************************************************************************
- * Name: up_putc
- *
- * Description:
- *   Provide priority, low-level access to support OS debug writes
- *
- ****************************************************************************/
-
-int up_putc(int ch)
-{
-  /* Check for LF */
-
-  if (ch == '\n')
-    {
-      /* Add CR */
-
-      up_lowputc('\r');
-    }
-
-  up_lowputc(ch);
-  return ch;
-}
-
-#endif /* USE_SERIALDRIVER */

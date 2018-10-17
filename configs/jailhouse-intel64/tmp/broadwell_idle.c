@@ -1,11 +1,8 @@
 /****************************************************************************
- * arch/x86_64/src/jailhouse/jailhouse_head.S
+ *  arch/x86_64/src/broadwell/broadwell_idle.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
- *   Based on Bran's kernel development tutorials. Rewritten for JamesM's
- *   kernel development tutorials.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,114 +39,66 @@
 
 #include <nuttx/config.h>
 
-	.file	"jailhouse_syscall.S"
+#include <nuttx/arch.h>
+#include "up_internal.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * .text
+ * Private Data
  ****************************************************************************/
 
-	.text
-    .code64
-
 /****************************************************************************
- * Public Symbols
- ****************************************************************************/
-    .global syscall_entry
-    .global enable_syscall
-
-/****************************************************************************
- * Macros
+ * Private Functions
  ****************************************************************************/
 
-/* Trace macros, use like trace 'i' to print char to serial port. */
-
-	.macro	trace, ch
-	mov		$0x3f8, %dx
-	mov		$\ch, %al
-	out		%al, %dx
-	.endm
-
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
 
 /****************************************************************************
- * Name: syscall_entry
+ * Name: up_idle
  *
  * Description:
- *   This is the syscall_entry point. It saves the user reg and stack, sets up for
- *   kernel mode stacks, and dispatch the syscall.
+ *   up_idle() is the logic that will be executed when their is no other
+ *   ready-to-run task.  This is processor idle time and will continue until
+ *   some interrupt occurs to cause a context switch from the idle task.
+ *
+ *   Processing in this state may be processor-specific. e.g., this is where
+ *   power management operations might be performed.
  *
  ****************************************************************************/
 
-	.type	syscall_entry, @function
-syscall_entry:
-    /* RCX is the userspace RIP, R11 is userspace RFLAGS */
-    pushq %rcx
-    pushq %r11
+void up_idle(void)
+{
+#if defined(CONFIG_SUPPRESS_INTERRUPTS) || defined(CONFIG_SUPPRESS_TIMER_INTS)
+  /* If the system is idle and there are no timer interrupts, then process
+   * "fake" timer interrupts. Hopefully, something will wake up.
+   */
 
-    mov %r10, %rcx
+  sched_process_timer();
+#else
 
-	call	syscall_handler
+#ifndef CONFIG_SCHED_TICKLESS
+  /* broadwell messages are handler on system tick */
+  asm volatile("hlt");
+#else
+  /* Busy looping for broadwell message */
+  switch (comm_region->msg_to_cell) {
+  case BROADWELL_MSG_SHUTDOWN_REQUEST:
+    comm_region->cell_state = BROADWELL_CELL_SHUT_DOWN;
+    for(;;){
+      asm("cli");
+      asm("hlt");
+    }
+    break;
+  default:
+    break;
+  }
 
-    popq %r11
-    popq %rcx
+#endif
+#endif
+}
 
-	sysretq
-
-	.size	syscall_entry, . - syscall_entry
-
-
-/****************************************************************************
- * Name: enable_syscall
- *
- * Description:
- *   Setup syscall related MSRs.
- *
- ****************************************************************************/
-
-#define MSR_EFER		0xc0000080
-#define MSR_STAR		0xc0000081
-#define MSR_LSTAR		0xc0000082
-#define MSR_FMASK		0xc0000084
-
-#define EFER_SCE		0x00000001
-
-#define R0_GDT_INDEX 8
-#define R3_GDT_INDEX 24
-
-	.type	enable_syscall, @function
-enable_syscall:
-    pushq %rax
-    pushq %rbx
-    pushq %rcx
-    pushq %rdx
-
-	movl $MSR_EFER, %ecx
-	rdmsr
-	or $EFER_SCE, %eax
-	wrmsr
-
-	movl $MSR_STAR, %ecx
-    xor %rdx, %rdx
-    or $R3_GDT_INDEX, %rdx
-    shl $16, %rdx
-    or $R0_GDT_INDEX, %rdx
-	wrmsr
-    xor %rdx, %rdx
-
-	movl $MSR_LSTAR, %ecx
-	mov  $syscall_entry, %rax
-	wrmsr
-
-	movl $MSR_FMASK, %ecx
-    mov $0, %rax
-    wrmsr
-
-    popq %rdx
-    popq %rcx
-    popq %rbx
-    popq %rax
-    ret
-    .size   enable_syscall, . - enable_syscall

@@ -7,42 +7,43 @@ if ARCH_X86_64
 comment "x86_64 Configuration Options"
 
 choice
-	prompt "x86_64 chip selection"
+	prompt "x86_64 arch selection"
 	default ARCH_INTEL64
 
 config ARCH_INTEL64
-	bool "intel64"
-	select ARCH_X86_HAVE_64BIT
+	bool "Intel x86_64"
 	select ARCH_HAVE_MPU
 	select ARCH_USE_MPU
     select ARCH_HAVE_TICKLESS
-    select SCHED_TICKLESS_ALARM
     select ARCH_HAVE_STACKCHECK
     select ARCH_HAVE_VFORK
+    select SCHED_TICKLESS_ALARM
 	---help---
 		Intel x86_64 architecture
 
 endchoice
 
-config ARCH_CHIP_JAILHOUSE
-	bool "Jailhouse x86_64 cell"
-	default n
+choice
+	prompt "x86_64 chip selection"
+	default ARCH_CHIP_BROADWELL
+
+config ARCH_CHIP_BROADWELL
+	bool "Intel Processor codename Broadwell"
 	---help---
-		Intel intel64 architecture
+		Targeting those codenamed as broadwell
+
+endchoice
 
 config ARCH_CHIP
 	string
-	default "jailhouse" if ARCH_CHIP_JAILHOUSE
-
-config ARCH_X86_HAVE_64BIT
-	bool
-	default n
+	default "broadwell" if ARCH_CHIP_BROADWELL
 
 source arch/x86_64/src/common/Kconfig
-if ARCH_INTEL64
+if ARCH_INTEL64_BROADWELL
 source arch/x86_64/src/intel64/Kconfig
-endif # ARCH_INTEL64
-if ARCH_CHIP_JAILHOUSE
-source arch/x86_64/src/jailhouse/Kconfig
-endif # ARCH_CHIP_JAILHOUSE
+endif # ARCH_INTEL64_BROADWELK
+
+if ARCH_CHIP_BROADWELL
+source arch/x86_64/src/broadwell/Kconfig
+endif # ARCH_CHIP_BROADWELL
 endif # ARCH_X86_64

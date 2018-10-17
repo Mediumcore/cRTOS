@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/x86_64/src/jailhouse/jailhouse_memorymap.h
+ * arch/x86_64/src/broadwell/broadwell_memorymap.h
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_X86_64_SRC_JAILHOUSE_JAILHOUSE_MEMORYMAP_H
-#define __ARCH_X86_64_SRC_JAILHOUSE_JAILHOUSE_MEMORYMAP_H
+#ifndef __ARCH_X86_64_SRC_BROADWELL_BROADWELL_MEMORYMAP_H
+#define __ARCH_X86_64_SRC_BROADWELL_BROADWELL_MEMORYMAP_H
 
 /************************************************************************************
  * Included Files
@@ -64,4 +64,4 @@
  * Public Functions
  ************************************************************************************/
 
-#endif /* __ARCH_X86_64_SRC_JAILHOUSE_JAILHOUSE_MEMORYMAP_H */
+#endif /* __ARCH_X86_64_SRC_BROADWELL_BROADWELL_MEMORYMAP_H */

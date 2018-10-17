@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/x86/src/jailhouse/jailhouse_timerisr.c
+ * arch/x86/src/broadwell/broadwell_timerisr.c
  *
  *   Copyright (C) 2011, 2017 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -58,7 +58,7 @@
 #include <stdio.h>
 
 #include "chip.h"
-#include "jailhouse.h"
+#include "broadwell.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -136,7 +136,7 @@ void apic_timer_set(unsigned long timeout_ns)
 }
 
 /****************************************************************************
- * Function: jailhouse_timerisr
+ * Function: broadwell_timerisr
  *
  * Description:
  *   The timer ISR will perform a variety of services for various portions
@@ -145,14 +145,14 @@ void apic_timer_set(unsigned long timeout_ns)
  ****************************************************************************/
 extern uint64_t g_latency_trace[8];
 
-static int jailhouse_timerisr(int irq, uint32_t *regs, void *arg)
+static int broadwell_timerisr(int irq, uint32_t *regs, void *arg)
 {
   /* Process timer interrupt */
 
   /*g_latency_trace[1] = _rdtsc();*/
   switch (comm_region->msg_to_cell) {
-  case JAILHOUSE_MSG_SHUTDOWN_REQUEST:
-    comm_region->cell_state = JAILHOUSE_CELL_SHUT_DOWN;
+  case BROADWELL_MSG_SHUTDOWN_REQUEST:
+    comm_region->cell_state = BROADWELL_CELL_SHUT_DOWN;
     for(;;){
       asm("cli");
       asm("hlt");
@@ -185,7 +185,7 @@ void x86_64_timer_initialize(void)
     unsigned long ecx;
     uint32_t vector = IRQ0;
 
-    (void)irq_attach(IRQ0, (xcpt_t)jailhouse_timerisr, NULL);
+    (void)irq_attach(IRQ0, (xcpt_t)broadwell_timerisr, NULL);
 
     asm volatile("cpuid" : "=c" (ecx) : "a" (1)
         : "rbx", "rdx", "memory");

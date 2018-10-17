@@ -52,7 +52,7 @@
 
 #include "up_arch.h"
 #include "up_internal.h"
-#include "jailhouse.h"
+#include "broadwell.h"
 
 /****************************************************************************
  * Pre-processor Definitions

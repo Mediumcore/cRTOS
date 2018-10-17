@@ -1,7 +1,7 @@
 /**************************************************************************
- * arch/x86_64/src/jailhouse/jailhouse_fullcontextrestore.S
+ * arch/x86/src/broadwell/up_saveusercontext.S
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,14 +41,10 @@
 #include <arch/irq.h>
 #include "up_internal.h"
 
-	.file	"jailhouse_fullcontextrestore.S"
+	.file	"broadwell_saveusercontext.S"
 
 /**************************************************************************
  * Pre-processor Definitions
- **************************************************************************/
-
-/**************************************************************************
- * Public Data
  **************************************************************************/
 
 /****************************************************************************
@@ -76,96 +72,93 @@
 	.endm
 
 /**************************************************************************
- * Public Functions
+ * .text
  **************************************************************************/
 
 	.text
-
+.code64
 /**************************************************************************
- * Name: up_fullcontextrestore
+ * Name: up_saveusercontext
  *
  * Full C prototype:
- *  void up_fullcontextrestore(uint32_t *regs) noreturn_function;
+ *  int up_saveusercontext(uint32_t *regs);
+ *
+ * Description:
+ *  Save the "user" context.  It is not necessary to save all of the
+ *  registers because it is acceptable for certain registers to be
+ *  modified upon return from a subroutine call.  On a context switch
+ *  back to user mode, it will appear as a return from this function.
+ *
+ *  According to the SysV x86_64 ABI, the RAX, RDI, RSI, RDX, RCX, r8 and r9 
+ *  are to be free for use within a procedure or function, and need not 
+ *  be preserved.
+ *
+ *  On entry,
+ *    sp points to the return address
+ *    rdi points to register save array
  *
  **************************************************************************/
 
-	.globl	up_fullcontextrestore
-	.type	up_fullcontextrestore, @function
-up_fullcontextrestore:
-	/* The pointer to the register save array in RDI. */
+	.globl	up_saveusercontext
+	.type	up_saveusercontext, @function
+up_saveusercontext:
+    
+    // callee saved regs
+	movq    %rbx, (8*REG_RBX)(%rdi)
+	movq    %r12, (8*REG_R12)(%rdi)
+	movq    %r13, (8*REG_R13)(%rdi)
+	movq    %r14, (8*REG_R14)(%rdi)
+	movq    %r15, (8*REG_R15)(%rdi)
 
-	/* Disable interrupts now (the correct RFLAGS will be restored before we
-	 * return
+    // save xmm registers
+    fxsaveq (%rdi)
+
+	/* Save the value of SP as will be at the time of the IRET that will
+	 * appear to be the return from this function.
+	 *
+	 * 		CURRENT STACK           IRET STACK
+	 *		------------------------------		-----------------
+	 *                              RIP
+     *                              CS
+     *                              RFLAGS
+     *                              RSP
+	 * ESP->Return address          SS
+	 * Argument                     Alignment (16bytes)
+	 *
 	 */
 
-	cli
+	leaq    8(%rsp), %rcx
+	movq    %rcx, (8*REG_RSP)(%rdi)
 
-	/* Create an interrupt stack frame for the final iret.
-	 *
-	 *
-	 *                  IRET STACK
-     *               ---------------
-	 * RSP Before ->
-	 *                  SS
-	 *                  RSP
-	 *                  RFLAGS
-	 *                  CS
-	 * RSP After  ->    RIP
-	 *
+	/* Fetch the PC from the stack and save it in the save block */
+
+	movq    0(%rsp), %rcx
+	movq    %rcx, (8*REG_RIP)(%rdi)
+
+	/* Save the framepointer */
+
+	movq    %rbp, (8*REG_RBP)(%rdi)
+
+	/* Save EAX=1.  This will be the "apparent" return value from this
+	 * function when context is switch back to this thread.  The non-zero
+	 * return value is the indication that we have been resumed.
 	 */
 
-	movq    (8*REG_SS)(%rdi), %rbx
-	push    %rbx
-	movq    (8*REG_RSP)(%rdi), %rbx
-	push    %rbx
+	movq    $1, (8*REG_RAX)(%rdi)
 
-	movq    (8*REG_RFLAGS)(%rdi), %rbx
-	push    %rbx
-	movq    (8*REG_CS)(%rdi), %rbx
-	push    %rbx
-	movq    (8*REG_RIP)(%rdi), %rbx
-	push    %rbx
+	/* Get and save the interrupt state */
 
-	/* Save the value of RDI on the stack too */
+	pushf
+	pop     %rcx
+	movq    %rcx, (8*REG_RFLAGS)(%rdi)
 
-	movq    (8*REG_RDI)(%rdi), %rbx
-	push	%rbx
-
-	/* Now restore the remaining registers */
-	movq    (8*REG_RSI)(%rdi), %rsi
-	movq    (8*REG_RDX)(%rdi), %rdx
-	movq    (8*REG_RCX)(%rdi), %rcx
-	movq    (8*REG_R8 )(%rdi), %r8
-	movq    (8*REG_R9 )(%rdi), %r9
-
-	movq    (8*REG_R15)(%rdi), %r15
-	movq    (8*REG_R14)(%rdi), %r14
-	movq    (8*REG_R13)(%rdi), %r13
-	movq    (8*REG_R12)(%rdi), %r12
-	movq    (8*REG_R11)(%rdi), %r11
-	movq    (8*REG_R10)(%rdi), %r10
-	movq    (8*REG_RBP)(%rdi), %rbp
-	movq    (8*REG_RBX)(%rdi), %rbx
-	movq    (8*REG_RAX)(%rdi), %rax
-
-	/* Restore the data segment register.  I think there is an issue that will
-	 * need to be address here at some time:  If the register save area is in
-	 * one data segment and the stack is in another, then the above would not
-	 * work (and, conversely, if they are in the same data segment, the
-	 * following is unnecessary and redundant).
+	/* And return 0 -- The zero return value is the indication that that
+	 * this is the original, "true" return from the function.
+	 *
+	 * 'ret' will remove the RIP from the top of the stack.
 	 */
 
-	mov		(8*REG_DS)(%rdi), %ds
-	mov		(8*REG_ES)(%rdi), %es
-	mov		(8*REG_GS)(%rdi), %gs
-	mov		(8*REG_FS)(%rdi), %fs
-
-    /* restore xmm registers */
-    fxrstorq (%rdi)
-
-	/* Restore the correct value of EAX and then return */
-
-	popq	%rdi
-	iretq
-	.size up_fullcontextrestore, . - up_fullcontextrestore
+	xor     %rax, %rax
+	ret
+	.size	up_saveusercontext, . - up_saveusercontext
 	.end

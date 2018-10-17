@@ -233,19 +233,6 @@ static void _up_assert(int errorcode)
        (void)up_irq_save();
         for (;;)
           {
-            /* Busy looping for jailhouse message */
-            switch (comm_region->msg_to_cell) {
-            case JAILHOUSE_MSG_SHUTDOWN_REQUEST:
-              comm_region->cell_state = JAILHOUSE_CELL_SHUT_DOWN;
-              for(;;){
-                asm("cli");
-                asm("hlt");
-              }
-              break;
-            default:
-              break;
-            }
-
 #ifdef CONFIG_ARCH_LEDS
             board_autoled_on(LED_PANIC);
             up_mdelay(250);

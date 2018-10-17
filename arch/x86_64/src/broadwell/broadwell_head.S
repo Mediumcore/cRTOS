@@ -1,5 +1,5 @@
 /****************************************************************************
- *  arch/x86/src/jailhouse/jailhouse_head.S
+ *  arch/x86/src/broadwell/broadwell_head.S
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-	.file	"jailhouse_head.S"
+	.file	"broadwell_head.S"
 
 /****************************************************************************
  * Pre-processor definitions

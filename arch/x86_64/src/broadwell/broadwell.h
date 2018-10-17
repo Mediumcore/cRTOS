@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/x86_64/src/jailhouse/jailhouse.h
+ * arch/x86_64/src/broadwell/broadwell.h
  *
  *   Copyright (C) 2011, 2015-2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_X86_64_SRC_JAILHOUSE_JAILHOUSE_H
-#define __ARCH_X86_64_SRC_JAILHOUSE_JAILHOUSE_H
+#ifndef __ARCH_X86_64_SRC_BROADWELL_BROADWELL_H
+#define __ARCH_X86_64_SRC_BROADWELL_BROADWELL_H
 
 /************************************************************************************
  * Included Files
@@ -117,7 +117,7 @@ void intel64_lowsetup(void);
  *
  ************************************************************************************/
 
-#ifdef CONFIG_JAILHOUSE_GPIOIRQ
+#ifdef CONFIG_BROADWELL_GPIOIRQ
 void intel64_gpioirqinitialize(void);
 #else
 #  define intel64_gpioirqinitialize()
@@ -161,7 +161,7 @@ bool intel64_gpioread(uint16_t pinset);
  *
  ************************************************************************************/
 
-#ifdef CONFIG_JAILHOUSE_GPIOIRQ
+#ifdef CONFIG_BROADWELL_GPIOIRQ
 void intel64_gpioirqenable(int irq);
 #else
 #  define intel64_gpioirqenable(irq)
@@ -175,7 +175,7 @@ void intel64_gpioirqenable(int irq);
  *
  ************************************************************************************/
 
-#ifdef CONFIG_JAILHOUSE_GPIOIRQ
+#ifdef CONFIG_BROADWELL_GPIOIRQ
 void intel64_gpioirqdisable(int irq);
 #else
 #  define intel64_gpioirqdisable(irq)
@@ -398,8 +398,8 @@ void intel64_dmadump(DMA_HANDLE handle, const struct intel64_dmaregs_s *regs,
  *
  * Description:
  *   These are the various ISR/IRQ vector address exported from
- *   jailhouse_vectors.S.  These addresses need to have global scope so that they
- *   can be known to the interrupt initialization logic in jailhouse_irq.c.
+ *   broadwell_vectors.S.  These addresses need to have global scope so that they
+ *   can be known to the interrupt initialization logic in broadwell_irq.c.
  *
  ****************************************************************************/
 
@@ -458,4 +458,4 @@ void vector_irq15(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* __ARCH_X86_64_SRC_JAILHOUSE_JAILHOUSE_H */
+#endif /* __ARCH_X86_64_SRC_BROADWELL_BROADWELL_H */

@@ -1,7 +1,7 @@
 /****************************************************************************
- *  arch/x86_64/src/jailhouse/jailhouse_lowsetup.c
+ *  arch/x86_64/src/broadwell/broadwell_idle.c
  *
- *   Copyright (C) 2011-2012, 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,8 +40,6 @@
 #include <nuttx/config.h>
 
 #include <nuttx/arch.h>
-#include <arch/board/board.h>
-
 #include "up_internal.h"
 
 /****************************************************************************
@@ -61,37 +59,28 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_lowsetup
+ * Name: up_idle
  *
  * Description:
- *   Called from jailhouse_head BEFORE starting the operating system in order
- *   perform any necessary, early initialization.
+ *   up_idle() is the logic that will be executed when their is no other
+ *   ready-to-run task.  This is processor idle time and will continue until
+ *   some interrupt occurs to cause a context switch from the idle task.
+ *
+ *   Processing in this state may be processor-specific. e.g., this is where
+ *   power management operations might be performed.
  *
  ****************************************************************************/
 
-void up_lowsetup(void)
+void up_idle(void)
 {
-  /* we should be in long mode at this point*/
-  /* GDT is loaded with dummy 64bit GDT */
-  /* Paging is enabled with a single 2MiB hugepage 1:1 mapped the first
-   * 2MiB of physical ram to virtual ram
+#if defined(CONFIG_SUPPRESS_INTERRUPTS) || defined(CONFIG_SUPPRESS_TIMER_INTS)
+  /* If the system is idle and there are no timer interrupts, then process
+   * "fake" timer interrupts. Hopefully, something will wake up.
    */
 
-#ifdef CONFIG_SCHED_TICKLESS
-    x86_64_timer_calibrate_freq();
+  sched_process_timer();
+#else
+  asm volatile("hlt");
 #endif
-
-#ifdef CONFIG_LIB_SYSCALL
-    enable_syscall();
-#endif
-
-  /* Early serial driver initialization */
-
-#ifdef USE_EARLYSERIALINIT
-  up_earlyserialinit();
-#endif
-
-  /* Now perform board-specific initializations */
-  x86_64_boardinitialize();
 }
 

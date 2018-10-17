@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/x86_64/src/jailhouse/jailhouse_tickless.c
+ * arch/x86_64/src/broadwell/broadwell_tickless.c
  *
  *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -102,48 +102,6 @@ static bool tsc_deadline;
  ****************************************************************************/
 
 void up_alarm_expire(void);
-
-/****************************************************************************
- * Name: x86_64_timer_initialize
- *
- * Description:
- *   Initializes all platform-specific timer facilities.  This function is
- *   called early in the initialization sequence by up_intialize().
- *   On return, the current up-time should be available from
- *   up_timer_gettime() and the interval timer is ready for use (but not
- *   actively timing.
- *
- *   Provided by platform-specific code and called from the architecture-
- *   specific logic.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   None
- *
- * Assumptions:
- *   Called early in the initialization sequence before any special
- *   concurrency protections are required.
- *
- ****************************************************************************/
-
-void x86_64_timer_calibrate_freq(void)
-{
-  unsigned long ecx;
-
-  asm volatile("cpuid" : "=c" (ecx) : "a" (1)
-      : "rbx", "rdx", "memory");
-  tsc_deadline = !!(ecx & (1 << 24));
-
-  if (tsc_deadline) {
-      tsc_freq = comm_region->tsc_khz * 1000L;
-  } else {
-      PANIC();
-  }
-
-  g_start_tsc = rdtsc();
-}
 
 void x86_64_timer_initialize(void)
 {

@@ -1,5 +1,5 @@
 ############################################################################
-# arch/x86_64/src/jailhouse/Make.defs
+# arch/x86_64/src/broadwell/Make.defs
 #
 #   Copyright (C) 2011, 2014 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -35,7 +35,7 @@
 
 # The start-up, "head", file
 
-HEAD_ASRC = jailhouse_head.S
+HEAD_ASRC = broadwell_head.S
 
 # Common x86_64 and intel64 files
 
@@ -53,28 +53,20 @@ CMN_CSRCS += up_rtc.c
 CMN_CSRCS += up_mm.c
 CMN_CSRCS += up_vfork.c
 
-# Required JAILHOUSE files
+# Required BROADWELL files
 
-CHIP_ASRCS  = jailhouse_saveusercontext.S jailhouse_fullcontextrestore.S jailhouse_vectors.S jailhouse_syscall.S
-CHIP_CSRCS  = jailhouse_handlers.c jailhouse_idle.c jailhouse_lowputc.c jailhouse_lowsetup.c
-CHIP_CSRCS += jailhouse_serial.c
-CHIP_CSRCS += jailhouse_ivshmem.c
+CHIP_ASRCS  = broadwell_saveusercontext.S broadwell_fullcontextrestore.S broadwell_vectors.S broadwell_syscall.S
+CHIP_CSRCS  = broadwell_handlers.c broadwell_idle.c broadwell_lowputc.c broadwell_lowsetup.c
+CHIP_CSRCS += broadwell_serial.c
+CHIP_CSRCS += broadwell_ivshmem.c
 
-# Configuration-dependent JAILHOUSE files
+# Configuration-dependent BROADWELL files
 
 ifneq ($(CONFIG_SCHED_TICKLESS),y)
-CHIP_CSRCS += jailhouse_timerisr.c
+CHIP_CSRCS += broadwell_timerisr.c
 endif
 
 ifeq ($(CONFIG_SCHED_TICKLESS),y)
-CHIP_CSRCS += jailhouse_tickless.c
-endif
-
-ifeq ($(CONFIG_JAILHOUSE_KEYPAD),y)
-CHIP_CSRCS += jailhouse_keypad.c
-endif
-
-ifeq ($(CONFIG_JAILHOUSE_VGA),y)
-CHIP_CSRCS += jailhouse_vga.c
+CHIP_CSRCS += broadwell_tickless.c
 endif
 

@@ -1,23 +1,23 @@
 arch/x86/src/README.txt
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-This directory holds x86-specific source files.  All x86 source reside in
+This directory holds x86_64-specific source files.  All x86 source reside in
 lower-level common, chip-specific, and architecture-specific directories.
 
 common/ Directory
 ^^^^^^^^^^^^^^^^^
 
-This directory holds source files common to all x86 architectures.
+This directory holds source files common to all x86_64 architectures.
 
 Architecture-Specific Directories
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Architecture-specific directories hold common source files shared for by
-implementations of specific x86 architectures.
+implementations of specific x86_64 architectures.
 
-i486
-  This directory holds logic appropriate for any instantiation of the 32-bit
-  i486 architecture.
+intel64
+  This directory holds logic appropriate for any instantiation of the 64-bit
+  intel64 architecture.
 
 Chip-Specific directories
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -27,5 +27,5 @@ For SoC chips, in particular, on-chip devices and differing interrupt
 structures may require special, chip-specific definitions in these chip-
 specific directories.
 
-jailhouse
-  This is the implementation of NuttX on the JAILHOUSE x86 simulation.
+broadwell
+  This is the implementation of NuttX on the Intel Broadwell processors.

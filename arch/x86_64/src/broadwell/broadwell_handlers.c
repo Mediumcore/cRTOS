@@ -1,5 +1,5 @@
 /****************************************************************************
- *  arch/x86_64/src/jailhouse/jailhouse_handlers.c
+ *  arch/x86_64/src/broadwell/broadwell_handlers.c
  *
  *   Copyright (C) 2011-2012, 2014-2015 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -169,7 +169,7 @@ static uint64_t *common_handler(int irq, uint64_t *regs)
  * Name: isr_handler
  *
  * Description:
- *   This gets called from ISR vector handling logic in jailhouse_vectors.S
+ *   This gets called from ISR vector handling logic in broadwell_vectors.S
  *
  ****************************************************************************/
 
@@ -250,7 +250,7 @@ uint64_t *isr_handler(uint64_t *regs, uint64_t irq)
  * Name: isr_handler
  *
  * Description:
- *   This gets called from IRQ vector handling logic in jailhouse_vectors.S
+ *   This gets called from IRQ vector handling logic in broadwell_vectors.S
  *
  ****************************************************************************/
 

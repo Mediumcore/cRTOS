@@ -1,7 +1,7 @@
 /************************************************************************************
- * configs/jailhouse-amd64/src/jailhouse_boot.c
+ * arch/x86_64/src/broadwell/chip.h
  *
- *   Copyright (C) 2011, 2014-2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,49 +33,42 @@
  *
  ************************************************************************************/
 
+#ifndef __ARCH_X86_64_SRC_BROADWELL_BROADWELL_CHIP_H
+#define __ARCH_X86_64_SRC_BROADWELL_BROADWELL_CHIP_H
+
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <debug.h>
-
-#include <nuttx/board.h>
-#include <arch/board/board.h>
-
-#include "up_arch.h"
-#include "up_internal.h"
-
-#include "broadwell.h"
-
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
 
+/* Get customizations for each supported BROADWELL emulation */
+
+#ifdef CONFIG_ARCH_CHIP_BROADWELL
+#else
+#  error "Unsupported x86_64 chip"
+#endif
+
+/* Include only the memory map.  Other chip hardware files should then include this
+ * file for the proper setup
+ */
+
+#include "broadwell_memorymap.h"
+
 /************************************************************************************
- * Private Functions
+ * Public Types
+ ************************************************************************************/
+
+/************************************************************************************
+ * Public Data
  ************************************************************************************/
 
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
 
-/************************************************************************************
- * Name: x86_64_boardinitialize
- *
- * Description:
- *   All x86 architectures must provide the following entry point.  This entry point
- *   is called early in the initialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
- *
- ************************************************************************************/
-
-void x86_64_boardinitialize(void)
-{
-  /* Configure on-board LEDs if LED support has been selected. */
-
-#ifdef CONFIG_ARCH_LEDS
-  board_autoled_initialize();
-#endif
-}
+#endif /* __ARCH_X86_64_SRC_BROADWELL_BROADWELL_CHIP_H */
