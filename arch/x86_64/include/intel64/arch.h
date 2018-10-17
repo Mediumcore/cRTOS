@@ -138,7 +138,7 @@ static inline uint64_t _rdtsc(void)
 static inline void set_pcid(uint64_t pcid)
 {
     if(pcid < 4095)
-        asm volatile("mov %%cr3, %%rbx; andq $-4096, %%rbx; or %0, %%rbx; mov %%rbx, %%cr3; mov $500, %%rax; vmcall"::"g"(pcid):"memory", "rbx", "rax");
+        asm volatile("mov %%cr3, %%rbx; andq $-4096, %%rbx; or %0, %%rbx; mov %%rbx, %%cr3;"::"g"(pcid):"memory", "rbx", "rax");
     else
         PANIC();
 }
