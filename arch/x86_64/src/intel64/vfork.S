@@ -144,11 +144,12 @@ vfork:
 	call    up_vfork
 
 	/* Release the stack data and return the value returned by up_vfork */
-
     leaq 512(%rsp), %rsp
     leaq 144(%rsp), %rsp
     popq %rsi
+    popq %rdi
     mov  %rsi, %rsp
+
 	ret
 
 	.end	vfork

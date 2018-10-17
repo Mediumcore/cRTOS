@@ -43,4 +43,20 @@
 #include <nuttx/config.h>
 #include <arch/intel64/irq.h>
 
+#define LINUX_ELF_OFFSET 0x400000
+
+#ifndef __ASSEMBLY__
+typedef struct
+{
+  uint64_t a_type;           /* Entry type */
+  union
+    {
+      uint64_t a_val;                /* Integer value */
+      /* We use to have pointer elements added here.  We cannot do that,
+         though, since it does not work when using 32-bit definitions
+         on 64-bit platforms and vice versa.  */
+    } a_un;
+} Elf64_auxv_t;
+#endif
+
 #endif /* __ARCH_x86_64_SRC_INTEL64_VFORK_H */
