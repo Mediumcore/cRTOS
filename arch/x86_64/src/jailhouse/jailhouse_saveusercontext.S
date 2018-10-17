@@ -150,7 +150,7 @@ up_saveusercontext:
 
 	pushf
 	pop     %rcx
-	movq    %rcx, (8*REG_RFLAGS)(%edi)
+	movq    %rcx, (8*REG_RFLAGS)(%rdi)
 
 	/* And return 0 -- The zero return value is the indication that that
 	 * this is the original, "true" return from the function.
