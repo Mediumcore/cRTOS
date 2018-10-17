@@ -113,6 +113,10 @@ void up_unblock_task(struct tcb_s *tcb)
            */
 
           rtcb = this_task();
+          for(int i = 0; i < 32; i++){
+            pd[i] = rtcb->xcp.page_table[i];
+          }
+          set_pcid(rtcb->pid);
 
           /* Update scheduler parameters */
 
@@ -139,6 +143,10 @@ void up_unblock_task(struct tcb_s *tcb)
            */
 
           rtcb = this_task();
+          for(int i = 0; i < 32; i++){
+            pd[i] = rtcb->xcp.page_table[i];
+          }
+          set_pcid(rtcb->pid);
 
 #ifdef CONFIG_ARCH_ADDRENV
          /* Make sure that the address environment for the previously
