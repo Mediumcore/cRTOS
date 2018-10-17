@@ -94,7 +94,9 @@
 #define X86_CR0_WP		0x00010000
 #define X86_CR0_PG		0x80000000
 
-#define X86_CR4_PAE		0x00000020
+#define X86_CR4_PAE      0x00000020
+#define X86_CR4_OSXFSR   0x00000200
+#define X86_CR4_XMMEXCPT 0x00000400
 
 #define MSR_EFER		0xc0000080
 #define EFER_LME		0x00000100
@@ -154,7 +156,7 @@ start32:
     // Popluate the whole lower 1GB on 1:1 mapping
     lea pd, %edi
     mov $0x00000083, %eax
-    mov $520, %ecx
+    mov $512, %ecx
 
 pd_loop: 
     mov %eax, 0(%edi)
@@ -167,7 +169,7 @@ pd_loop:
     mov $0x1f6, %eax
     mov $8, %ebx
     mul %ebx
-    lea pd_ioapic, %edi
+    lea pd_4, %edi
     add %eax, %edi
     mov $0xfec00093, %eax
     mov %eax, 0(%edi)
@@ -223,7 +225,6 @@ gdt64_ptr:
 mxcsr_mem:
     .long   0x00001f80
 
-
     .code64
 start64:
 
@@ -235,15 +236,16 @@ start64:
     mov %ax, %fs
     mov %ax, %gs
 
-    // Enable SSE and AVX
+    // Enable SSE
     mov %cr0, %rax
     and $0xFFFB, %ax
     or $0x2, %rax 
     mov %rax, %cr0
     mov %cr4, %rax
-    or $0x600, %rax 
+    mov $(X86_CR4_OSXFSR | X86_CR4_XMMEXCPT), %rbx
+    or %rbx, %rax 
     mov %rax, %cr4
-    // Mas some SSE precision exception
+    // Mask all SSE precision exception
     // Setup MXCSR
     ldmxcsr mxcsr_mem
 
@@ -291,9 +293,9 @@ pml4:
 	.align(4096)
 pdpt:
 	.quad	pd + 0x003
-	.quad	pd_ivshmem + 0x003
-	.quad	0x0000000000000000
-	.quad	pd_ioapic + 0x003
+	.quad	pd_2 + 0x003
+	.quad	pd_3 + 0x003
+	.quad	pd_4 + 0x003
 
 	.align(4096)
 pd:
@@ -303,14 +305,14 @@ pd:
 	.fill 256, 8, 0x80
 
 	.align(4096)
-pd_ivshmem:
-	.fill 64, 8, 0x80
-	.fill 64, 8, 0x80
-	.fill 128, 8, 0x80
-	.fill 256, 8, 0x80
+pd_2:
+	.fill 512, 8, 0x80
+
+pd_3:
+	.fill 512, 8, 0x80
 
 	.align(4096)
-pd_ioapic:
+pd_4:
 	.fill 512, 8, 0x80
 	.align(4096)
 

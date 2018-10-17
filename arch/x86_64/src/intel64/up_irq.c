@@ -70,7 +70,6 @@
  * Private Function Prototypes
  ****************************************************************************/
 
-static void idt_outb(uint8_t val, uint16_t addr) noinline_function;
 static void up_apic_init(void);
 static void up_ioapic_init(void);
 static void up_idtentry(unsigned int index, uint64_t base, uint16_t sel,
@@ -92,19 +91,6 @@ static struct idt_entry_s idt_entries[256];
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: idt_outb
- *
- * Description:
- *   A slightly slower version of outb
- *
- ****************************************************************************/
-
-static void idt_outb(uint8_t val, uint16_t addr)
-{
-  outb(val, addr);
-}
 
 /****************************************************************************
  * Name: up_ioapic_pin_set_vector

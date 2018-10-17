@@ -50,15 +50,13 @@ CMN_CSRCS += up_schedulesigaction.c up_stackframe.c up_unblocktask.c
 CMN_CSRCS += up_usestack.c
 CMN_CSRCS += up_pci.c
 CMN_CSRCS += up_rtc.c
-CMN_CSRCS += up_mm.c
 CMN_CSRCS += up_vfork.c
 
 # Required BROADWELL files
 
 CHIP_ASRCS  = broadwell_saveusercontext.S broadwell_fullcontextrestore.S broadwell_vectors.S broadwell_syscall.S
-CHIP_CSRCS  = broadwell_handlers.c broadwell_idle.c broadwell_lowputc.c broadwell_lowsetup.c
+CHIP_CSRCS  = broadwell_handlers.c broadwell_idle.c broadwell_lowsetup.c
 CHIP_CSRCS += broadwell_serial.c
-CHIP_CSRCS += broadwell_ivshmem.c
 
 # Configuration-dependent BROADWELL files
 

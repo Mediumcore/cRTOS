@@ -137,13 +137,13 @@ static inline uintptr_t sys_call6(unsigned int nbr, uintptr_t parm1,
                                   uintptr_t parm4, uintptr_t parm5,
                                   uintptr_t parm6)
 {
-  register long reg0 __asm__("rax") = (long)(nbr);
-  register long reg1 __asm__("rdi") = (long)(parm1);
-  register long reg2 __asm__("rsi") = (long)(parm2);
-  register long reg3 __asm__("rdx") = (long)(parm3);
-  register long reg4 __asm__("r10") = (long)(parm4);
-  register long reg5 __asm__("r8") = (long)(parm5);
-  register long reg6 __asm__("r9") = (long)(parm6);
+  register uint64_t reg0 __asm__("rax") = (uint64_t)(nbr);
+  register uint64_t reg1 __asm__("rdi") = (uint64_t)(parm1);
+  register uint64_t reg2 __asm__("rsi") = (uint64_t)(parm2);
+  register uint64_t reg3 __asm__("rdx") = (uint64_t)(parm3);
+  register uint64_t reg4 __asm__("r10") = (uint64_t)(parm4);
+  register uint64_t reg5 __asm__("r8") = (uint64_t)(parm5);
+  register uint64_t reg6 __asm__("r9") = (uint64_t)(parm6);
 
   __asm__ __volatile__
   (

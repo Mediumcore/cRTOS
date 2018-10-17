@@ -437,8 +437,6 @@ int os_bringup(void)
    * started by spawning the user initialization thread of execution.  This
    * will be the first user-mode thread.
    */
-  //XXX: not so delightful to be here
-  up_ivshmem();
 
   os_start_application();
 
