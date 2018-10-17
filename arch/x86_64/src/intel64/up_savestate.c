@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/x86/src/i486/up_savestate.c
+ * arch/x86_64/src/intel64/up_savestate.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

@@ -143,13 +143,11 @@ void apic_timer_set(unsigned long timeout_ns)
  *   of the systems.
  *
  ****************************************************************************/
-extern uint64_t g_latency_trace[8];
 
 static int broadwell_timerisr(int irq, uint32_t *regs, void *arg)
 {
   /* Process timer interrupt */
 
-  /*g_latency_trace[1] = _rdtsc();*/
   switch (comm_region->msg_to_cell) {
   case BROADWELL_MSG_SHUTDOWN_REQUEST:
     comm_region->cell_state = BROADWELL_CELL_SHUT_DOWN;
@@ -161,7 +159,6 @@ static int broadwell_timerisr(int irq, uint32_t *regs, void *arg)
   default:
     break;
   }
-  /*g_latency_trace[2] = _rdtsc();*/
   sched_process_timer();
   apic_timer_set(CONFIG_USEC_PER_TICK * NS_PER_USEC);
   return 0;

@@ -71,6 +71,7 @@
  *
  ****************************************************************************/
 
+#ifndef CONFIG_ARCH_IDLE_CUSTOM
 void up_idle(void)
 {
 #if defined(CONFIG_SUPPRESS_INTERRUPTS) || defined(CONFIG_SUPPRESS_TIMER_INTS)
@@ -83,4 +84,4 @@ void up_idle(void)
   asm volatile("hlt");
 #endif
 }
-
+#endif

@@ -247,11 +247,14 @@ static inline uint32_t up_getgs()
  * Public Data
  ****************************************************************************/
 
-extern uint64_t* pd;
+extern uint64_t pd[2048];
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+int up_map_region(void* base, int size);
+
 
 #ifdef __cplusplus
 #define EXTERN extern "C"

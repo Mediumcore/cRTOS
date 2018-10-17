@@ -90,12 +90,11 @@
  * Private Data
  ****************************************************************************/
 
-static unsigned long tsc_freq;
+unsigned long tsc_freq;
 
 static struct timespec g_goal_time;
 static uint64_t g_start_tsc;
 static bool g_alarm_active;
-static bool tsc_deadline;
 
 /****************************************************************************
  * Private Functions
@@ -105,6 +104,8 @@ void up_alarm_expire(void);
 
 void x86_64_timer_initialize(void)
 {
+  g_start_tsc = rdtsc();
+
   (void)irq_attach(IRQ0, (xcpt_t)up_alarm_expire, NULL);
 
   /* Enable TSC Deadline interrupt */

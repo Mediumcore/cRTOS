@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/x86/src/i486/up_regdump.c
+ * arch/x86/src/intel64/up_regdump.c
  *
  *   Copyright (C) 2011, 2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -59,8 +59,6 @@ void up_registerdump(uint64_t *regs)
   uint64_t rbp;
   asm volatile ("stmxcsr %0"::"m"(mxcsr):"memory");
   _alert("----------------CUT HERE-----------------\n");
-  _alert("PANIC:\n");
-  _alert("Exception %lld occurred with error code %lld:\n", irq, regs[REG_ERRCODE]);
   _alert("Gerneral Informations:\n");
   _alert("CPL: %d, RPL: %d\n", regs[REG_CS] & 0x3, regs[REG_DS] & 0x3);
   _alert("RIP: %016llx, RSP: %016llx\n", regs[REG_RIP], regs[REG_RSP]);

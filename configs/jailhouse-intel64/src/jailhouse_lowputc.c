@@ -1,5 +1,5 @@
 /****************************************************************************
- *  arch/x86_64/src/broadwell/broadwell_idle.c
+ *  configs/jailhouse-intel64/src/jailhouse_lowputc.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -38,13 +38,38 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
-#include <nuttx/arch.h>
+#include <arch/io.h>
 #include "up_internal.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+/* COM1 port addresses */
+
+#define COM1_PORT 0x3f8   /* COM1: I/O port 0x3f8, IRQ 4 */
+#define COM2_PORT 0x2f8   /* COM2: I/O port 0x2f8, IRQ 3 */
+#define COM3_PORT 0x3e8   /* COM3: I/O port 0x3e8, IRQ 4 */
+#define COM4_PORT 0x2e8   /* COM4: I/O port 0x2e8, IRQ 3 */
+
+/* 16650 register offsets */
+
+#define COM_RBR   0       /* DLAB=0, Receiver Buffer (read) */
+#define COM_THR   0       /* DLAB=0, Transmitter Holding Register (write) */
+#define COM_DLL   0       /* DLAB=1, Divisor Latch (least significant byte) */
+#define COM_IER   1       /* DLAB=0, Interrupt Enable */
+#define COM_DLM   1       /* DLAB=1, Divisor Latch(most significant byte) */
+#define COM_IIR   2       /* Interrupt Identification (read) */
+#define COM_FCR   2       /* FIFO Control (write) */
+#define COM_LCR   3       /* Line Control */
+#define COM_MCR   4       /* MODEM Control */
+#define COM_LSR   5       /* Line Status */
+#define COM_MSR   6       /* MODEM Status */
+#define COM_SCR   7       /* Scratch */
+
+/* 16650 register bit definitions */
+
+#define LSR_THRE  (1 << 5) /* Bit 5: Transmitter Holding Register Empty */
 
 /****************************************************************************
  * Private Data
@@ -59,46 +84,21 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_idle
+ * Name: up_lowputc
  *
  * Description:
- *   up_idle() is the logic that will be executed when their is no other
- *   ready-to-run task.  This is processor idle time and will continue until
- *   some interrupt occurs to cause a context switch from the idle task.
- *
- *   Processing in this state may be processor-specific. e.g., this is where
- *   power management operations might be performed.
+ *   Output one byte on the serial console
  *
  ****************************************************************************/
 
-void up_idle(void)
+void up_lowputc(char ch)
 {
-#if defined(CONFIG_SUPPRESS_INTERRUPTS) || defined(CONFIG_SUPPRESS_TIMER_INTS)
-  /* If the system is idle and there are no timer interrupts, then process
-   * "fake" timer interrupts. Hopefully, something will wake up.
-   */
+  /* Wait until the Transmitter Holding Register (THR) is empty. */
 
-  sched_process_timer();
-#else
+  while ((inb(COM1_PORT+COM_LSR) & LSR_THRE) == 0);
 
-#ifndef CONFIG_SCHED_TICKLESS
-  /* broadwell messages are handler on system tick */
-  asm volatile("hlt");
-#else
-  /* Busy looping for broadwell message */
-  switch (comm_region->msg_to_cell) {
-  case BROADWELL_MSG_SHUTDOWN_REQUEST:
-    comm_region->cell_state = BROADWELL_CELL_SHUT_DOWN;
-    for(;;){
-      asm("cli");
-      asm("hlt");
-    }
-    break;
-  default:
-    break;
-  }
+  /* Then output the character to the THR*/
 
-#endif
-#endif
+  outb(ch, COM1_PORT+COM_THR);
 }
 

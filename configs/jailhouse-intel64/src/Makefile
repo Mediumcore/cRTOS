@@ -37,5 +37,8 @@
 
 ASRCS =
 CSRCS = jailhouse_boot.c
+CSRCS += jailhouse_lowputc.c
+CSRCS += jailhouse_calibrate_freq.c
+CSRCS += jailhouse_idle.c
 
 include $(TOPDIR)/configs/Board.mk

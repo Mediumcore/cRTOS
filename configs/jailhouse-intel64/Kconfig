@@ -2,3 +2,13 @@
 # For a description of the syntax of this configuration file,
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
+
+if ARCH_BOARD_JAILHOUSE_INTEL64
+
+config COMM_REGION_BASE
+	int "Jailhouse comm region base address"
+	default 0x40000000
+	---help---
+		The base address of communication region with jailhouse
+
+endif # ARCH_BOARD_STM32F429I_DISCO

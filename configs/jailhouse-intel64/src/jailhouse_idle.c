@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/x86_64/include/jailhouse/arch.h
+ *  configs/jailhouse-intel64/src/jailhouse_idle.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,107 +33,72 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather,
- * only indirectly through nuttx/arch.h
- */
-
-#ifndef __ARCH_X86_64_INCLUDE_JAILHOUSE_ARCH_H
-#define __ARCH_X86_64_INCLUDE_JAILHOUSE_ARCH_H
-
-#include <stdint.h>
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
+#include <nuttx/arch.h>
+#include <nuttx/board.h>
+#include <arch/board/board.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-//This should account we mapped kernel to upper 1GB space
-#define COMM_REGION_BASE 0x40000000
-
-#define JAILHOUSE_MSG_NONE			0
-
-/* messages to cell */
-#define JAILHOUSE_MSG_SHUTDOWN_REQUEST		1
-#define JAILHOUSE_MSG_RECONFIG_COMPLETED	2
-
-/* replies from cell */
-#define JAILHOUSE_MSG_UNKNOWN			1
-#define JAILHOUSE_MSG_REQUEST_DENIED		2
-#define JAILHOUSE_MSG_REQUEST_APPROVED		3
-#define JAILHOUSE_MSG_RECEIVED			4
-
-/* cell state, initialized by hypervisor, updated by cell */
-#define JAILHOUSE_CELL_RUNNING			0
-#define JAILHOUSE_CELL_RUNNING_LOCKED		1
-#define JAILHOUSE_CELL_SHUT_DOWN		2 /* terminal state */
-#define JAILHOUSE_CELL_FAILED			3 /* terminal state */
-#define JAILHOUSE_CELL_FAILED_COMM_REV		4 /* terminal state */
-
-#define COMM_REGION_ABI_REVISION		0
-#define COMM_REGION_MAGIC			"JHCOMM"
-
-#define COMM_REGION_GENERIC_HEADER					\
-	/** Communication region magic JHCOMM */			\
-	char signature[6];						\
-	/** Communication region ABI revision */			\
-	uint16_t revision;							\
-	/** Cell state, initialized by hypervisor, updated by cell. */	\
-	volatile uint32_t cell_state;					\
-	/** Message code sent from hypervisor to cell. */		\
-	volatile uint32_t msg_to_cell;					\
-	/** Reply code sent from cell to hypervisor. */			\
-	volatile uint32_t reply_from_cell;					\
-	/** \privatesection */						\
-	volatile uint32_t padding;						\
-	/** \publicsection */
 
 /****************************************************************************
- * Inline functions
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
- * Public Types
+ * Private Functions
  ****************************************************************************/
-struct jailhouse_comm_region {
-	COMM_REGION_GENERIC_HEADER;
-
-	/** Base address of PCI memory mapped config (x86-specific). */
-	uint64_t pci_mmconfig_base;
-	/** I/O port address of the PM timer (x86-specific). */
-	uint16_t pm_timer_address;
-	/** Number of CPUs available to the cell (x86-specific). */
-	uint16_t num_cpus;
-	/** Calibrated TSC frequency in kHz (x86-specific). */
-	uint32_t tsc_khz;
-	/** Calibrated APIC timer frequency in kHz or 0 if TSC deadline timer
-	 * is available (x86-specific). */
-	uint32_t apic_khz;
-};
 
 /****************************************************************************
- * Public Data
+ * Public Functions
  ****************************************************************************/
-
-#define comm_region     ((struct jailhouse_comm_region *)COMM_REGION_BASE)
 
 /****************************************************************************
- * Public Function Prototypes
+ * Name: up_idle
+ *
+ * Description:
+ *   up_idle() is the logic that will be executed when their is no other
+ *   ready-to-run task.  This is processor idle time and will continue until
+ *   some interrupt occurs to cause a context switch from the idle task.
+ *
+ *   Processing in this state may be processor-specific. e.g., this is where
+ *   power management operations might be performed.
+ *
  ****************************************************************************/
-
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C"
+#ifdef CONFIG_ARCH_IDLE_CUSTOM
+void up_idle(void)
 {
-#else
-#define EXTERN extern
-#endif
+#if defined(CONFIG_SUPPRESS_INTERRUPTS) || defined(CONFIG_SUPPRESS_TIMER_INTS)
+  /* If the system is idle and there are no timer interrupts, then process
+   * "fake" timer interrupts. Hopefully, something will wake up.
+   */
 
-#undef EXTERN
-#ifdef __cplusplus
+  sched_process_timer();
+#else
+
+#ifndef CONFIG_SCHED_TICKLESS
+  /* jailhouse messages are handler on system tick */
+  asm volatile("hlt");
+#else
+  /* Busy looping for jailhouse message */
+  switch (comm_region->msg_to_cell) {
+  case JAILHOUSE_MSG_SHUTDOWN_REQUEST:
+    comm_region->cell_state = JAILHOUSE_CELL_SHUT_DOWN;
+    for(;;){
+      asm("cli");
+      asm("hlt");
+    }
+    break;
+  default:
+    break;
+  }
+#endif
+#endif
 }
 #endif
-
-#endif /* __ARCH_X86_64_INCLUDE_JAILHOUSE_ARCH_H */
-

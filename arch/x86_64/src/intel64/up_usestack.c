@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/x86/src/common/up_usestack.c
+ * arch/x86_64/src/common/up_usestack.c
  *
  *   Copyright (C) 2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -107,7 +107,7 @@ int up_use_stack(struct tcb_s *tcb, void *stack, size_t stack_size)
 
   tcb->stack_alloc_ptr = stack;
 
-  /* The i486 uses a push-down stack:  the stack grows toward loweraddresses in
+  /* The intel64 uses a push-down stack:  the stack grows toward loweraddresses in
    * memory.  The stack pointer register, points to the lowest, valid work
    * address (the "top" of the stack).  Items on the stack are referenced as
    * positive word offsets from sp.
@@ -115,7 +115,7 @@ int up_use_stack(struct tcb_s *tcb, void *stack, size_t stack_size)
 
   top_of_stack = (uint64_t)tcb->stack_alloc_ptr + stack_size - 8;
 
-  /* The i486 stack must be aligned at word (4 byte) boundaries. If necessary
+  /* The intel64 stack must be aligned at word (4 byte) boundaries. If necessary
    * top_of_stack must be rounded down to the next boundary
    */
 

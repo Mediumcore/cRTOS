@@ -952,11 +952,12 @@ config ARCH_BOARD_QEMU_I486
 		hardwared (Google the Bifferboard).
 
 config ARCH_BOARD_JAILHOUSE_INTEL64
-	bool "Qemu intel64 Mode"
+	bool "Jailhouse x86-64 cell"
 	depends on ARCH_X86_64 || ARCH_INTEL64
+    select ARCH_IDLE_CUSTOM
 	---help---
 		Port of NuttX to JAILHOUSE in intel64 mode. This port will also run on real intel64
-		hardwared.
+		hardware.
 
 config ARCH_BOARD_SABRE_6QUAD
 	bool "NXP/Freescale i.MX6 Sabre-6Quad board"

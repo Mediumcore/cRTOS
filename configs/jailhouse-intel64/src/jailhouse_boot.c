@@ -57,6 +57,8 @@
  * Private Functions
  ************************************************************************************/
 
+void up_netinitialize(void){ return; }
+
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
@@ -78,4 +80,6 @@ void x86_64_boardinitialize(void)
 #ifdef CONFIG_ARCH_LEDS
   board_autoled_initialize();
 #endif
+
+  up_map_region(COMM_REGION_BASE, HUGE_PAGE_SIZE);
 }

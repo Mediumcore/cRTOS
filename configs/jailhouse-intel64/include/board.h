@@ -59,11 +59,70 @@
 
 /* Alternate pin selections *********************************************************/
 
+/* Jailhouse Comm Region */
+#define COMM_REGION_BASE CONFIG_COMM_REGION_BASE
+
+#define JAILHOUSE_MSG_NONE			0
+
+/* messages to cell */
+#define JAILHOUSE_MSG_SHUTDOWN_REQUEST		1
+#define JAILHOUSE_MSG_RECONFIG_COMPLETED	2
+
+/* replies from cell */
+#define JAILHOUSE_MSG_UNKNOWN			1
+#define JAILHOUSE_MSG_REQUEST_DENIED		2
+#define JAILHOUSE_MSG_REQUEST_APPROVED		3
+#define JAILHOUSE_MSG_RECEIVED			4
+
+/* cell state, initialized by hypervisor, updated by cell */
+#define JAILHOUSE_CELL_RUNNING			0
+#define JAILHOUSE_CELL_RUNNING_LOCKED		1
+#define JAILHOUSE_CELL_SHUT_DOWN		2 /* terminal state */
+#define JAILHOUSE_CELL_FAILED			3 /* terminal state */
+#define JAILHOUSE_CELL_FAILED_COMM_REV		4 /* terminal state */
+
+#define COMM_REGION_ABI_REVISION		0
+#define COMM_REGION_MAGIC			"JHCOMM"
+
+#define COMM_REGION_GENERIC_HEADER					\
+	/** Communication region magic JHCOMM */			\
+	char signature[6];						\
+	/** Communication region ABI revision */			\
+	uint16_t revision;							\
+	/** Cell state, initialized by hypervisor, updated by cell. */	\
+	volatile uint32_t cell_state;					\
+	/** Message code sent from hypervisor to cell. */		\
+	volatile uint32_t msg_to_cell;					\
+	/** Reply code sent from cell to hypervisor. */			\
+	volatile uint32_t reply_from_cell;					\
+	/** \privatesection */						\
+	volatile uint32_t padding;						\
+	/** \publicsection */
+
+#define comm_region     ((struct jailhouse_comm_region *)COMM_REGION_BASE)
+
+
 /************************************************************************************
  * Public Types
  ************************************************************************************/
 
 #ifndef __ASSEMBLY__
+
+struct jailhouse_comm_region {
+	COMM_REGION_GENERIC_HEADER;
+
+	/** Base address of PCI memory mapped config (x86-specific). */
+	uint64_t pci_mmconfig_base;
+	/** I/O port address of the PM timer (x86-specific). */
+	uint16_t pm_timer_address;
+	/** Number of CPUs available to the cell (x86-specific). */
+	uint16_t num_cpus;
+	/** Calibrated TSC frequency in kHz (x86-specific). */
+	uint32_t tsc_khz;
+	/** Calibrated APIC timer frequency in kHz or 0 if TSC deadline timer
+	 * is available (x86-specific). */
+	uint32_t apic_khz;
+};
 
 /************************************************************************************
  * Public Data

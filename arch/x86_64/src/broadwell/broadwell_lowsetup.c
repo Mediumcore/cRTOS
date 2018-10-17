@@ -77,14 +77,6 @@ void up_lowsetup(void)
    * 2MiB of physical ram to virtual ram
    */
 
-#ifdef CONFIG_SCHED_TICKLESS
-    x86_64_timer_calibrate_freq();
-#endif
-
-#ifdef CONFIG_LIB_SYSCALL
-    enable_syscall();
-#endif
-
   /* Early serial driver initialization */
 
 #ifdef USE_EARLYSERIALINIT
@@ -93,5 +85,14 @@ void up_lowsetup(void)
 
   /* Now perform board-specific initializations */
   x86_64_boardinitialize();
+
+#ifdef CONFIG_SCHED_TICKLESS
+    x86_64_timer_calibrate_freq();
+#endif
+
+#ifdef CONFIG_LIB_SYSCALL
+    enable_syscall();
+#endif
+
 }
 

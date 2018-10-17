@@ -47,8 +47,6 @@
 
 #include "up_internal.h"
 
-uint64_t g_latency_trace[8];
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -125,12 +123,6 @@ static uint64_t *common_handler(int irq, uint64_t *regs)
 
       up_restorefpu((uint64_t*)g_current_regs);
 #endif
-      // Context switch, rearrange MMU
-      new_task = this_task();
-      for(int i = 0; i < 32; i++){
-        pg[i] = new_task->cmn.xcp.page_table[i];
-      }
-
 
 #ifdef CONFIG_ARCH_ADDRENV
       /* Make sure that the address environment for the previously
@@ -184,7 +176,9 @@ uint64_t *isr_handler(uint64_t *regs, uint64_t irq)
 
   /* Let's say, all ISR are asserted when REALLY BAD things happended */
   /* Don't even brother to recover, just dump the regs and PANIC*/
-  up_regdump(regs);
+  _alert("PANIC:\n");
+  _alert("Exception %lld occurred with error code %lld:\n", irq, regs[REG_ERRCODE]);
+  up_registerdump(regs);
   PANIC();
 
   /* Dispatch the interrupt */
@@ -220,7 +214,6 @@ uint64_t *irq_handler(uint64_t *regs, uint64_t irq_no)
   /* Get the IRQ number */
   irq = (int)irq_no;
 
-  /*g_latency_trace[0] = _rdtsc();*/
 
   /* Dispatch the interrupt */
   ret = common_handler(irq, regs);

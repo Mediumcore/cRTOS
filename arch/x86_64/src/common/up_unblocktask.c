@@ -51,8 +51,6 @@
 #include "clock/clock.h"
 #include "up_internal.h"
 
-extern uint64_t g_latency_trace[8];
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -95,7 +93,6 @@ void up_unblock_task(struct tcb_s *tcb)
        * a context switch to the new task.
        */
 
-    /*g_latency_trace[5] = _rdtsc();*/
 
       /* Update scheduler parameters */
 
@@ -124,13 +121,6 @@ void up_unblock_task(struct tcb_s *tcb)
           /* Then switch contexts.  Any necessary address environment
            * changes will be made when the interrupt returns.
            */
-    /*g_latency_trace[6] = _rdtsc();*/
-    /*printf("%lld, %lld %lld\n",*/
-            /*g_latency_trace[6],*/
-            /*g_latency_trace[6] - g_latency_trace[5],*/
-            /*g_latency_trace[5] - g_latency_trace[4]*/
-            /*);*/
-    /*printf("CTX: %s\n", tcb->name);*/
 
           up_restorestate(rtcb->xcp.regs);
         }
@@ -149,9 +139,6 @@ void up_unblock_task(struct tcb_s *tcb)
            */
 
           rtcb = this_task();
-          for(int i = 0; i < 32; i++){
-            pd[i] = rtcb->xcp.page_table[i];
-          }
 
 #ifdef CONFIG_ARCH_ADDRENV
          /* Make sure that the address environment for the previously
