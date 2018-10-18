@@ -60,7 +60,7 @@
 #define X2APIC_SPIV		0x80f
 
 #define IOAPIC_BASE             ((void *)0xfec00000)
-#define IOAPIC2_BASE             ((void *)0xfec00000)
+#define IOAPIC2_BASE             ((void *)0xfec01000)
 #define IOAPIC_REG_INDEX        0x00
 #define IOAPIC_REG_DATA         0x10
 #define IOAPIC_REDIR_TBL_START  0x10
