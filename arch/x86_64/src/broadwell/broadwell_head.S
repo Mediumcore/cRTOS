@@ -113,8 +113,14 @@
 	.code16
 	.section ".loader", "ax"
 
-    .type   __reset_entry, @function
+#ifndef CONFIG_ARCH_EXCLUDE_MULTIBOOT
+	.align	4
+	.long	MAGIC
+	.long	FLAGS
+	.long	CHECKSUM
+#endif
 
+    .type   __reset_entry, @function
 __reset_entry:
     // Load a GDT for protected mode
     movl $loader_gdt_ptr, %ebx

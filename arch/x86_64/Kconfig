@@ -34,6 +34,12 @@ config ARCH_CHIP_BROADWELL
 
 endchoice
 
+config ARCH_EXCLUDE_MULTIBOOT
+	bool "Don't append multiboot header"
+	default n
+    ---help---
+        Some platforms, e.g. jailhouse, do not like to have a multiboot header
+
 config ARCH_CHIP
 	string
 	default "broadwell" if ARCH_CHIP_BROADWELL
