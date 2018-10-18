@@ -12,9 +12,11 @@
 #include <arch/io.h>
 #include <arch/pci.h>
 
-#include "broadwell_ivshmem.h"
+#include "jailhouse_ivshmem.h"
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
+
+uint8_t g_system_map[131072] = {0xde, 0xad, 0xbe, 0xef, 0x1A, 0x3B, 0xDA};
 
 /****************************************************************************
  * ivshmem: Fileops Prototypes and Structures
@@ -39,7 +41,6 @@ static const struct file_operations ivshmem_ops = {
 };
 
 static int ndevices;
-static int irq_counter;
 
 struct ivshmem_dev_data {
     uint16_t bdf;
@@ -266,7 +267,7 @@ void up_ivshmem(void)
                bdf >> 8, (bdf >> 3) & 0x1f, bdf & 0x3);
         class_rev = pci_read_config(bdf, 0x8, 4);
         if (class_rev != (PCI_DEV_CLASS_OTHER << 24 |
-                  BROADWELL_SHMEM_PROTO_UNDEFINED << 8)) {
+                  JAILHOUSE_SHMEM_PROTO_UNDEFINED << 8)) {
             _info("class/revision %08x, not supported "
                    "skipping device\n", class_rev);
             bdf++;

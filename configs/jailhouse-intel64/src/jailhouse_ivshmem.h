@@ -1,7 +1,5 @@
-#ifndef __ARCH_X86_64_INCLUDE_INTEL64_IVSHMEM_H
-#define __ARCH_X86_64_INCLUDE_INTEL64_IVSHMEM_H
-
-uint8_t g_system_map[131072] = {0xde, 0xad, 0xbe, 0xef, 0x1A, 0x3B, 0xDA};
+#ifndef __JAILHOUSE_INCLUDE_IVSHMEM_H
+#define __JAILHOUSE_INCLUDE_IVSHMEM_H
 
 #define VENDORID	0x1af4
 #define DEVICEID	0x1110
@@ -9,7 +7,7 @@ uint8_t g_system_map[131072] = {0xde, 0xad, 0xbe, 0xef, 0x1A, 0x3B, 0xDA};
 #define IVSHMEM_CFG_SHMEM_PTR	0x40
 #define IVSHMEM_CFG_SHMEM_SZ	0x48
 
-#define BROADWELL_SHMEM_PROTO_UNDEFINED	0x0000
+#define JAILHOUSE_SHMEM_PROTO_UNDEFINED	0x0000
 
 #define IVSHMEM_SIZE 0x120000
 #define IVSHMEM_DATA_SIZE 0x100000
@@ -20,4 +18,7 @@ uint8_t g_system_map[131072] = {0xde, 0xad, 0xbe, 0xef, 0x1A, 0x3B, 0xDA};
 #define IVSHMEM_WAIT 10
 #define IVSHMEM_WAKE 11
 
-#endif /* __ARCH_X86_64_INCLUDE_INTEL64_IVSHMEM_H */
+
+void up_ivshmem(void);
+
+#endif /* __JAILHOUSE_INCLUDE_IVSHMEM_H */

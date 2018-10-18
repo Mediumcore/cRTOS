@@ -42,12 +42,15 @@
 #include <debug.h>
 
 #include <nuttx/board.h>
+#include <arch/arch.h>
 #include <arch/board/board.h>
 
 #include "up_arch.h"
 #include "up_internal.h"
 
 #include "broadwell.h"
+
+#include "jailhouse_ivshmem.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -81,5 +84,7 @@ void x86_64_boardinitialize(void)
   board_autoled_initialize();
 #endif
 
-  up_map_region(COMM_REGION_BASE, HUGE_PAGE_SIZE);
+  up_map_region((void*)COMM_REGION_BASE, HUGE_PAGE_SIZE*4);
+
+  up_ivshmem();
 }

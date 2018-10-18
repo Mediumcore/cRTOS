@@ -58,8 +58,6 @@
  * Private Function Prototypes
  ****************************************************************************/
 
-static void idt_outb(uint8_t val, uint16_t addr) noinline_function;
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -67,19 +65,6 @@ static void idt_outb(uint8_t val, uint16_t addr) noinline_function;
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: idt_outb
- *
- * Description:
- *   A slightly slower version of outb
- *
- ****************************************************************************/
-
-static void idt_outb(uint8_t val, uint16_t addr)
-{
-  outb(val, addr);
-}
 
 /****************************************************************************
  * Name: common_handler
@@ -92,7 +77,6 @@ static void idt_outb(uint8_t val, uint16_t addr)
 #ifndef CONFIG_SUPPRESS_INTERRUPTS
 static uint64_t *common_handler(int irq, uint64_t *regs)
 {
-  struct tcb_s* new_task;
   board_autoled_on(LED_INIRQ);
 
   /* Current regs non-zero indicates that we are processing an interrupt;

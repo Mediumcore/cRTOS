@@ -66,6 +66,8 @@
  * Public Function Prototypes
  ****************************************************************************/
 
+void enable_syscall(void);
+
 #ifdef __cplusplus
 #define EXTERN extern "C"
 extern "C"
