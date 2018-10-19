@@ -57,6 +57,7 @@ void up_registerdump(uint64_t *regs)
   int i, j;
   uint64_t mxcsr;
   uint64_t rbp;
+  char buf[9];
   asm volatile ("stmxcsr %0"::"m"(mxcsr):"memory");
   _alert("----------------CUT HERE-----------------\n");
   _alert("Gerneral Informations:\n");
@@ -67,35 +68,38 @@ void up_registerdump(uint64_t *regs)
   _alert("MXCSR: %016llx\n", mxcsr);
   _alert("Selector Dump:\n");
   _alert("CS: %016llx, DS: %016llx, SS: %016llx\n", regs[REG_CS], regs[REG_DS], regs[REG_SS]);
+  _alert("ES: %016llx, FS: %016llx, GS: %016llx\n", regs[REG_ES], regs[REG_FS], regs[REG_GS]);
   _alert("Register Dump:\n");
   _alert("RAX: %016llx, RBX: %016llx\n", regs[REG_RAX], regs[REG_RBX]);
   _alert("RCX: %016llx, RDX: %016llx\n", regs[REG_RCX], regs[REG_RDX]);
   _alert("RDI: %016llx, RSI: %016llx\n", regs[REG_RDI], regs[REG_RSI]);
   _alert("Stack Dump (+-64 bytes):\n");
   for(i = 0; i < 16; i++){
-    _alert(" %016llx   ", (regs[REG_RSP] + i * 8 - 64));
     for(j = 0; j < 8; j++){
-      _alert("%02x ", *((uint8_t*)(regs[REG_RSP] + i * 8 + j - 64)));
+      buf[j] = *((uint8_t*)(regs[REG_RSP] + i * 8 + j - 64));
+      if((buf[j] > 126) || (buf[j] < 32))
+        buf[j] = '.';
     }
-    _alert("  %016llx   ", *((uint64_t*)(regs[REG_RSP] + i * 8 - 64)));
-    for(j = 0; j < 8; j++){
-      if(!((*((uint8_t*)(regs[REG_RSP] + i * 8 + j - 64)) > 126) || (*((uint8_t*)(regs[REG_RSP] + i * 8 + j - 64)) < 32)))
-        _alert("%c", *((uint8_t*)(regs[REG_RSP] + i * 8 + j - 64)));
-      else
-        _alert(".");
-    }
-    _alert("\n");
+
+    buf[8] = '\0';
+    _alert(" %016llx\t%02x %02x %02x %02x %02x %02x %02x %02x\t%s\n",
+            (regs[REG_RSP] + i * 8 - 64),
+            *((uint8_t*)(regs[REG_RSP] + i * 8 + 0 - 64)),
+            *((uint8_t*)(regs[REG_RSP] + i * 8 + 1 - 64)),
+            *((uint8_t*)(regs[REG_RSP] + i * 8 + 2 - 64)),
+            *((uint8_t*)(regs[REG_RSP] + i * 8 + 3 - 64)),
+            *((uint8_t*)(regs[REG_RSP] + i * 8 + 4 - 64)),
+            *((uint8_t*)(regs[REG_RSP] + i * 8 + 5 - 64)),
+            *((uint8_t*)(regs[REG_RSP] + i * 8 + 6 - 64)),
+            *((uint8_t*)(regs[REG_RSP] + i * 8 + 7 - 64)),
+            buf);
   }
   _alert("Frame Dump (64 bytes):\n");
   rbp = regs[REG_RBP];
   for(i = 0; i < 8; i++){
     if(!rbp)
         break;
-    if(rbp > CONFIG_RAM_SIZE)
-        break;
-    _alert("  %016llx ", *((uint64_t*)(rbp)));
-    _alert("  %016llx ", *((uint64_t*)(rbp + 1 * 8)));
-    _alert("\n");
+    _alert("  %016llx\t%016llx\n", *((uint64_t*)(rbp)), *((uint64_t*)(rbp + 1 * 8)));
     if((rbp) && *((uint64_t*)(rbp + 1 * 8)) )
         rbp = *(uint64_t*)rbp;
     else
