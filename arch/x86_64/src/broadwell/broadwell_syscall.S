@@ -93,9 +93,7 @@ syscall_entry:
     mov %rsp, %rbp
 
     /* R11 is userspace RFLAGS */
-    /* R10 is caller saved */
     pushq %r11
-    pushq %r10
 
     /* Arrange the arguments, syscall number is passed in on rax */
     /* 4th argument was passed using r10, change it to rcx */
@@ -108,15 +106,27 @@ syscall_entry:
     mov     %rax, %rdi
 
 	call	syscall_handler
-    
+
     // recover the values saved
     lea 8(%rsp), %rsp
-    popq %r10
     popq %r11
     popq %rbp
     popq %rcx
+    
+    // Setup a irq stack for return
+    // First align to 16byte boundary
+    mov %rsp, %r10
+    and $(-16), %r10
+    mov %r10, %rsp
+    
+    // Use fixed SS and CS
+    pushq $0x10
+    pushq %r10
+    pushq %r11
+    pushq $0x8
+    pushq %rcx
 
-	sysretq
+	iretq
 
 	.size	syscall_entry, . - syscall_entry
 
