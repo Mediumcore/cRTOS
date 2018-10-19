@@ -561,8 +561,10 @@ uint64_t syscall_handler(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm6)
 {
   uint64_t ret;
+  int cmd = linux_syscall_table[nbr];
 
-  svcinfo("SYSCALL Entry: cmd: %lld\n", nbr);
+  svcinfo("SYSCALL Entry: nbr: %llu cmd: %lld\n", nbr, cmd);
+  svcinfo("SYSCALL JMP: %016llx\n", g_stublookup[cmd]);
   svcinfo("  PARAM: %016llx %016llx %016llx\n",
           parm1,  parm2,  parm3);
   svcinfo("       : %016llx %016llx %016llx\n",
@@ -573,8 +575,8 @@ uint64_t syscall_handler(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
   DEBUGASSERT(cmd >= CONFIG_SYS_RESERVED && cmd < SYS_maxsyscall);
 
   /* Call syscall from table. */
-  nbr -= CONFIG_SYS_RESERVED;
-  ret = ((uint64_t(*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t))(g_stublookup + linux_syscall_table[nbr]))(parm1, parm2, parm3, parm4, parm5, parm6);
+  cmd -= CONFIG_SYS_RESERVED;
+  ret = ((uint64_t(*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t))(g_stublookup[cmd]))(parm1, parm2, parm3, parm4, parm5, parm6);
 
   return ret;
 }

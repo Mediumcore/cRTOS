@@ -85,15 +85,35 @@
 
 	.type	syscall_entry, @function
 syscall_entry:
-    /* RCX is the userspace RIP, R11 is userspace RFLAGS */
+    /* RCX is the userspace RIP */
     pushq %rcx
-    pushq %r11
+    
+    /* Maintain a traceable chain of frame pointer */
+    pushq %rbp
+    mov %rsp, %rbp
 
-    mov %r10, %rcx
+    /* R11 is userspace RFLAGS */
+    /* R10 is caller saved */
+    pushq %r11
+    pushq %r10
+
+    /* Arrange the arguments, syscall number is passed in on rax */
+    /* 4th argument was passed using r10, change it to rcx */
+    pushq   %r9
+    mov     %r8, %r9
+    mov     %r10, %r8
+    mov     %rdx, %rcx
+    mov     %rsi, %rdx
+    mov     %rdi, %rsi
+    mov     %rax, %rdi
 
 	call	syscall_handler
-
+    
+    // recover the values saved
+    lea 8(%rsp), %rsp
+    popq %r10
     popq %r11
+    popq %rbp
     popq %rcx
 
 	sysretq
