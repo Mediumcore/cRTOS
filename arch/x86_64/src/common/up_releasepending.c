@@ -101,6 +101,9 @@ void up_release_pending(void)
             pd[i] = rtcb->xcp.page_table[i];
           }
           set_pcid(rtcb->pid);
+          if(rtcb->xcp.fs_base_set){
+            write_msr(MSR_FS_BASE, rtcb->xcp.fs_base);
+          }
 
           /* Update scheduler parameters */
 
@@ -130,6 +133,9 @@ void up_release_pending(void)
             pd[i] = rtcb->xcp.page_table[i];
           }
           set_pcid(rtcb->pid);
+          if(rtcb->xcp.fs_base_set){
+            write_msr(MSR_FS_BASE, rtcb->xcp.fs_base);
+          }
 
 #ifdef CONFIG_ARCH_ADDRENV
           /* Make sure that the address environment for the previously

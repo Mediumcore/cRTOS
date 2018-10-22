@@ -158,7 +158,7 @@ up_fullcontextrestore:
 	mov		(8*REG_DS)(%rdi), %ds
 	mov		(8*REG_ES)(%rdi), %es
 	mov		(8*REG_GS)(%rdi), %gs
-	mov		(8*REG_FS)(%rdi), %fs
+	//mov		(8*REG_FS)(%rdi), %fs // Disabled, otherwise we will destroy MSR_FS_BASE
 
     /* restore xmm registers */
     fxrstorq (%rdi)

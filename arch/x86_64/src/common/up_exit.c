@@ -174,6 +174,9 @@ void _exit(int status)
     pd[i] = tcb->xcp.page_table[i];
   }
   set_pcid(tcb->pid);
+  if(tcb->xcp.fs_base_set){
+    write_msr(MSR_FS_BASE, tcb->xcp.fs_base);
+  }
 #ifdef CONFIG_ARCH_ADDRENV
   /* Make sure that the address environment for the previously running
    * task is closed down gracefully (data caches dump, MMU flushed) and

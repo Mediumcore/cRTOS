@@ -189,6 +189,10 @@ struct xcptcontext
   uint64_t saved_rip;
   uint64_t saved_rflags;
 #endif
+
+  uint64_t fs_base_set;
+  uint64_t fs_base;
+
   uint64_t page_table[32];
   /* Register save area */
 

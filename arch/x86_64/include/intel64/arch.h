@@ -55,6 +55,10 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* x86_64 MSRs */
+
+#define MSR_FS_BASE 0xc0000100 /* 64bit FS base */
+
 /* RFLAGS bits */
 
 #define X86_64_RFLAGS_CF             (1 << 0)  /* Bit 0:  Carry Flag */

@@ -110,8 +110,14 @@ void up_initial_state(struct tcb_s *tcb)
   xcp->regs[REG_CS]      = up_getcs();
   xcp->regs[REG_SS]      = up_getss();
   xcp->regs[REG_ES]      = up_getes();
-  xcp->regs[REG_GS]      = up_getgs();
-  xcp->regs[REG_FS]      = up_getfs();
+
+  /* Aux GS and FS are set to be 0 */
+  /* used by some libc for TLS and segment reference */
+  xcp->regs[REG_GS]      = 0;
+  xcp->regs[REG_FS]      = 0;
+
+  xcp->fs_base = 0;
+  xcp->fs_base_set = 0;
 
   /* Set supervisor- or user-mode, depending on how NuttX is configured and
    * what kind of thread is being started.  Disable FIQs in any event
