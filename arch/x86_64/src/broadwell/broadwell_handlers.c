@@ -576,7 +576,7 @@ uint64_t syscall_handler(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
 
   /* Call syscall from table. */
   cmd -= CONFIG_SYS_RESERVED;
-  ret = ((uint64_t(*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t))(g_stublookup[cmd]))(parm1, parm2, parm3, parm4, parm5, parm6);
+  ret = ((uint64_t(*)(unsigned long, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t))(g_stublookup[cmd]))(cmd, parm1, parm2, parm3, parm4, parm5, parm6);
 
   return ret;
 }
