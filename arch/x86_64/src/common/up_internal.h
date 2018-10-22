@@ -44,6 +44,7 @@
 
 #ifndef __ASSEMBLY__
 #  include <nuttx/compiler.h>
+#  include <nuttx/sched.h>
 #  include <stdint.h>
 #endif
 
@@ -203,6 +204,7 @@ void up_sigdeliver(void);
 void up_lowputc(char ch);
 void up_puts(const char *str);
 void up_lowputs(const char *str);
+void up_restore_auxstate(struct tcb_s *rtcb);
 
 void up_syscall(uint64_t *regs);
 void up_registerdump(uint64_t *regs);
