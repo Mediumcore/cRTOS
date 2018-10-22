@@ -56,7 +56,7 @@ CMN_CSRCS += up_vfork.c
 # Required BROADWELL files
 
 CHIP_ASRCS  = broadwell_saveusercontext.S broadwell_fullcontextrestore.S broadwell_vectors.S broadwell_syscall.S
-CHIP_CSRCS  = broadwell_handlers.c broadwell_idle.c broadwell_lowsetup.c
+CHIP_CSRCS  = broadwell_handlers.c broadwell_idle.c broadwell_lowsetup.c broadwell_syscall_handler.c
 CHIP_CSRCS += broadwell_serial.c
 
 # Configuration-dependent BROADWELL files
