@@ -95,8 +95,24 @@ syscall_entry:
     /* R11 is userspace RFLAGS */
     pushq %r11
 
+    /* syscall interface should preserve all registers */
+    pushq   %rdi
+    pushq   %rsi
+    pushq   %rdx
+    pushq   %r8
+    pushq   %r9
+
+    pushq   %r15
+    pushq   %r14
+    pushq   %r13
+    pushq   %r12
+    pushq   %r10
+    pushq   %rbx
+    pushq   %rax
+
     /* Arrange the arguments, syscall number is passed in on rax */
     /* 4th argument was passed using r10, change it to rcx */
+    pushq   %rcx
     pushq   %r9
     mov     %r8, %r9
     mov     %r10, %r8
@@ -106,18 +122,35 @@ syscall_entry:
     mov     %rax, %rdi
 
 	call	syscall_handler
+    
+    // Remove the parameter
+    lea 16(%rsp), %rsp
 
     // recover the values saved
-    lea 8(%rsp), %rsp
-    popq %r11
-    popq %rbp
-    popq %rcx
+    lea 8(%rsp), %rsp // RAX is the return value
+    popq   %rbx
+    popq   %r10
+    popq   %r12
+    popq   %r13
+    popq   %r14
+    popq   %r15
+
+    popq   %r9
+    popq   %r8
+    popq   %rdx
+
+    popq   %rsi
+    popq   %rdi
+    popq   %r11
+    popq   %rbp
+    popq   %rcx
     
     // Setup a irq stack for return
     // First align to 16byte boundary
+    pushq  %r10
     mov %rsp, %r10
-    and $(-16), %r10
-    mov %r10, %rsp
+    and $(-16), %rsp
+    add $8, %r10
     
     // Use fixed SS and CS
     pushq $0x10
@@ -125,6 +158,8 @@ syscall_entry:
     pushq %r11
     pushq $0x8
     pushq %rcx
+    
+    mov -8(%r10), %r10
 
 	iretq
 

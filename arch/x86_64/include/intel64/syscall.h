@@ -77,6 +77,9 @@ void syscall_entry(void);
 uint64_t syscall_handler(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6);
+uint64_t linux_interface(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+                          uintptr_t parm6);
 
 /* SWI with SYS_ call number and six parameters */
 

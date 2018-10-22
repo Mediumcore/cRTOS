@@ -81,5 +81,7 @@ void up_restore_auxstate(struct tcb_s *rtcb)
   set_pcid(rtcb->pid);
   if(rtcb->xcp.fs_base_set){
     write_msr(MSR_FS_BASE, rtcb->xcp.fs_base);
+  }else{
+    write_msr(MSR_FS_BASE, 0x0);
   }
 }

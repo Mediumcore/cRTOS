@@ -190,6 +190,9 @@ struct xcptcontext
   uint64_t saved_rflags;
 #endif
 
+  void* __brk;
+  void* __min_brk;
+
   uint64_t fs_base_set;
   uint64_t fs_base;
 

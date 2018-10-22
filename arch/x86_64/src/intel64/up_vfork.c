@@ -60,8 +60,6 @@
 #  define CONFIG_STACK_ALIGNMENT 1
 #endif
 
-#define PAGE_SLOT_SIZE 0x1000000
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -75,7 +73,7 @@ void* find_free_page(struct task_tcb_s * tcb){
     // We have total 512MB of memory available to be used
     for(i = 1; i < 32; i++){
         if(page_map[i] == NULL){
-            page_map[i] = tcb;
+            page_map[i] = (void*)(uint64_t)tcb->cmn.pid;
             return (void*)(i * PAGE_SLOT_SIZE); // 16MB blocks
         }
     }
@@ -225,7 +223,7 @@ pid_t up_vfork(const uint64_t* context, uint64_t* ret_rsp)
 }
 
 int execvs_setupargs(struct task_tcb_s* tcb,
-        int argc, char* argv[], int envc, char* envv[]){
+    int argc, char* argv[], int envc, char* envv[]){
     // Now we have to organize the stack as Linux exec will do
     // ---------
     // argv
@@ -295,7 +293,7 @@ int execvs_setupargs(struct task_tcb_s* tcb,
     auxptr[0].a_type = 1; //AT_IGNORE
     auxptr[0].a_un.a_val = 0x0;
 
-    auxptr[1].a_type = 3; //AT_PHDR
+    auxptr[1].a_type = 1; //AT_PHDR
     auxptr[1].a_un.a_val = 0x0;
 
     auxptr[2].a_type = 0; //AT_NULL
@@ -309,7 +307,6 @@ int execvs(void* base, int bsize,
         int argc, char* argv[],
         int envc, char* envv[])
 {
-    struct tcb_s *otcb = this_task();
     struct task_tcb_s *tcb;
     uint64_t new_page_start_address;
     uint64_t stack;
@@ -327,26 +324,12 @@ int execvs(void* base, int bsize,
         return -ENOMEM;
     }
 
-    // Allocate the newly created task to a new address space
-    /* Find new pages for the task, every task is assumed to be 64MB, 32 pages */
-    new_page_start_address = (uint64_t)find_free_page(tcb);
-    if (new_page_start_address == -1)
-    {
-        sinfo("page exhausted\n");
-        ret = -ENOMEM;
-        goto errout_with_tcb;
-    }
-
-    // clear and copy the memory
-    memset((void*)new_page_start_address, 0, 0x4000000);
-    memcpy((void*)new_page_start_address + LINUX_ELF_OFFSET, base, bsize); //Load to the mighty 0x400000
-
     /* Initialize the user heap and stack */
     /*umm_initialize((FAR void *)CONFIG_ARCH_HEAP_VBASE,*/
                  /*up_addrenv_heapsize(&binp->addrenv));*/
 
     //Stack start at the end of address space
-    stack = kmm_zalloc(0x800000);
+    stack = (uint64_t)kmm_zalloc(0x800000);
 
     /* Initialize the task */
     /* The addresses are the virtual address of new task */
@@ -367,6 +350,20 @@ int execvs(void* base, int bsize,
         goto errout_with_tcbinit;
     }
 
+    // Allocate the newly created task to a new address space
+    /* Find new pages for the task, every task is assumed to be 64MB, 32 pages */
+    new_page_start_address = (uint64_t)find_free_page(tcb);
+    if (new_page_start_address == -1)
+    {
+        sinfo("page exhausted\n");
+        ret = -ENOMEM;
+        goto errout_with_tcbinit;
+    }
+
+    // clear and copy the memory
+    memset((void*)new_page_start_address, 0, 0x4000000);
+    memcpy((void*)new_page_start_address + LINUX_ELF_OFFSET, base, bsize); //Load to the mighty 0x400000
+
     // setup the tcb page_table entries
     // load the pages for now, going to do some setup
     for(int i = 0; i < 32; i++)
@@ -374,25 +371,14 @@ int execvs(void* base, int bsize,
         tcb->cmn.xcp.page_table[i] = (new_page_start_address + 0x200000 * i) | 0x83;
     }
 
-    // Don't given a fuck about nuttx task start and management, we are doing this properly in Linux way
-    tcb->cmn.xcp.regs[REG_RIP] = entry;
-    printf("RIP: %llx\n", tcb->cmn.xcp.regs[REG_RIP]);
+    // set brk
+    tcb->cmn.xcp.__min_brk = (void*)((uint64_t)LINUX_ELF_OFFSET + bsize + 0x1000);
+    if(tcb->cmn.xcp.__min_brk >= (void*)PAGE_SLOT_SIZE) tcb->cmn.xcp.__min_brk = (void*)(PAGE_SLOT_SIZE - 1);
+    tcb->cmn.xcp.__brk = tcb->cmn.xcp.__min_brk;
 
-  printf("Dump (256 bytes):\n");
-  for(int i = 0; i < 64; i++){
-    printf(" %016llx   ", (new_page_start_address + 0x3fffe00 + i * 8));
-    for(int j = 0; j < 8; j++){
-      printf("%02x ", *((uint8_t*)(new_page_start_address + 0x3fffe00 + i * 8 + j)));
-    }
-    printf("  %016llx   ", *((uint64_t*)(new_page_start_address + 0x3fffe00 + i * 8)));
-    for(int j = 0; j < 8; j++){
-      if(!((*((uint8_t*)(new_page_start_address + 0x3fffe00 + i * 8 + j)) > 126) || (*((uint8_t*)(new_page_start_address + 0x3fffe00 + i * 8 + j)) < 32)))
-        printf("%c", *((uint8_t*)(new_page_start_address + 0x3fffe00 + i * 8 + j)));
-      else
-        printf(".");
-    }
-    printf("\n");
-  }
+
+    // Don't given a fuck about nuttx task start and management, we are doing this properly in Linux way
+    tcb->cmn.xcp.regs[REG_RIP] = (uint64_t)entry;
 
     /* Get the assigned pid before we start the task */
     pid = tcb->cmn.pid;
