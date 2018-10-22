@@ -49,6 +49,8 @@
 #define SYS_NAMELEN      16
 #define VERSION_NAMELEN  41
 
+#define UTS_NAMELEN_MAX 65
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -64,11 +66,11 @@
 
 struct utsname
 {
-  char sysname[SYS_NAMELEN];      /* Name of OS */
-  char nodename[HOST_NAME_MAX];   /* Name of this network node */
-  char release[SYS_NAMELEN];      /* Release level */
-  char version[VERSION_NAMELEN];  /* Version level */
-  char machine[SYS_NAMELEN];      /* Machine hardware */
+  char sysname[UTS_NAMELEN_MAX];      /* Name of OS */
+  char nodename[UTS_NAMELEN_MAX];   /* Name of this network node */
+  char release[UTS_NAMELEN_MAX];      /* Release level */
+  char version[UTS_NAMELEN_MAX];  /* Version level */
+  char machine[UTS_NAMELEN_MAX];      /* Machine hardware */
 };
 
 /****************************************************************************
