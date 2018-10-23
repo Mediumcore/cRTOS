@@ -41,20 +41,34 @@
 #include <nuttx/compiler.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/sched.h>
 #include <nuttx/board.h>
+#include <nuttx/irq.h>
 #include <arch/io.h>
 #include <syscall.h>
+#include <semaphore.h>
 #include <errno.h>
 
 #include "up_internal.h"
+#include "sched/sched.h"
 
 #ifdef CONFIG_LIB_SYSCALL
 
 #define ARCH_SET_FS 0x1002
 #define ARCH_GET_FS 0x1003
 
+#define MAP_ANONYMOUS 0x20
+#define MAP_NONRESERVE 0x4000
+
+#define FUTEX_WAIT 0x0
+#define FUTEX_WAKE 0x1
+#define FUTEX_PRIVATE_FLAG 0x80
+
 void* up_brk(void* brk);
 int up_prctl(int code, unsigned long addr);
+void* up_mmap(void* addr, size_t length, int prot, int flags);
+int up_munmap(void* addr, size_t length);
+int up_futex(uint32_t* uaddr, int opcode, uint32_t val);
 
 int16_t linux_syscall_table[500] = {
     SYS_read,
@@ -409,23 +423,34 @@ uint64_t linux_interface(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
 
   // Do some emulated syscall here
   switch(nbr){
+    case 9: // SYS_mmap
+      // What mmap? I thought u just would like some memory
+      ret = up_mmap(parm1, parm2, parm3, parm4);
+      break;
+    case 11: // SYS_munmap
+      // What munmap? I thought u just would like free some memory
+      ret = up_munmap(parm1, parm2);
+      break;
     case 12: // SYS_brk
       ret = up_brk(parm1);
       break;
     case 21: // SYS_access
-      ret = -1;
+      ret = -1; // No such offer
       break;
     case 89: // SYS_readlink
-      ret = -EINVAL;
+      ret = -EINVAL; // No such offer
       break;
     case 102: // SYS_getuid
     case 104: // SYS_getgid
     case 107: // SYS_geteuid
     case 108: // SYS_getegid
-      ret = 0;
+      ret = 0; // I am root
       break;
     case 158: // SYS_prctl
       ret = up_prctl(parm1, parm2);
+      break;
+    case 202: // SYS_futex
+      ret = up_futex(parm1, parm2, parm3);
       break;
     case 231: // SYS_exit_group
       // XXX: We should scan and terminate all threads
@@ -457,7 +482,6 @@ void* up_brk(void* brk){
 
 int up_prctl(int code, unsigned long addr){
   struct tcb_s *rtcb = this_task();
-  uint64_t tmp;
   int ret = 0;
 
   switch(code){
@@ -475,6 +499,98 @@ int up_prctl(int code, unsigned long addr){
   }
 
   return ret;
+}
+
+void* up_mmap(void* addr, size_t length, int prot, int flags){
+    if((flags & MAP_ANONYMOUS) == 0) return (void*)-1;
+    if((uint64_t)addr != 0) return (void*)-1;
+
+    if(((flags & MAP_NONRESERVE) == 1) && prot == 0) return (void*)-1; // Why glibc require large amount of non accessible memory?
+
+    _info("Allocating %d bytes\n", length);
+
+    void* mm = kmm_zalloc(length);
+    if(!mm)
+        return (void*)-1;
+
+    return mm;
+}
+
+int up_munmap(void* addr, size_t length){
+    kmm_free(addr);
+
+    return 0;
+}
+
+struct futex_q{
+  sem_t sem;
+  uint64_t key;
+};
+
+
+#define FUTEX_HT_SIZE 256
+struct futex_q futex_hash_table[FUTEX_HT_SIZE];
+
+int up_futex(uint32_t* uaddr, int opcode, uint32_t val){
+  uint32_t s_head = (uint64_t)uaddr % FUTEX_HT_SIZE;
+  uint32_t hv = s_head;
+  irqstate_t flags;
+  if(!uaddr) return -1;
+
+  // Discard the private flag
+  opcode &= ~FUTEX_PRIVATE_FLAG;
+
+  switch(opcode){
+    case FUTEX_WAIT:
+      while((futex_hash_table[hv].key != 0) && (futex_hash_table[hv].key != (uint64_t)uaddr)){
+          hv++;
+          hv %= FUTEX_HT_SIZE;
+          if(hv == s_head) return -1; // Out of free futex
+      }
+
+      flags = enter_critical_section();
+
+      if(*uaddr == val){
+        if(futex_hash_table[hv].key == 0) sem_init(&(futex_hash_table[hv].sem), 0, 0);
+
+        futex_hash_table[hv].key = (uint64_t)uaddr;
+        sem_wait(&(futex_hash_table[hv].sem));
+      }
+
+      leave_critical_section(flags);
+
+      return 0; // Either not blocked or waken
+
+      break;
+    case FUTEX_WAKE:
+      while(futex_hash_table[hv].key != (uint64_t)uaddr){
+          hv++;
+          hv %= FUTEX_HT_SIZE;
+          if(hv == s_head) return 0; // ? No such key, wake no one
+      }
+
+      int svalue;
+      sem_getvalue(&(futex_hash_table[hv].sem), &svalue);
+      val = val > -svalue ? -svalue : val;
+      for(;val > 0; val--){
+        sem_post(&(futex_hash_table[hv].sem));
+      }
+
+      flags = enter_critical_section();
+      sem_getvalue(&(futex_hash_table[hv].sem), &svalue);
+      if(svalue == 0) {
+          nxsem_destroy(&(futex_hash_table[hv].sem));
+          futex_hash_table[hv].key = 0;
+      }
+      leave_critical_section(flags);
+
+      return val;
+
+      break;
+    default:
+      _info("Futex got unfriendly opcode: %d\n", opcode);
+      PANIC();
+    }
 }
 
 #endif
