@@ -458,7 +458,10 @@ uint64_t linux_interface(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
       break;
     default:
       /* Verify that the SYS call number is within range */
-      DEBUGASSERT(cmd >= CONFIG_SYS_RESERVED && cmd < SYS_maxsyscall);
+      if(!(cmd >= CONFIG_SYS_RESERVED && cmd < SYS_maxsyscall)){
+        svcinfo("Not implemented Linux syscall %d\n", nbr);
+        PANIC();
+      }
 
       /* Call syscall from table. */
       cmd -= CONFIG_SYS_RESERVED;
