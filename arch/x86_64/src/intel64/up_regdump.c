@@ -65,7 +65,7 @@ void up_registerdump(uint64_t *regs)
   _alert("RIP: %016llx, RSP: %016llx\n", regs[REG_RIP], regs[REG_RSP]);
   _alert("RBP: %016llx, RFLAGS: %016llx\n", regs[REG_RBP], regs[REG_RFLAGS]);
   _alert("MSR_STAR: %016llx, MSR_LSTAR: %016llx\n", read_msr(0xc0000081), read_msr(0xc0000082));
-  _alert("MXCSR: %016llx\n", mxcsr);
+  _alert("MXCSR: %016llx, MSR_FS_BASE: %016llx\n", mxcsr, read_msr(MSR_FS_BASE));
   _alert("Selector Dump:\n");
   _alert("CS: %016llx, DS: %016llx, SS: %016llx\n", regs[REG_CS], regs[REG_DS], regs[REG_SS]);
   _alert("ES: %016llx, FS: %016llx, GS: %016llx\n", regs[REG_ES], regs[REG_FS], regs[REG_GS]);
