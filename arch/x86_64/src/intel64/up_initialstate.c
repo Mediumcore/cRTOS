@@ -47,6 +47,7 @@
 
 #include "up_internal.h"
 #include "up_arch.h"
+#include "sched/sched.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -80,6 +81,7 @@
 void up_initial_state(struct tcb_s *tcb)
 {
   struct xcptcontext *xcp = &tcb->xcp;
+  struct tcb_s *rtcb;
 
   /* Initialize the initial exception register context structure */
 
@@ -87,8 +89,23 @@ void up_initial_state(struct tcb_s *tcb)
 
   /* set the MXCSR to 1f80 */
   xcp->regs[3]      = (uint64_t)0x0000000000001f80;
-  for(int i = 0; i < 32; i ++){
-    xcp->page_table[i] = (0x200000 * i) | 0x83;
+
+  /* set page table to share space with current process */
+
+  rtcb = this_task();
+
+  /* Check for some special cases:  (1) rtcb may be NULL only during
+   * early boot-up phases, and (2) what if a irq spawns a task?.
+   */
+
+  if (rtcb != NULL && !up_interrupt_context()){
+    for(int i = 0; i < 8; i ++){
+      xcp->page_table[i] = rtcb->xcp.page_table[i];
+    }
+  }else{
+    for(int i = 0; i < 8; i ++){
+      xcp->page_table[i] = (0x200000 * i) | 0x83;
+    }
   }
 
   /* Save the initial stack pointer... the value of the stackpointer before
