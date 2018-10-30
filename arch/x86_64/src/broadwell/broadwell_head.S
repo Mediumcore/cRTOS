@@ -95,6 +95,7 @@
 #define X86_CR0_PG		0x80000000
 
 #define X86_CR4_PAE      0x00000020
+#define X86_CR4_PGE      0x00000080
 #define X86_CR4_OSXFSR   0x00000200
 #define X86_CR4_XMMEXCPT 0x00000400
 #define X86_CR4_PCIDE	0x00020000
@@ -162,7 +163,7 @@ start32:
     // initialize rest of the page directory
     // Popluate the whole lower 1GB on 1:1 mapping
     lea pd, %edi
-    mov $0x00000083, %eax
+    mov $0x00000183, %eax
     mov $512, %ecx
 
 pd_loop: 
@@ -183,7 +184,7 @@ pd_loop:
 
     // Enable PAE
 	mov %cr4,%eax
-	or $X86_CR4_PAE,%eax
+	or $(X86_CR4_PAE | X86_CR4_PGE),%eax
 	mov %eax,%cr4
 
     // Load the level 4 page table
