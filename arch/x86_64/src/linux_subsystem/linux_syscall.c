@@ -1,5 +1,5 @@
 /****************************************************************************
- *  arch/x86_64/src/broadwell/broadwell_syscall.c
+ *  arch/x86_64/src/broadwell/broadwell_linux_subsystem.c
  *
  *   Copyright (C) 2011-2012, 2014-2015 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -41,60 +41,51 @@
 #include <nuttx/compiler.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/sched.h>
 #include <nuttx/board.h>
+#include <nuttx/irq.h>
 #include <arch/io.h>
 #include <syscall.h>
+#include <semaphore.h>
 #include <errno.h>
 
 #include "up_internal.h"
+#include "sched/sched.h"
+
+#include "tux.h"
+#include "tux_syscall_table.h"
+
+#ifdef CONFIG_LIB_SYSCALL
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: syscall_handler
- *
- * Description:
- *   syscall fast calling interface will go here
- *
- ****************************************************************************/
-
-#ifdef CONFIG_LIB_SYSCALL
-uint64_t syscall_handler(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+uint64_t linux_interface(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6)
 {
   uint64_t ret;
-  register volatile uint64_t **rbp asm("rbp");
 
-  svcinfo("SYSCALL Entry nbr: %llu\n", nbr);
-  svcinfo("SYSCALL SRC: %016llx\n", *((*rbp) + 1));
-  svcinfo("SYSCALL JMP: %016llx\n", g_stublookup[nbr]);
-  svcinfo("  PARAM: %016llx %016llx %016llx\n",
-          parm1,  parm2,  parm3);
-  svcinfo("       : %016llx %016llx %016llx\n",
-          parm4,  parm5,  parm6);
-  if(nbr < CONFIG_SYS_RESERVED){
-    /* Invork Linux subsystem */
-    ret = linux_interface(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
+  svcinfo("Linux Subsystem call: %d, %d\n", nbr, linux_syscall_table[nbr]);
+
+  /* Call syscall from table. */
+  if(linux_syscall_table[nbr] == -1){
+    ret = -1;
+    _alert("Not implemented Linux syscall %d\n", nbr);
+    PANIC();
+  }else if(linux_syscall_table[nbr] >= SYS_maxsyscall){ // XXX: hacky way to check if the content is address
+    ret = ((uint64_t(*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)) \
+          (linux_syscall_table[nbr])) \
+          (parm1, parm2, parm3, parm4, parm5, parm6);
   }else{
-    /* Verify that the SYS call number is within range */
-    DEBUGASSERT(nbr >= CONFIG_SYS_RESERVED && nbr < SYS_maxsyscall);
-
-    /* Call syscall from table. */
-    nbr -= CONFIG_SYS_RESERVED;
-    ret = ((uint64_t(*)(unsigned long, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t))(g_stublookup[nbr]))(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
+    ret = ((uint64_t(*)(unsigned long, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)) \
+          (g_stublookup[linux_syscall_table[nbr] - CONFIG_SYS_RESERVED])) \
+          (linux_syscall_table[nbr] - CONFIG_SYS_RESERVED, parm1, parm2, parm3, parm4, parm5, parm6);
   }
 
   return ret;
 }
-#else
-uint64_t syscall_handler(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
-                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
-                          uintptr_t parm6)
-{
-    return 0;
-}
+
 
 #endif

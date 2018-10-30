@@ -56,8 +56,12 @@ CMN_CSRCS += up_vfork.c
 # Required BROADWELL files
 
 CHIP_ASRCS  = broadwell_saveusercontext.S broadwell_fullcontextrestore.S broadwell_vectors.S broadwell_syscall.S
-CHIP_CSRCS  = broadwell_handlers.c broadwell_idle.c broadwell_lowsetup.c broadwell_syscall_handler.c broadwell_linux_subsystem.c
+CHIP_CSRCS  = broadwell_handlers.c broadwell_idle.c broadwell_lowsetup.c broadwell_syscall_handler.c 
 CHIP_CSRCS += broadwell_serial.c
+
+# Required Linux subsystem
+LUX_CSRCS = linux_syscall.c tux_exec_mem.c
+LUX_CSRCS += tux_nanosleep.c tux_brk.c tux_futex.c tux_mm.c tux_prctl.c tux_rlimit.c tux_set_tid_address.c tux_clone.c
 
 # Configuration-dependent BROADWELL files
 

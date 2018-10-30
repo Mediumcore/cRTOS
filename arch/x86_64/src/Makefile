@@ -50,6 +50,7 @@ ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   CFLAGS += -I$(ARCH_SRCDIR)\chip
   CFLAGS += -I$(ARCH_SRCDIR)\common
   CFLAGS += -I$(ARCH_SRCDIR)\$(ARCH_SUBDIR)
+  CFLAGS += -I$(ARCH_SRCDIR)\linux_subsystem
   CFLAGS += -I$(TOPDIR)\sched
 else
   ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
@@ -58,6 +59,7 @@ ifeq ($(WINTOOL),y)
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/common}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/$(ARCH_SUBDIR)}"
+  CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/linux_subsystem}"
   CFLAGS += -I "${shell cygpath -w $(TOPDIR)/sched}"
 else
   NUTTX = $(TOPDIR)/nuttx$(EXEEXT)
@@ -65,6 +67,7 @@ else
   CFLAGS += -I$(ARCH_SRCDIR)/common
   CFLAGS += -I$(ARCH_SRCDIR)/$(ARCH_SUBDIR)
   CFLAGS += -I$(TOPDIR)/sched
+  CFLAGS += -I$(ARCH_SRCDIR)/linux_subsystem
 endif
 endif
 
@@ -74,7 +77,7 @@ STARTUP_OBJS ?= $(HEAD_OBJ)
 ASRCS = $(CHIP_ASRCS) $(CMN_ASRCS)
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 
-CSRCS = $(CHIP_CSRCS) $(CMN_CSRCS)
+CSRCS = $(CHIP_CSRCS) $(CMN_CSRCS) $(LUX_CSRCS)
 COBJS = $(CSRCS:.c=$(OBJEXT))
 
 SRCS = $(ASRCS) $(CSRCS)
@@ -128,7 +131,7 @@ ifeq ($(HOSTOS),FreeBSD)
   HOST_ARCH = ${shell uname -m 2>/dev/null || echo "Other"}
 endif
 
-VPATH = chip:common:$(ARCH_SUBDIR)
+VPATH = chip:common:$(ARCH_SUBDIR):linux_subsystem
 
 all: $(HEAD_OBJ) libarch$(LIBEXT)
 
