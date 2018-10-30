@@ -145,23 +145,11 @@ syscall_entry:
     popq   %rbp
     popq   %rcx
     
-    // Setup a irq stack for return
-    // First align to 16byte boundary
-    pushq  %r10
-    mov %rsp, %r10
-    and $(-16), %rsp
-    add $8, %r10
-    
-    // Use fixed SS and CS
-    pushq $0x10
-    pushq %r10
-    pushq %r11
-    pushq $0x8
+    // Setup a stack for return
+    // XXX: We didn't handle the flags    
     pushq %rcx
-    
-    mov -8(%r10), %r10
 
-	iretq
+	ret
 
 	.size	syscall_entry, . - syscall_entry
 
