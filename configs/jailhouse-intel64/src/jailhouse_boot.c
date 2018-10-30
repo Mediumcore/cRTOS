@@ -84,7 +84,7 @@ void x86_64_boardinitialize(void)
   board_autoled_initialize();
 #endif
 
-  up_map_region((void*)COMM_REGION_BASE, HUGE_PAGE_SIZE*4);
+  up_map_region((void*)COMM_REGION_BASE, HUGE_PAGE_SIZE, 0x10);
 
   return;
 }

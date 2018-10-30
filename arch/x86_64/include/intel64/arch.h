@@ -266,7 +266,7 @@ extern uint64_t pd[2048];
  * Public Function Prototypes
  ****************************************************************************/
 
-int up_map_region(void* base, int size);
+int up_map_region(void* base, int size, int flags);
 
 
 #ifdef __cplusplus

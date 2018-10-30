@@ -53,7 +53,7 @@
  * Name: up_map_region
  ****************************************************************************/
 
-int up_map_region(void* base, int size)
+int up_map_region(void* base, int size, int flags)
 {
   uint64_t bb = (uint64_t)base;
   uint64_t num_of_pages = (size + HUGE_PAGE_SIZE - 1) / HUGE_PAGE_SIZE;
@@ -67,7 +67,7 @@ int up_map_region(void* base, int size)
   for(int i = 0; i < num_of_pages; i++){
     pdpt_entry = (curr >> 30) & 0x1ff;
     pd_entry   = (curr >> 21) & 0x1ff;
-    pd[pd_entry + pdpt_entry * 512] = curr | 0x83;
+    pd[pd_entry + pdpt_entry * 512] = curr | 0x83 | flags;
     curr += HUGE_PAGE_SIZE * i;
   }
 

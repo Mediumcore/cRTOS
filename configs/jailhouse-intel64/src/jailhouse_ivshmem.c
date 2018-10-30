@@ -49,15 +49,12 @@ struct ivshmem_dev_data {
     uint32_t *msix_table;
     uint64_t shmemsz;
     uint64_t bar2sz;
+    sem_t ivshmem_input_sem;
+    int ivshmem_initialized;
+    int seek_address;
 };
 
 static struct ivshmem_dev_data devs[MAX_NDEV];
-
-static sem_t ivshmem_input_sem;
-
-static int ivshmem_initialized = 0;
-
-static int seek_address = 0;
 
 /*******************************
  *  ivshmem support functions  *
@@ -116,6 +113,7 @@ static void map_shmem_and_bars(struct ivshmem_dev_data *d)
 
     pci_write_config(d->bdf, PCI_CFG_COMMAND,
              (PCI_CMD_MEM | PCI_CMD_MASTER), 2);
+    up_map_region((void*)d->shmem, d->shmemsz + PAGE_SIZE + d->bar2sz, 0x10);
 }
 
 static int get_ivpos(struct ivshmem_dev_data *d)
@@ -133,11 +131,12 @@ static void send_irq(struct ivshmem_dev_data *d)
 static int ivshmem_irq_handler(int irq, uint32_t *regs, void *arg)
 {
     int svalue;
+    struct ivshmem_dev_data   *priv = (struct ivshmem_dev_data *)arg;
 
     /*_info("IVSHMEM: got interrupt ... %d\n", irq_counter++);*/
-    sem_getvalue(&ivshmem_input_sem, &svalue);
+    sem_getvalue(&(priv->ivshmem_input_sem), &svalue);
     if(svalue < 0){
-        sem_post(&ivshmem_input_sem);
+        sem_post(&(priv->ivshmem_input_sem));
     }
 
     return 0;
@@ -150,7 +149,16 @@ static int ivshmem_irq_handler(int irq, uint32_t *regs, void *arg)
 
 static int ivshmem_open(file_t *filep)
 {
-    if(ivshmem_initialized){
+    struct inode              *inode;
+    struct ivshmem_dev_data   *priv;
+
+    DEBUGASSERT(filep);
+    inode = filep->f_inode;
+
+    DEBUGASSERT(inode && inode->i_private);
+    priv  = (struct ivshmem_dev_data *)inode->i_private;
+
+    if(priv->ivshmem_initialized){
         return OK;
     } else {
         errno = EFAULT;
@@ -166,12 +174,21 @@ static int ivshmem_close(file_t *filep)
 
 static int ivshmem_ioctl(file_t *filep, int cmd, unsigned long arg)
 {
+    struct inode              *inode;
+    struct ivshmem_dev_data   *priv;
+
+    DEBUGASSERT(filep);
+    inode = filep->f_inode;
+
+    DEBUGASSERT(inode && inode->i_private);
+    priv  = (struct ivshmem_dev_data *)inode->i_private;
+
     switch(cmd){
         case IVSHMEM_WAIT:
-            sem_wait(&ivshmem_input_sem);
+            sem_wait(&(priv->ivshmem_input_sem));
             break;
         case IVSHMEM_WAKE:
-            send_irq(devs);
+            send_irq(priv);
             break;
     }
 
@@ -181,32 +198,40 @@ static int ivshmem_ioctl(file_t *filep, int cmd, unsigned long arg)
 static off_t ivshmem_seek(file_t *filep, off_t offset, int whence)
 {
     int reg;
+    struct inode              *inode;
+    struct ivshmem_dev_data   *priv;
+
+    DEBUGASSERT(filep);
+    inode = filep->f_inode;
+
+    DEBUGASSERT(inode && inode->i_private);
+    priv  = (struct ivshmem_dev_data *)inode->i_private;
 
     switch (whence)
     {
         case SEEK_CUR:  /* Incremental seek */
-            reg = seek_address + offset;
-            if (0 > reg || reg > devs->shmemsz)
+            reg = priv->seek_address + offset;
+            if (0 > reg || reg > priv->shmemsz)
             {
                 set_errno(-EINVAL);
                 return -1;
             }
 
-            seek_address = reg;
+            priv->seek_address = reg;
             break;
 
         case SEEK_END:  /* Seek to the 1st X-data register */
-            seek_address = devs->shmemsz;
+            priv->seek_address = priv->shmemsz;
             break;
 
         case SEEK_SET:  /* Seek to designated address */
-            if (0 > offset || offset > devs->shmemsz)
+            if (0 > offset || offset > priv->shmemsz)
             {
                 set_errno(-EINVAL);
                 return -1;
             }
 
-            seek_address = offset;
+            priv->seek_address = offset;
             break;
 
         default:        /* invalid whence */
@@ -214,36 +239,56 @@ static off_t ivshmem_seek(file_t *filep, off_t offset, int whence)
             return -1;
     }
 
-    return seek_address;
+    return priv->seek_address;
 }
 
 static ssize_t ivshmem_read(file_t *filep, FAR char *buf, size_t buflen)
 {
-    int size = MIN(buflen, devs->shmemsz - seek_address);
+    struct inode              *inode;
+    struct ivshmem_dev_data   *priv;
+    int                        size;
+
+    DEBUGASSERT(filep);
+    inode = filep->f_inode;
+
+    DEBUGASSERT(inode && inode->i_private);
+    priv  = (struct ivshmem_dev_data *)inode->i_private;
+
+    size = MIN(buflen, priv->shmemsz - priv->seek_address);
 
     printf("READ: %x %x %x %x..\n",
-            seek_address,
-            *((uint32_t*)(devs->shmem + seek_address)),
-            *((uint32_t*)(devs->shmem + seek_address) + 1),
-            *((uint32_t*)(devs->shmem + seek_address) + 2),
-            *((uint32_t*)(devs->shmem + seek_address) + 3));
-    memcpy(buf, devs->shmem + seek_address, size);
+            priv->seek_address,
+            *((uint32_t*)(priv->shmem + priv->seek_address)),
+            *((uint32_t*)(priv->shmem + priv->seek_address) + 1),
+            *((uint32_t*)(priv->shmem + priv->seek_address) + 2),
+            *((uint32_t*)(priv->shmem + priv->seek_address) + 3));
+    memcpy(buf, priv->shmem + priv->seek_address, size);
 
-    seek_address += size;
+    priv->seek_address += size;
 
     return size;
 }
 
 static ssize_t ivshmem_write(file_t *filep, FAR const char *buf, size_t buflen)
 {
-    int size = MIN(buflen, devs->shmemsz - seek_address);
+    struct inode              *inode;
+    struct ivshmem_dev_data   *priv;
+    int                        size;
+
+    DEBUGASSERT(filep);
+    inode = filep->f_inode;
+
+    DEBUGASSERT(inode && inode->i_private);
+    priv  = (struct ivshmem_dev_data *)inode->i_private;
+
+    size = MIN(buflen, priv->shmemsz - priv->seek_address);
 
     if(buf == NULL || buflen < 1)
         return -EINVAL;
 
-    memcpy(devs->shmem + seek_address, buf, size);
+    memcpy(priv->shmem + priv->seek_address, buf, size);
 
-    seek_address += size;
+    priv->seek_address += size;
 
     return size;
 }
@@ -258,6 +303,9 @@ void up_ivshmem(void)
     int bdf = 0;
     unsigned int class_rev;
     struct ivshmem_dev_data *d;
+    char buf[32];
+
+    memset(devs, 0, sizeof(struct ivshmem_dev_data) * MAX_NDEV);
 
     while ((ndevices < MAX_NDEV) &&
            (-1 != (bdf = pci_find_device(VENDORID, DEVICEID, bdf)))) {
@@ -276,12 +324,28 @@ void up_ivshmem(void)
         ndevices++;
         d = devs + ndevices - 1;
         d->bdf = bdf;
+
         map_shmem_and_bars(d);
-        _info("mapped the bars got position %d\n",
-            get_ivpos(d));
+        _info("mapped the bars got position %d\n", get_ivpos(d));
+
         //XXX: conflict with pre-existing x86 IRQ number?
-        (void)irq_attach(IRQ0 + ndevices, (xcpt_t)ivshmem_irq_handler, NULL);
+        (void)irq_attach(IRQ0 + ndevices, (xcpt_t)ivshmem_irq_handler, d);
         pci_msix_set_vector(bdf, IRQ0 + ndevices, 0);
+
+        if(sem_init(&(d->ivshmem_input_sem), 0, 0)){
+            _info("IVSHMEM semaphore init failed\n");
+            PANIC();
+        };
+
+        sprintf(buf, "/dev/ivshmem%d", ndevices);
+        int ret = register_driver(buf, &ivshmem_ops, 0444, d);
+        if(ret){
+            _info("IVSHMEM %s register failed with errno=%d\n", buf, ret);
+            PANIC();
+        };
+
+        d->ivshmem_initialized = 1;
+
         bdf++;
     }
 
@@ -290,18 +354,6 @@ void up_ivshmem(void)
         return;
     }
 
-    memcpy(devs->shmem + 0x100000, g_system_map, 0x20000);
-
-    if(sem_init(&ivshmem_input_sem, 0, 0)){
-        _info("IVSHMEM semaphore init failed\n");
-        PANIC();
-    };
-
-    ivshmem_initialized = 1;
-
-    int ret = register_driver("/dev/ivshmem", &ivshmem_ops, 0444, NULL);
-    if(ret){
-        _info("IVSHMEM /dev/ivshmem register failed with errno=%d\n", ret);
-        PANIC();
-    };
+    /* Hard coded to put system_map into first ivshmem region */
+    memcpy(devs[0].shmem + 0x100000, g_system_map, 0x20000);
 }
