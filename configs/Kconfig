@@ -955,6 +955,8 @@ config ARCH_BOARD_JAILHOUSE_INTEL64
 	bool "Jailhouse x86-64 cell"
 	depends on ARCH_X86_64 || ARCH_INTEL64
     select ARCH_IDLE_CUSTOM
+    select ARCH_HAVE_LEDS
+    select ARCH_LEDS
 	---help---
 		Port of NuttX to JAILHOUSE in intel64 mode. This port will also run on real intel64
 		hardware.

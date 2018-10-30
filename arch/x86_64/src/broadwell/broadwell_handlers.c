@@ -44,6 +44,7 @@
 #include <nuttx/board.h>
 #include <arch/io.h>
 #include <syscall.h>
+#include <arch/board/board.h>
 
 #include "up_internal.h"
 

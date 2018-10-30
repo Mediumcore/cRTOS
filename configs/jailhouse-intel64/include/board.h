@@ -41,6 +41,7 @@
  * Included Files
  ************************************************************************************/
 
+#include <stdint.h>
 #include <nuttx/config.h>
 
 /************************************************************************************
@@ -54,6 +55,15 @@
 #define PIT_CLOCK 1041816 /* PIT input clock */
 
 /* LED definitions ******************************************************************/
+/* dummy LED definitions */
+#define LED_STARTED      0
+#define LED_HEAPALLOCATE 0
+#define LED_IRQSENABLED  0
+#define LED_STACKCREATED 0
+#define LED_INIRQ        0
+#define LED_SIGNAL       0
+#define LED_ASSERTION    0
+#define LED_PANIC        13
 
 /* Button definitions ***************************************************************/
 
