@@ -957,6 +957,7 @@ config ARCH_BOARD_JAILHOUSE_INTEL64
     select ARCH_IDLE_CUSTOM
     select ARCH_HAVE_LEDS
     select ARCH_LEDS
+    select BOARD_INITIALIZE
 	---help---
 		Port of NuttX to JAILHOUSE in intel64 mode. This port will also run on real intel64
 		hardware.

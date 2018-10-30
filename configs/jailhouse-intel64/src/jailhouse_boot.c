@@ -86,5 +86,21 @@ void x86_64_boardinitialize(void)
 
   up_map_region((void*)COMM_REGION_BASE, HUGE_PAGE_SIZE*4);
 
+  return;
+}
+
+/************************************************************************************
+ * Name: board_initialize
+ *
+ * Description:
+ *   By enabling BOARD_INITIALIZE, this function will be call late during os starting.
+ *   Allow board specified drivers to register themself.
+ *
+ ************************************************************************************/
+
+void board_initialize(void)
+{
   up_ivshmem();
+
+  return;
 }

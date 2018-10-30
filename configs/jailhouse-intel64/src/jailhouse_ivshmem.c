@@ -292,9 +292,16 @@ void up_ivshmem(void)
 
     memcpy(devs->shmem + 0x100000, g_system_map, 0x20000);
 
-    sem_init(&ivshmem_input_sem, 0, 0);
+    if(sem_init(&ivshmem_input_sem, 0, 0)){
+        _info("IVSHMEM semaphore init failed\n");
+        PANIC();
+    };
 
     ivshmem_initialized = 1;
 
-    (void)register_driver("/dev/ivshmem", &ivshmem_ops, 0444, NULL);
+    int ret = register_driver("/dev/ivshmem", &ivshmem_ops, 0444, NULL);
+    if(ret){
+        _info("IVSHMEM /dev/ivshmem register failed with errno=%d\n", ret);
+        PANIC();
+    };
 }
