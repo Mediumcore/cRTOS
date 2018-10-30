@@ -153,7 +153,7 @@ int up_timer_gettime(FAR struct timespec *ts)
 {
   uint64_t diff = (rdtsc() - g_start_tsc);
   ts->tv_sec  = (diff / tsc_freq);
-  ts->tv_nsec = (((diff - (ts->tv_sec)) * NSEC_PER_SEC) + (tsc_freq >> 1)) / tsc_freq;
+  ts->tv_nsec = (((diff - (ts->tv_sec * tsc_freq)) * NSEC_PER_USEC) + ((tsc_freq / USEC_PER_SEC) >> 1)) / (tsc_freq / USEC_PER_SEC);
   return OK;
 }
 
