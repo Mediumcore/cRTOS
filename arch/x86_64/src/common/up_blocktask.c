@@ -168,8 +168,6 @@ void up_block_task(struct tcb_s *tcb, tstate_t task_state)
 
           sched_resume_scheduler(rtcb);
 
-          sinfo("resuming %d\n", rtcb->pid);
-
 
           /* Then switch contexts */
 

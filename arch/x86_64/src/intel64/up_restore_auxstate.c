@@ -75,7 +75,7 @@
 
 void up_restore_auxstate(struct tcb_s *rtcb)
 {
-  for(int i = 0; i < 32; i++){
+  for(int i = 0; i < 8; i++){
     pd[i] = rtcb->xcp.page_table[i];
   }
   set_pcid(rtcb->pid);
@@ -84,4 +84,7 @@ void up_restore_auxstate(struct tcb_s *rtcb)
   }else{
     write_msr(MSR_FS_BASE, 0x0);
   }
+
+  sinfo("resuming %d\n", rtcb->pid);
+
 }
