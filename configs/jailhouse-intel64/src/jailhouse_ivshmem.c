@@ -98,17 +98,18 @@ static void map_shmem_and_bars(struct ivshmem_dev_data *d)
         return;
     }
 
-    d->shmemsz = pci_cfg_read64(d->bdf, IVSHMEM_CFG_SHMEM_SZ);
-    d->shmem = (void *)pci_cfg_read64(d->bdf, IVSHMEM_CFG_SHMEM_PTR);
+    d->shmemsz = pci_cfg_read64(d->bdf, IVSHMEM_CFG_SHMEM_SIZE);
+    d->shmem = (void *)pci_cfg_read64(d->bdf, IVSHMEM_CFG_SHMEM_ADDR);
 
     _info("shmem is at %p\n", d->shmem);
     d->registers = (uint32_t *)((uint64_t)(d->shmem + d->shmemsz + PAGE_SIZE - 1)
         & PAGE_MASK);
     pci_cfg_write64(d->bdf, PCI_CFG_BAR, (uint64_t)d->registers);
     _info("bar0 is at %p\n", d->registers);
+
     d->bar2sz = get_bar_sz(d->bdf, 2);
     d->msix_table = (uint32_t *)((uint64_t)d->registers + PAGE_SIZE);
-    pci_cfg_write64(d->bdf, PCI_CFG_BAR + 16, (uint64_t)d->msix_table);
+    pci_cfg_write64(d->bdf, PCI_CFG_BAR + 8, (uint64_t)d->msix_table);
     _info("bar2 is at %p\n", d->msix_table);
 
     pci_write_config(d->bdf, PCI_CFG_COMMAND,
@@ -118,14 +119,15 @@ static void map_shmem_and_bars(struct ivshmem_dev_data *d)
 
 static int get_ivpos(struct ivshmem_dev_data *d)
 {
-    return mmio_read32(d->registers + 2);
+    return mmio_read32(d->registers + 0);
 }
 
 static void send_irq(struct ivshmem_dev_data *d)
 {
     /*_info("IVSHMEM: %02x:%02x.%x sending IRQ\n",*/
            /*d->bdf >> 8, (d->bdf >> 3) & 0x1f, d->bdf & 0x3);*/
-    mmio_write32(d->registers + 3, 1);
+    _info("ivshmem sent irq\n");
+    mmio_write32(d->registers + 1, 0);
 }
 
 static int ivshmem_irq_handler(int irq, uint32_t *regs, void *arg)
@@ -315,7 +317,7 @@ void up_ivshmem(void)
                bdf >> 8, (bdf >> 3) & 0x1f, bdf & 0x3);
         class_rev = pci_read_config(bdf, 0x8, 4);
         if (class_rev != (PCI_DEV_CLASS_OTHER << 24 |
-                  JAILHOUSE_SHMEM_PROTO_UNDEFINED << 8)) {
+                  JAILHOUSE_SHMEM_PROTO_UNDEFINED << 8 | JAILHOUSE_IVSHMEM_REVERSION)) {
             _info("class/revision %08x, not supported "
                    "skipping device\n", class_rev);
             bdf++;
