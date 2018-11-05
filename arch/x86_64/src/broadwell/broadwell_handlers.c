@@ -159,6 +159,9 @@ uint64_t *isr_handler(uint64_t *regs, uint64_t irq)
 #else
   uint64_t *ret;
 
+  DEBUGASSERT(g_current_regs == NULL);
+  g_current_regs = regs;
+
   /* Let's say, all ISR are asserted when REALLY BAD things happended */
   /* Don't even brother to recover, just dump the regs and PANIC*/
   _alert("PANIC:\n");
