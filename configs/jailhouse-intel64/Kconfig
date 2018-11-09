@@ -11,4 +11,46 @@ config COMM_REGION_BASE
 	---help---
 		The base address of communication region with jailhouse
 
+menuconfig NET_IVSHMEM_NET
+	bool "IVShmem based Ethernet"
+	default n
+	---help---
+		A ivshmem-net model based on ivshmem 2.
+
+if NET_IVSHMEM_NET
+
+config NET_IVSHMEM_NET_RX_DESC
+	int "Number of RX descriptors"
+	default 64
+
+config NET_IVSHMEM_NET_TX_DESC
+	int "Number of TX descriptors"
+	default 32
+
+config IVSHMEM_NET_MAC0_ENV_ADDR
+	hex "MAC0 address location"
+	default 0
+
+choice
+	prompt "Work queue"
+	default IVSHMEM_NET_LPWORK if SCHED_LPWORK
+	default IVSHMEM_NET_HPWORK if !SCHED_LPWORK && SCHED_HPWORK
+	depends on SCHED_WORKQUEUE
+	---help---
+		Work queue support is required to use the ivshmem-net driver.  If the
+		low priority work queue is available, then it should be used by the
+		ivshmem-net driver.
+
+config IVSHMEM_NET_HPWORK
+	bool "High priority"
+	depends on SCHED_HPWORK
+
+config IVSHMEM_NET_LPWORK
+	bool "Low priority"
+	depends on SCHED_LPWORK
+
+endchoice # Work queue
+
+endif # NET_FTMAC100
+
 endif # ARCH_BOARD_STM32F429I_DISCO

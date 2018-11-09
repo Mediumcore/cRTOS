@@ -60,7 +60,10 @@
  * Private Functions
  ************************************************************************************/
 
-void up_netinitialize(void){ return; }
+void up_netinitialize(void){
+  ivshmnet_initialize(0);
+  return;
+}
 
 /************************************************************************************
  * Public Functions

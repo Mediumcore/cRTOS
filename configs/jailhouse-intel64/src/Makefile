@@ -42,5 +42,6 @@ CSRCS += jailhouse_calibrate_freq.c
 CSRCS += jailhouse_idle.c
 CSRCS += jailhouse_ivshmem.c
 CSRCS += jailhouse_leds.c
+CSRCS += ivshmem-net.c
 
 include $(TOPDIR)/configs/Board.mk
