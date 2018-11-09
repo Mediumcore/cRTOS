@@ -22,7 +22,8 @@
 #define IVSHMEM_WAIT 10
 #define IVSHMEM_WAKE 11
 
-
 void up_ivshmem(void);
+
+int ivshmnet_initialize(int intf);
 
 #endif /* __JAILHOUSE_INCLUDE_IVSHMEM_H */
