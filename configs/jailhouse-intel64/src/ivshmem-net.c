@@ -268,7 +268,7 @@ static struct ivshmnet_driver_s g_ivshmnet[CONFIG_IVSHMEM_NET_NINTERFACES];
 
 /* ivshm-net */
 
-static void ivshm_net_state_change(struct ivshmnet_driver_s *in);
+static void ivshm_net_state_change(void *in);
 static void ivshm_net_set_state(struct ivshmnet_driver_s *in, uint32_t state);
 static void ivshm_net_check_state(struct ivshmnet_driver_s *in);
 
@@ -787,8 +787,9 @@ static void ivshm_net_do_stop(struct ivshmnet_driver_s *in)
  * State Machine
  ****************************************************************************/
 
-static void ivshm_net_state_change(struct ivshmnet_driver_s *in)
+static void ivshm_net_state_change(void *arg)
 {
+  struct ivshmnet_driver_s *in = (struct ivshmnet_driver_s*)arg;
   uint32_t rstate = READ_ONCE(*in->rstate);
 
   _info("Rstate: %08lx, Lstate: %08lx\n", rstate, in->lstate);
@@ -963,7 +964,7 @@ static int ivshmnet_transmit(FAR struct ivshmnet_driver_s *priv)
   /* Send the packet: address=priv->sk_dev.d_buf, length=priv->sk_dev.d_len */
   ivshm_net_tx_clean(priv);
 
-  DEBUGASSERT(ivshm_net_tx_ok(in, IVSHM_NET_MTU_DEF));
+  ASSERT(ivshm_net_tx_ok(priv, IVSHM_NET_MTU_DEF));
 
   ivshm_net_tx_frame(priv, priv->sk_dev.d_buf, priv->sk_dev.d_len);
 
@@ -1259,8 +1260,6 @@ static void ivshmnet_receive(FAR struct ivshmnet_driver_s *priv)
 
 static void ivshmnet_txdone(FAR struct ivshmnet_driver_s *priv)
 {
-  int delay;
-
   /* Check for errors and update statistics */
 
   NETDEV_TXDONE(priv->sk_dev);
