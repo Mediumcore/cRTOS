@@ -85,6 +85,6 @@ void up_restore_auxstate(struct tcb_s *rtcb)
     write_msr(MSR_FS_BASE, 0x0);
   }
 
-  sinfo("resuming %d\n", rtcb->pid);
+  sinfo("resuming %d: %s\n", rtcb->pid, rtcb->name);
 
 }
