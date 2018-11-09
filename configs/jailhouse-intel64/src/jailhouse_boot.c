@@ -52,6 +52,13 @@
 
 #include "jailhouse_ivshmem.h"
 
+#include <net/if.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <nuttx/net/arp.h>
+#include <nuttx/net/netdev.h>
+
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
@@ -103,9 +110,26 @@ void x86_64_boardinitialize(void)
  *
  ************************************************************************************/
 
+struct net_driver_s *netdev_findbyname(FAR const char *ifname);
+void netdev_ifup(FAR struct net_driver_s *dev);
+
 void board_initialize(void)
 {
+  struct net_driver_s *dev;
+
   up_ivshmem();
+
+  /* Set up our host address */
+  dev = netdev_findbyname("eth0");
+  if(dev)
+    {
+      dev->d_ipaddr = HTONL(CONFIG_IVSHMEM_NET_IPADDR);
+      dev->d_netmask = HTONL(CONFIG_IVSHMEM_NET_NETMASK);
+      dev->d_draddr = HTONL(CONFIG_IVSHMEM_NET_DRIPADDR);
+
+      netdev_ifup(dev);
+    }
+
 
   return;
 }

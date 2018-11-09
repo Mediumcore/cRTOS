@@ -97,6 +97,10 @@
 
 #ifndef CONFIG_IVSHMEM_NET_NINTERFACES
 # define CONFIG_IVSHMEM_NET_NINTERFACES 1
+#else
+# if(CONFIG_IVSHMEM_NET_NINTERFACES != 1)
+#   error Only support one ivshmem-net interface
+# endif
 #endif
 
 /* TX poll delay = 1 seconds. CLK_TCK is the number of clock ticks per second */
@@ -871,18 +875,18 @@ static void dump_ethernet_frame(void *data, int len){
     uint32_t* ptrip = (uint32_t*)(ptr8 + 14);
     uint16_t etype;
 
-    _info("======= Dumping Ethernet Frame =======\n");
-    _info("Dest MAC: %x:%x:%x:%x:%x:%x\n", ptr8[0], ptr8[1], ptr8[2], ptr8[3], ptr8[4], ptr8[5]);
-    _info("Src  MAC: %x:%x:%x:%x:%x:%x\n", ptr8[6], ptr8[7], ptr8[8], ptr8[9], ptr8[10], ptr8[11]);
+    ninfo("======= Dumping Ethernet Frame =======\n");
+    ninfo("Dest MAC: %x:%x:%x:%x:%x:%x\n", ptr8[0], ptr8[1], ptr8[2], ptr8[3], ptr8[4], ptr8[5]);
+    ninfo("Src  MAC: %x:%x:%x:%x:%x:%x\n", ptr8[6], ptr8[7], ptr8[8], ptr8[9], ptr8[10], ptr8[11]);
     etype = bswap16(ptr16[6]);
-    _info("Ether Type: 0x%x\n", etype);
+    ninfo("Ether Type: 0x%x\n", etype);
     if(etype == 0x806) // ARP
     {
-      _info("------- Begin ARP Frame -------\n");
-      _info("HW type: 0x%lx, Proto type: 0x%lx\n", bswap16((ptrip[0]) & 0xffff), bswap16((ptrip[0] >> 16) & 0xffff));
-      _info("HW addr len: 0x%lx, Proto addr len: 0x%lx\n", (ptrip[1]) & 0xff, (ptrip[1] >> 8) & 0xff);
-      _info("Operation: 0x%lx\n", bswap16((ptrip[1] >> 16) & 0xffff));
-      _info("Sender hardware address: %x:%x:%x:%x:%x:%x\n",
+      ninfo("------- Begin ARP Frame -------\n");
+      ninfo("HW type: 0x%lx, Proto type: 0x%lx\n", bswap16((ptrip[0]) & 0xffff), bswap16((ptrip[0] >> 16) & 0xffff));
+      ninfo("HW addr len: 0x%lx, Proto addr len: 0x%lx\n", (ptrip[1]) & 0xff, (ptrip[1] >> 8) & 0xff);
+      ninfo("Operation: 0x%lx\n", bswap16((ptrip[1] >> 16) & 0xffff));
+      ninfo("Sender hardware address: %x:%x:%x:%x:%x:%x\n",
               (ptrip[2]) & 0xff,
               (ptrip[2] >> 8) & 0xff,
               (ptrip[2] >> 16) & 0xff,
@@ -890,13 +894,13 @@ static void dump_ethernet_frame(void *data, int len){
               (ptrip[3]) & 0xff,
               (ptrip[3] >> 8) & 0xff
               );
-      _info("Sender protocol address: %x:%x:%x:%x\n",
+      ninfo("Sender protocol address: %x:%x:%x:%x\n",
               (ptrip[3] >> 16) & 0xff,
               (ptrip[3] >> 24) & 0xff,
               (ptrip[4]) & 0xff,
               (ptrip[4] >> 8) & 0xff
               );
-      _info("Target hardware address: %x:%x:%x:%x:%x:%x\n",
+      ninfo("Target hardware address: %x:%x:%x:%x:%x:%x\n",
               (ptrip[4] >> 16) & 0xff,
               (ptrip[4] >> 24) & 0xff,
               (ptrip[5]) & 0xff,
@@ -904,7 +908,7 @@ static void dump_ethernet_frame(void *data, int len){
               (ptrip[5] >> 16) & 0xff,
               (ptrip[5] >> 24) & 0xff
               );
-      _info("Target protocol address: %x:%x:%x:%x\n",
+      ninfo("Target protocol address: %x:%x:%x:%x\n",
               (ptrip[6]) & 0xff,
               (ptrip[6] >> 8) & 0xff,
               (ptrip[6] >> 16) & 0xff,
@@ -914,19 +918,19 @@ static void dump_ethernet_frame(void *data, int len){
     else if(etype == 0x800) //IPV4
     {
       int hdr_len = (ptrip[0]) & 0xf;
-      _info("------- Begin IP Frame -------\n");
-      _info("Version: %d, Hdr len: 0x%lx\n", (ptrip[0] >> 4) & 0xf, hdr_len);
-      _info("Diff Service: 0x%lx\n", (ptrip[0] >> 8) & 0xff);
-      _info("Total Length: 0x%lx\n", (ptrip[0] >> 16) & 0xffff);
-      _info("Identification: 0x%lx\n", (ptrip[1]) & 0xffff);
-      _info("Flags: 0x%lx, Frags: 0x%lx\n", (ptrip[1] >> 16) & 0x7, bswap16((ptrip[1] >> 16) & 0xffff) & 0x1fff);
-      _info("TTL: %d, Protocol: 0x%lx\n", (ptrip[2]) & 0xff, (ptrip[2] >> 8) & 0xff);
-      _info("Hdr checksum: 0x%lx\n", (ptrip[2] >> 16) & 0xffff);
-      _info("Src  address: %d.%d.%d.%d\n", (ptrip[3]) & 0xff, (ptrip[3] >> 8) & 0xff, (ptrip[3] >> 16) & 0xff, (ptrip[3] >> 24) & 0xff);
-      _info("Dest address: %d.%d.%d.%d\n", (ptrip[4]) & 0xff, (ptrip[4] >> 8) & 0xff, (ptrip[4] >> 16) & 0xff, (ptrip[4] >> 24) & 0xff);
+      ninfo("------- Begin IP Frame -------\n");
+      ninfo("Version: %d, Hdr len: 0x%lx\n", (ptrip[0] >> 4) & 0xf, hdr_len);
+      ninfo("Diff Service: 0x%lx\n", (ptrip[0] >> 8) & 0xff);
+      ninfo("Total Length: 0x%lx\n", (ptrip[0] >> 16) & 0xffff);
+      ninfo("Identification: 0x%lx\n", (ptrip[1]) & 0xffff);
+      ninfo("Flags: 0x%lx, Frags: 0x%lx\n", (ptrip[1] >> 16) & 0x7, bswap16((ptrip[1] >> 16) & 0xffff) & 0x1fff);
+      ninfo("TTL: %d, Protocol: 0x%lx\n", (ptrip[2]) & 0xff, (ptrip[2] >> 8) & 0xff);
+      ninfo("Hdr checksum: 0x%lx\n", (ptrip[2] >> 16) & 0xffff);
+      ninfo("Src  address: %d.%d.%d.%d\n", (ptrip[3]) & 0xff, (ptrip[3] >> 8) & 0xff, (ptrip[3] >> 16) & 0xff, (ptrip[3] >> 24) & 0xff);
+      ninfo("Dest address: %d.%d.%d.%d\n", (ptrip[4]) & 0xff, (ptrip[4] >> 8) & 0xff, (ptrip[4] >> 16) & 0xff, (ptrip[4] >> 24) & 0xff);
 
-      _info("Src  port: %d\n", bswap16(ptrip[hdr_len] >> 16) & 0xffff);
-      _info("Dest port: %d\n", bswap16(ptrip[hdr_len]) & 0xffff);
+      ninfo("Src  port: %d\n", bswap16(ptrip[hdr_len] >> 16) & 0xffff);
+      ninfo("Dest port: %d\n", bswap16(ptrip[hdr_len]) & 0xffff);
     }
 
     return;
@@ -1133,7 +1137,7 @@ static void ivshmnet_receive(FAR struct ivshmnet_driver_s *priv)
       uint32_t len;
 
       /* Check for errors and update statistics */
-      _info("processing receive\n");
+      ninfo("processing receive\n");
 
       desc = ivshm_net_rx_desc(priv); /* get next avail rx descriptor from avail ring */
       if (!desc)
@@ -1306,7 +1310,7 @@ static void ivshmnet_interrupt_work(FAR void *arg)
    * thread has been configured.
    */
 
-  _info("processing int\n");
+  ninfo("processing int\n");
 
   net_lock();
 
@@ -1386,7 +1390,7 @@ static int ivshmnet_interrupt(int irq, FAR void *context, FAR void *arg)
        /*wd_cancel(priv->sk_txtimeout);*/
     }
 
-  _info("Got an net tx/rx int\n");
+  ninfo("Got an net tx/rx int\n");
 
   /* Schedule to perform the interrupt processing on the worker thread. */
 
@@ -2007,7 +2011,8 @@ int ivshmnet_initialize(int intf)
   /* Read the MAC address from the hardware into priv->sk_dev.d_mac.ether.ether_addr_octet
    * Applies only if the Ethernet MAC has its own internal address.
    */
-  memcpy(priv->sk_dev.d_mac.ether.ether_addr_octet, (void *)(CONFIG_IVSHMEM_NET_MAC0_ENV_ADDR), 6);
+  uint64_t mac = CONFIG_IVSHMEM_NET_MAC_ADDR;
+  memcpy(priv->sk_dev.d_mac.ether.ether_addr_octet, (void *)(&mac), 6);
 
   /* Register the device with the OS so that socket IOCTLs can be performed */
 

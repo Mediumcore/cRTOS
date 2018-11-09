@@ -27,9 +27,21 @@ config NET_IVSHMEM_NET_TX_DESC
 	int "Number of TX descriptors"
 	default 32
 
-config IVSHMEM_NET_MAC0_ENV_ADDR
+config IVSHMEM_NET_MAC_ADDR
 	hex "MAC0 address location"
-	default 0
+	default 0xdeadbeef00
+
+config IVSHMEM_NET_IPADDR
+	hex "Target IP address"
+	default 0xac100002
+
+config IVSHMEM_NET_DRIPADDR
+	hex "Default Router IP address (Gateway)"
+	default 0xac100001
+
+config IVSHMEM_NET_NETMASK
+	hex "Network Mask"
+	default 0xffffff00
 
 choice
 	prompt "Work queue"
