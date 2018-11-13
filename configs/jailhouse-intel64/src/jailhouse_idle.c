@@ -84,7 +84,9 @@ void up_idle(void)
 
 #ifndef CONFIG_SCHED_TICKLESS
   /* jailhouse messages are handler on system tick */
+# ifdef CONFIG_ENABLE_C1_STATE
   asm volatile("hlt");
+# endif
 #else
   /* Busy looping for jailhouse message */
   switch (comm_region->msg_to_cell) {
