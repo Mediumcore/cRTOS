@@ -173,15 +173,6 @@ pd_loop:
     dec %ecx
     jnz pd_loop
 
-    //Map ioapic on vmm
-    mov $0x1f6, %eax
-    mov $8, %ebx
-    mul %ebx
-    lea pd_4, %edi
-    add %eax, %edi
-    mov $0xfec00093, %eax
-    mov %eax, 0(%edi)
-
     // Enable PAE
 	mov %cr4,%eax
 	or $(X86_CR4_PAE | X86_CR4_PGE),%eax

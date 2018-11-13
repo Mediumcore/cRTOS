@@ -48,6 +48,7 @@
 #include <nuttx/arch.h>
 #include <arch/irq.h>
 #include <arch/io.h>
+#include <arch/board/board.h>
 
 #include "up_arch.h"
 #include "up_internal.h"
@@ -56,6 +57,8 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+#define UART_BASE 0x3f8
+
 
 #define X2APIC_SPIV		0x80f
 
@@ -112,6 +115,44 @@ void up_ioapic_pin_set_vector(unsigned int pin, enum ioapic_trigger_mode trigger
 }
 
 /****************************************************************************
+ * Name: up_ioapic_mask_pin
+ *
+ * Description:
+ *  Mask an IO-APIC interrupt
+ *
+ ****************************************************************************/
+
+void up_ioapic_mask_pin(unsigned int pin)
+{
+  uint32_t cur;
+  mmio_write32(IOAPIC_BASE + IOAPIC_REG_INDEX,
+    IOAPIC_REDIR_TBL_START + pin * 2);
+  cur = mmio_read32(IOAPIC_BASE + IOAPIC_REG_DATA);
+  mmio_write32(IOAPIC_BASE + IOAPIC_REG_INDEX,
+    IOAPIC_REDIR_TBL_START + pin * 2);
+  mmio_write32(IOAPIC_BASE + IOAPIC_REG_DATA, cur | (1 << 16));
+}
+
+/****************************************************************************
+ * Name: up_ioapic_unmask_pin
+ *
+ * Description:
+ *  Unmask an IO-APIC interrupt
+ *
+ ****************************************************************************/
+
+void up_ioapic_unmask_pin(unsigned int pin)
+{
+  uint32_t cur;
+  mmio_write32(IOAPIC_BASE + IOAPIC_REG_INDEX,
+    IOAPIC_REDIR_TBL_START + pin * 2);
+  cur = mmio_read32(IOAPIC_BASE + IOAPIC_REG_DATA);
+  mmio_write32(IOAPIC_BASE + IOAPIC_REG_INDEX,
+    IOAPIC_REDIR_TBL_START + pin * 2);
+  mmio_write32(IOAPIC_BASE + IOAPIC_REG_DATA, cur & ~(1 << 16));
+}
+
+/****************************************************************************
  * Name: up_init_apic
  *
  * Description:
@@ -125,6 +166,31 @@ static void up_apic_init(void)
 }
 
 /****************************************************************************
+ * Name: legacy_pic_irq_handler
+ *
+ * Description:
+ *  This function will capture will legacy 8259 PIC IRQ using virtual wire mode
+ *
+ ****************************************************************************/
+
+static int legacy_pic_irq_handler(int irq, uint32_t *regs, void *arg)
+{
+  /* Busy looping for jailhouse message */
+  switch (comm_region->msg_to_cell) {
+  case JAILHOUSE_MSG_SHUTDOWN_REQUEST:
+    comm_region->cell_state = JAILHOUSE_CELL_SHUT_DOWN;
+    for(;;){
+      asm("cli");
+      asm("hlt");
+    }
+    break;
+  default:
+    break;
+  }
+  return 0;
+}
+
+/****************************************************************************
  * Name: up_init_ioapic
  *
  * Description:
@@ -134,8 +200,15 @@ static void up_apic_init(void)
 
 static void up_ioapic_init(void)
 {
-    // Already initialized the memory map in head.S using assembly
-    return;
+  up_map_region(IOAPIC_BASE, HUGE_PAGE_SIZE, 0x10);
+
+  /* setup virtual wire mode */
+  /* 8259 PIC is routed to ININT0 a.k.a pin0 of IOAPIC 0 */
+  /* Therefore, we hook that to IRQ15 */
+  up_ioapic_pin_set_vector(0, TRIGGER_LEVEL_ACTIVE_LOW, IRQ15);
+  (void)irq_attach(IRQ15, (xcpt_t)legacy_pic_irq_handler, NULL);
+
+  return;
 }
 
 /****************************************************************************
@@ -288,6 +361,9 @@ void up_irqinitialize(void)
 
 void up_disable_irq(int irq)
 {
+  if(irq == IRQ15){
+    up_ioapic_mask_pin(0);
+  }
 }
 
 /****************************************************************************
@@ -300,6 +376,9 @@ void up_disable_irq(int irq)
 
 void up_enable_irq(int irq)
 {
+  if(irq == IRQ15){
+    up_ioapic_unmask_pin(0);
+  }
 }
 
 /****************************************************************************
