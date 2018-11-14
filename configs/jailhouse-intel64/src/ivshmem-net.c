@@ -796,7 +796,7 @@ static void ivshm_net_state_change(void *arg)
   struct ivshmnet_driver_s *in = (struct ivshmnet_driver_s*)arg;
   uint32_t rstate = READ_ONCE(*in->rstate);
 
-  _info("Rstate: %08lx, Lstate: %08lx\n", rstate, in->lstate);
+  ninfo("Rstate: %08lx, Lstate: %08lx\n", rstate, in->lstate);
 
   switch (in->lstate) {
   case IVSHM_NET_STATE_RESET:
@@ -835,8 +835,6 @@ static void ivshm_net_set_state(struct ivshmnet_driver_s *in, uint32_t state)
 static void ivshm_net_check_state(struct ivshmnet_driver_s *in)
 {
   irqstate_t flags;
-
-  _info("Remote state changed\n");
 
   /* test_bit */
   flags = enter_critical_section();
