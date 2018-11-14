@@ -134,7 +134,8 @@ __reset_entry:
 	mov %eax,%cr0
 
     // Long jump into protected mode
-	ljmpl $0x8,$(start32)
+    // Hardcode the address
+	ljmpl $0x8,$0x20000000
 
     // Loader GDT and GDTR
 	.align(16)

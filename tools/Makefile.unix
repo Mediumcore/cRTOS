@@ -179,7 +179,9 @@ endif
 # This is the name of the final target (relative to the top level directorty)
 
 NUTTXNAME = nuttx
+LOADERNAME = loader
 BIN       = $(NUTTXNAME)$(EXEEXT)
+LOADERBIN       = $(LOADERNAME)$(EXEEXT)
 
 all: $(BIN)
 .PHONY: dirlinks context clean_context check_context config oldconfig menuconfig nconfig qconfig gconfig export subdir_clean clean subdir_distclean distclean apps_clean apps_distclean
@@ -439,6 +441,8 @@ ifeq ($(CONFIG_MOTOROLA_SREC),y)
 	$(Q) $(OBJCOPY) $(OBJCOPYARGS) -O srec $(BIN) $(NUTTXNAME).srec
 endif
 ifeq ($(CONFIG_RAW_BINARY),y)
+	@echo "CP: $(LOADERNAME).bin"
+	$(Q) $(OBJCOPY) -O binary $(LOADERBIN) $(LOADERNAME).bin
 	@echo "CP: $(NUTTXNAME).bin"
 	$(Q) $(OBJCOPY) $(OBJCOPYARGS) -O binary $(BIN) $(NUTTXNAME).bin
 endif

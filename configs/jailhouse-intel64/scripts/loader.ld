@@ -34,23 +34,19 @@
  ****************************************************************************/
 
 OUTPUT_ARCH(i386:x86-64)
-ENTRY(__start)
+ENTRY(__reset_entry)
 SECTIONS
 {
+	. = 0x00000000;
 
-	. = 0x20000000;
-
-	.text :
-    {
-		_stext = ABSOLUTE(.);
-		*(.text .text.*)
-		*(.gnu.linkonce.t.*)
-		_etext = ABSOLUTE(.);
+	.loader : {
+		*(.loader .loader.*)
 	}
 
-	.text ALIGN (0x1000) : 
+	/DISCARD/ :
     {
-		_srodata = ABSOLUTE(.);
+		*(.text .text.*)
+		*(.gnu.linkonce.t.*)
 		*(.rodata .rodata.*)
 		*(.fixup)
 		*(.gnu.warning)
@@ -60,25 +56,12 @@ SECTIONS
 		*(.gcc_except_table)
 		*(.gnu.linkonce.r.*)
         *(.eh_frame)
-		_erodata = ABSOLUTE(.);
-	}
-
-	.data ALIGN (0x1000) : 
-    {
-		_sdata = ABSOLUTE(.);
 		*(.data .data.*)
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
-		_edata = ABSOLUTE(.);
-	}
-
-	.bss : 
-    {
-		_sbss = ABSOLUTE(.);
 		*(.bss .bss.*)
 		*(.gnu.linkonce.b.*)
 		*(COMMON)
-		_ebss = ABSOLUTE(.);
 	}
 
 	/* Stabs debugging sections */

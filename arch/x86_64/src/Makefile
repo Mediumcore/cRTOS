@@ -63,6 +63,7 @@ ifeq ($(WINTOOL),y)
   CFLAGS += -I "${shell cygpath -w $(TOPDIR)/sched}"
 else
   NUTTX = $(TOPDIR)/nuttx$(EXEEXT)
+  LOADER = $(TOPDIR)/loader$(EXEEXT)
   CFLAGS += -I$(ARCH_SRCDIR)/chip
   CFLAGS += -I$(ARCH_SRCDIR)/common
   CFLAGS += -I$(ARCH_SRCDIR)/$(ARCH_SUBDIR)
@@ -93,8 +94,11 @@ LDSTARTGROUP ?= --start-group
 LDENDGROUP ?= --end-group
 
 LDFLAGS += $(ARCHSCRIPT)
+LOADER_LDFLAGS += $(LOADER_ARCHSCRIPT)
 EXTRA_LIBS ?=
 LINKLIBS ?=
+
+OBJCOPYARGS =
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   BOARDMAKE = $(if $(wildcard .\board\Makefile),y,)
@@ -152,7 +156,12 @@ $(UBIN): $(UOBJS)
 board/libboard$(LIBEXT):
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
 
-nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT)
+loader$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT)
+	@echo "LD: loader$(EXEEXT)"
+	$(Q) $(LD) --entry=__start $(LOADER_LDFLAGS) $(LIBPATHS) -o $(LOADER) $(HEAD_OBJ) \
+		$(LDSTARTGROUP) $(LIBGCC) $(LDLIBS) $(EXTRA_LIBS) $(LDENDGROUP)
+
+nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT) loader$(EXEEXT)
 	@echo "LD: nuttx$(EXEEXT)"
 	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) -o $(NUTTX) $(HEAD_OBJ) $(EXTRA_OBJS) \
 		$(LDSTARTGROUP) $(LIBGCC) --whole-archive  $(LDLIBS) $(EXTRA_LIBS) $(LDENDGROUP)

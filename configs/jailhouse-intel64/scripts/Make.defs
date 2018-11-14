@@ -61,10 +61,11 @@ else
   ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
   ARCHXXINCLUDES = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
   ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/jailhouse.ld
+  LODAER_ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/loader.ld
 endif
 
-ARCHCPUFLAGS = -fno-builtin -fno-stack-protector
-ARCHPICFLAGS = -fpic -mno-red-zone
+ARCHCPUFLAGS = -fno-builtin -fno-stack-protector -mno-red-zone
+ARCHPICFLAGS = -fpic
 ARCHWARNINGS = -Wall -Wstrict-prototypes -Wshadow -Wundef
 ARCHDEFINES =
 
