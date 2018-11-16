@@ -69,8 +69,6 @@
 #include <nuttx/clock.h>
 
 #ifdef CONFIG_SCHED_TICKLESS
-#ifdef CONFIG_SCHED_TICKLESS_ALARM
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -86,34 +84,92 @@
 #define X2APIC_TMCCT		0x839
 #define X2APIC_TDCR		0x83e
 
+#define TMR_IRQ IRQ0
+
+#define ROUND_INT_DIV(s, d) (s + (d >> 1)) / d
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
 unsigned long tsc_freq;
 
-static struct timespec g_goal_time;
+static uint64_t g_goal_time;
+static struct timespec g_goal_time_ts;
+static uint64_t g_last_stop_time;
 static uint64_t g_start_tsc;
-static bool g_alarm_active;
+static uint32_t g_timer_active;
+
+static irqstate_t g_tmr_sync_count;
+static irqstate_t g_tmr_flags;
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
+void up_mask_tmr(void)
+{
+  /* Disable TSC Deadline interrupt */
+  write_msr(X2APIC_LVTT, TMR_IRQ | LVTT_TSC_DEADLINE | (1 << 16));
+  /* Required when using TSC deadline mode. */
+  asm volatile("mfence" : : : "memory");
+}
+
+void up_unmask_tmr(void)
+{
+  /* Enable TSC Deadline interrupt */
+  write_msr(X2APIC_LVTT, TMR_IRQ | LVTT_TSC_DEADLINE);
+  /* Required when using TSC deadline mode. */
+  asm volatile("mfence" : : : "memory");
+}
+
+#ifndef CONFIG_SCHED_TICKLESS_ALARM
+void up_timer_expire(void);
+#else
 void up_alarm_expire(void);
+#endif
 
 void x86_64_timer_initialize(void)
 {
-  g_start_tsc = rdtsc();
+  g_last_stop_time = g_start_tsc = rdtsc();
 
+#ifndef CONFIG_SCHED_TICKLESS_ALARM
+  (void)irq_attach(IRQ0, (xcpt_t)up_timer_expire, NULL);
+#else
   (void)irq_attach(IRQ0, (xcpt_t)up_alarm_expire, NULL);
-
-  /* Enable TSC Deadline interrupt */
-  write_msr(X2APIC_LVTT, IRQ0 | LVTT_TSC_DEADLINE);
-  /* Required when using TSC deadline mode. */
-  asm volatile("mfence" : : : "memory");
+#endif
 
   return;
+}
+
+static inline uint64_t up_ts2tick(FAR struct timespec *ts)
+{
+  return ROUND_INT_DIV((uint64_t)ts->tv_nsec * tsc_freq, NS_PER_SEC) + (uint64_t)ts->tv_sec * tsc_freq;
+}
+
+static inline void up_tick2ts(uint64_t tick, FAR struct timespec *ts)
+{
+  ts->tv_sec  = (tick / tsc_freq);
+  ts->tv_nsec = (uint64_t)(ROUND_INT_DIV((tick % tsc_freq) * NSEC_PER_SEC, tsc_freq));
+}
+
+static inline void up_tmr_sync_up(void)
+{
+  if(!g_tmr_sync_count){
+    g_tmr_flags = enter_critical_section();
+  }
+  g_tmr_sync_count++;
+}
+
+static inline void up_tmr_sync_down(void)
+{
+  if(g_tmr_sync_count == 1){
+    leave_critical_section(g_tmr_flags);
+  }
+
+  if(g_tmr_sync_count > 0){
+    g_tmr_sync_count--;
+  }
 }
 
 /****************************************************************************
@@ -152,10 +208,138 @@ void x86_64_timer_initialize(void)
 int up_timer_gettime(FAR struct timespec *ts)
 {
   uint64_t diff = (rdtsc() - g_start_tsc);
-  ts->tv_sec  = (diff / tsc_freq);
-  ts->tv_nsec = (((diff - (ts->tv_sec * tsc_freq)) * NSEC_PER_USEC) + ((tsc_freq / USEC_PER_SEC) >> 1)) / (tsc_freq / USEC_PER_SEC);
+  up_tick2ts(diff, ts);
   return OK;
 }
+
+#ifndef CONFIG_SCHED_TICKLESS_ALARM
+
+/****************************************************************************
+ * Name: up_timer_cancel
+ *
+ * Description:
+ *   Cancel the interval timer and return the time remaining on the timer.
+ *   These two steps need to be as nearly atomic as possible.
+ *   sched_timer_expiration() will not be called unless the timer is
+ *   restarted with up_timer_start().
+ *
+ *   If, as a race condition, the timer has already expired when this
+ *   function is called, then that pending interrupt must be cleared so
+ *   that up_timer_start() and the remaining time of zero should be
+ *   returned.
+ *
+ *   Provided by platform-specific code and called from the RTOS base code.
+ *
+ * Input Parameters:
+ *   ts - Location to return the remaining time.  Zero should be returned
+ *        if the timer is not active.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure.
+ *
+ * Assumptions:
+ *   May be called from interrupt level handling or from the normal tasking
+ *   level.  Interrupts may need to be disabled internally to assure
+ *   non-reentrancy.
+ *
+ ****************************************************************************/
+
+int up_timer_cancel(FAR struct timespec *ts)
+{
+  up_tmr_sync_up();
+
+  up_mask_tmr();
+
+  if (ts != NULL){
+    if (g_timer_active)
+    {
+      up_tick2ts(g_goal_time - rdtsc(), ts);
+    }
+    else
+    {
+      ts->tv_sec = 0;
+      ts->tv_nsec = 0;
+    }
+  }
+
+  g_timer_active = 0;
+
+  up_tmr_sync_down();
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: up_timer_start
+ *
+ * Description:
+ *   Start the interval timer.  sched_timer_expiration() will be
+ *   called at the completion of the timeout (unless up_timer_cancel
+ *   is called to stop the timing.
+ *
+ *   Provided by platform-specific code and called from the RTOS base code.
+ *
+ * Input Parameters:
+ *   ts - Provides the time interval until sched_timer_expiration() is
+ *        called.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure.
+ *
+ * Assumptions:
+ *   May be called from interrupt level handling or from the normal tasking
+ *   level.  Interrupts may need to be disabled internally to assure
+ *   non-reentrancy.
+ *
+ ****************************************************************************/
+
+int up_timer_start(FAR const struct timespec *ts)
+{
+  uint64_t ticks;
+
+  up_tmr_sync_up();
+
+  ticks = up_ts2tick(ts) + rdtsc();
+
+  g_timer_active = 1;
+
+  write_msr(IA32_TSC_DEADLINE, ticks);
+
+  g_goal_time = ticks;
+
+  up_unmask_tmr();
+
+  up_tmr_sync_down();
+  return OK;
+}
+
+/****************************************************************************
+ * Name: up_timer_expire
+ *
+ * Description:
+ *   Called as the IRQ handler for alarm expiration.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void up_timer_expire(void)
+{
+  g_timer_active = 0;
+
+  up_mask_tmr();
+  sched_timer_expiration();
+
+  return;
+}
+
+#else /* CONFIG_SCHED_TICKLESS_ALARM */
 
 /****************************************************************************
  * Name: up_timer_cancel
@@ -190,27 +374,25 @@ int up_timer_gettime(FAR struct timespec *ts)
 
 int up_alarm_cancel(FAR struct timespec *ts)
 {
-  irqstate_t flags = enter_critical_section();
+  up_tmr_sync_up();
 
-  g_alarm_active           = false;
+  up_mask_tmr();
 
-  write_msr(IA32_TSC_DEADLINE, UINT64_MAX);
-
-  tmrinfo("alarm canceled\n");
   if (ts != NULL){
-    if (g_alarm_active)
-    {
-      ts->tv_sec  = g_goal_time.tv_sec;
-      ts->tv_nsec = g_goal_time.tv_nsec;
-    }
-    else
-    {
-      ts->tv_sec  = 0;
-      ts->tv_nsec = 0;
-      }
+    /*if (g_timer_active)*/
+    /*{*/
+      /*ts->tv_sec = g_goal_time_ts.tv_sec;*/
+      /*ts->tv_nsec = g_goal_time_ts.tv_nsec;*/
+    /*}*/
+    /*else*/
+    /*{*/
+      up_timer_gettime(ts);
+    /*}*/
   }
 
-  leave_critical_section(flags);
+  g_timer_active = 0;
+
+  up_tmr_sync_down();
 
   return OK;
 }
@@ -242,18 +424,24 @@ int up_alarm_cancel(FAR struct timespec *ts)
 
 int up_alarm_start(FAR const struct timespec *ts)
 {
-  irqstate_t flags = enter_critical_section();
-  unsigned long long ticks =
-    (unsigned long long) ((uint64_t)ts->tv_nsec * tsc_freq + (NS_PER_SEC>>1)) / NS_PER_SEC + ts->tv_sec * tsc_freq;
-  tmrinfo("alarm started: %llu\n", ticks);
-  g_alarm_active           = true;
+  uint64_t ticks;
 
-  write_msr(IA32_TSC_DEADLINE, (ticks + rdtsc()));
+  up_tmr_sync_up();
 
-  g_goal_time.tv_sec = ts->tv_sec;
-  g_goal_time.tv_nsec = ts->tv_nsec;
+  ticks = up_ts2tick(ts) + g_start_tsc;
 
-  leave_critical_section(flags);
+  write_msr(IA32_TSC_DEADLINE, ticks);
+
+  g_timer_active = 1;
+
+  g_goal_time_ts.tv_sec = ts->tv_sec;
+  g_goal_time_ts.tv_nsec = ts->tv_nsec;
+
+  /*_info("%lld\n", ((ticks - rdtsc()) / 2200000000));*/
+
+  up_unmask_tmr();
+
+  up_tmr_sync_down();
   return OK;
 }
 
@@ -274,9 +462,10 @@ int up_alarm_start(FAR const struct timespec *ts)
 void up_alarm_expire(void)
 {
   struct timespec now;
-  tmrinfo("alarm expired\n");
 
-  g_alarm_active = false;
+  up_mask_tmr();
+
+  g_timer_active = 0;
 
   up_timer_gettime(&now);
 

@@ -17,7 +17,6 @@ config ARCH_INTEL64
     select ARCH_HAVE_TICKLESS
     select ARCH_HAVE_STACKCHECK
     select ARCH_HAVE_VFORK
-    select SCHED_TICKLESS_ALARM
 	---help---
 		Intel x86_64 architecture
 
