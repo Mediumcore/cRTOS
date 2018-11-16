@@ -71,9 +71,6 @@
 #include <nuttx/board.h>
 #include <arch/board/board.h>
 
-#ifdef CONFIG_SCHED_TICKLESS
-#ifdef CONFIG_SCHED_TICKLESS_ALARM
-
 extern unsigned long tsc_freq;
 
 /****************************************************************************
@@ -117,6 +114,3 @@ void x86_64_timer_calibrate_freq(void)
       PANIC();
   }
 }
-
-#endif /* CONFIG_SCHED_TICKLESS_ALARM */
-#endif /* CONFIG_SCHED_TICKLESS */
