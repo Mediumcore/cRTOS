@@ -69,7 +69,9 @@
 
 void up_netinitialize(void){
 
+#ifdef CONFIG_NET_IVSHMEM_NET
   ivshmnet_initialize(0);
+#endif
 
   return;
 }
@@ -119,6 +121,7 @@ void board_initialize(void)
 
   up_ivshmem();
 
+#ifdef CONFIG_NET_IVSHMEM_NET
   /* Set up our host address */
   dev = netdev_findbyname("eth0");
   if(dev)
@@ -129,7 +132,7 @@ void board_initialize(void)
 
       netdev_ifup(dev);
     }
-
+#endif
 
   return;
 }
