@@ -173,11 +173,14 @@ int up_create_stack(FAR struct tcb_s *tcb, size_t stack_size, uint8_t ttype)
 
       top_of_stack = (uint64_t)tcb->stack_alloc_ptr + stack_size - 8;
 
-      /* The x86_64 stack must be aligned at quad-words (16 byte) boundaries. If
-       * necessary top_of_stack must be rounded down to the next boundary
-       */
+      /* The intel64 stack must be aligned at word (16 byte) boundaries. If necessary
+      * top_of_stack must be rounded down to the next boundary.
+      * We intentionally align at 8 byte boundary, because at task_start, only
+      * frame pointer will be pushed, not instruction pointer.
+      */
 
       top_of_stack &= ~0xff;
+      top_of_stack -= 0x8;
       size_of_stack = top_of_stack - (uint64_t)tcb->stack_alloc_ptr + 8;
 
       /* Save the adjusted stack values in the struct tcb_s */
