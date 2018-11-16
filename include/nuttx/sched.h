@@ -188,9 +188,14 @@
  * used both by the OS (libkc.a and libknx.a) or by the applications
  * (libuc.a and libunx.a).  The that case, the correct interface must be
  * used for the build context.
+ *
+ * REVISIT:  In the flat build, the same functions must be used both by
+ * the OS and by applications.  We have to use the normal user functions
+ * in this case or we will fail to set the errno or fail to create the
+ * cancellation point.
  */
 
-#if defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
+#if !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
 #  define _SCHED_GETPARAM(t,p)       nxsched_getparam(t,p)
 #  define _SCHED_SETPARAM(t,p)       nxsched_setparam(t,p)
 #  define _SCHED_GETSCHEDULER(t)     nxsched_getscheduler(t)
@@ -245,6 +250,10 @@ enum tstate_e
 #ifdef CONFIG_PAGING
   TSTATE_WAIT_PAGEFILL,       /* BLOCKED      - Waiting for page fill */
 #endif
+#ifdef CONFIG_SIG_SIGSTOP_ACTION
+  TSTATE_TASK_STOPPED,        /* BLOCKED      - Waiting for SIGCONT */
+#endif
+
   NUM_TASK_STATES             /* Must be last */
 };
 typedef enum tstate_e tstate_t;
@@ -326,7 +335,7 @@ struct sporadic_s
   uint8_t   nrepls;                 /* Number of active replenishments          */
   uint32_t  repl_period;            /* Sporadic replenishment period            */
   uint32_t  budget;                 /* Sporadic execution budget period         */
-  systime_t eventtime;              /* Time thread suspended or [re-]started    */
+  clock_t   eventtime;              /* Time thread suspended or [re-]started    */
 
   /* This is the last interval timer activated */
 
@@ -421,6 +430,10 @@ struct dspace_s
 struct join_s;                      /* Forward reference                        */
                                     /* Defined in sched/pthread/pthread.h       */
 #endif
+#ifdef CONFIG_BINFMT_LOADABLE
+struct binary_s;                    /* Forward reference                        */
+                                    /* Defined in include/nuttx/binfmt/binfmt.h */
+#endif
 
 struct task_group_s
 {
@@ -466,6 +479,12 @@ struct task_group_s
 # endif
 #endif
 
+#ifdef CONFIG_BINFMT_LOADABLE
+  /* Loadable module support ****************************************************/
+
+  FAR struct binary_s *tg_bininfo;  /* Describes resources used by program      */
+#endif
+
 #ifdef CONFIG_SCHED_HAVE_PARENT
   /* Child exit status **********************************************************/
 
@@ -488,8 +507,9 @@ struct task_group_s
   /* Simple mechanism used only when there is no support for SIGCHLD            */
 
   uint8_t tg_nwaiters;              /* Number of waiters                        */
+  uint8_t tg_waitflags;             /* User flags for waitpid behavior          */
   sem_t tg_exitsem;                 /* Support for waitpid                      */
-  int *tg_statloc;                  /* Location to return exit status           */
+  FAR int *tg_statloc;              /* Location to return exit status           */
 #endif
 
 #ifndef CONFIG_DISABLE_PTHREAD
@@ -508,6 +528,9 @@ struct task_group_s
 
   sq_queue_t tg_sigactionq;         /* List of actions for signals              */
   sq_queue_t tg_sigpendingq;        /* List of pending signals                  */
+#ifdef CONFIG_SIG_DEFAULT
+  sigset_t tg_sigdefault;           /* Set of signals set to the default action */
+#endif
 #endif
 
 #ifndef CONFIG_DISABLE_ENVIRON
@@ -615,7 +638,7 @@ struct tcb_s
   uint16_t flags;                        /* Misc. general status flags          */
   int16_t  lockcount;                    /* 0=preemptable (not-locked)          */
 #ifdef CONFIG_SMP
-  int16_t  irqcount;                     /* 0=interrupts enabled                */
+  int16_t  irqcount;                     /* 0=Not in critical section           */
 #endif
 #ifdef CONFIG_CANCELLATION_POINTS
   int16_t  cpcount;                      /* Nested cancellation point count     */
@@ -862,9 +885,34 @@ void task_starthook(FAR struct task_tcb_s *tcb, starthook_t starthook,
  *
  ********************************************************************************/
 
-FAR struct task_tcb_s *task_vforksetup(start_t retaddr);
+FAR struct task_tcb_s *task_vforksetup(start_t retaddr, size_t *argsize);
 pid_t task_vforkstart(FAR struct task_tcb_s *child);
 void task_vforkabort(FAR struct task_tcb_s *child, int errcode);
+
+/****************************************************************************
+ * Name: group_exitinfo
+ *
+ * Description:
+ *   This function may be called to when a task is loaded into memory.  It
+ *   will setup the to automatically unload the module when the task exits.
+ *
+ * Input Parameters:
+ *   pid     - The task ID of the newly loaded task
+ *   bininfo - This structure allocated with kmm_malloc().  This memory
+ *             persists until the task exits and will be used unloads
+ *             the module from memory.
+ *
+ * Returned Value:
+ *   This is a NuttX internal function so it follows the convention that
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BINFMT_LOADABLE
+struct binary_s;  /* Forward reference */
+int group_exitinfo(pid_t pid, FAR struct binary_s *bininfo);
+#endif
 
 /********************************************************************************
  * Name: sched_resume_scheduler

@@ -1,7 +1,8 @@
 /****************************************************************************
  * sched/sched/sched_free.c
  *
- *   Copyright (C) 2007, 2009, 2012-2013, 2015-2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2012-2013, 2015-2016, 2018 Gregory Nutt. All
+ *     rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -75,7 +76,7 @@ void sched_ufree(FAR void *address)
    * collect garbage on a group-by-group basis.
    */
 
-  ASSERT(!up_interrupt_context());
+  DEBUGASSERT(!up_interrupt_context());
   kumm_free(address);
 
 #else
@@ -84,39 +85,27 @@ void sched_ufree(FAR void *address)
    * must have exclusive access to the memory manager to do this.
    */
 
-  if (up_interrupt_context() || kumm_trysemaphore() != 0)
-    {
-      irqstate_t flags;
+  irqstate_t flags;
 
-      /* Yes.. Make sure that this is not a attempt to free kernel memory
-       * using the user deallocator.
-       */
+  /* Yes.. Make sure that this is not a attempt to free kernel memory
+   * using the user deallocator.
+   */
 
-      flags = enter_critical_section();
+  flags = enter_critical_section();
 #if (defined(CONFIG_BUILD_PROTECTED) || defined(CONFIG_BUILD_KERNEL)) && \
      defined(CONFIG_MM_KERNEL_HEAP)
-      DEBUGASSERT(!kmm_heapmember(address));
+  DEBUGASSERT(!kmm_heapmember(address));
 #endif
 
-      /* Delay the deallocation until a more appropriate time. */
+  /* Delay the deallocation until a more appropriate time. */
 
-      sq_addlast((FAR sq_entry_t *)address,
-                 (FAR sq_queue_t *)&g_delayed_kufree);
+  sq_addlast((FAR sq_entry_t *)address,
+             (FAR sq_queue_t *)&g_delayed_kufree);
 
-      /* Signal the worker thread that is has some clean up to do */
+  /* Signal the worker thread that is has some clean up to do */
 
-#ifdef CONFIG_SCHED_WORKQUEUE
-      work_signal(LPWORK);
-#endif
-      leave_critical_section(flags);
-    }
-  else
-    {
-      /* No.. just deallocate the memory now. */
-
-      kumm_free(address);
-      kumm_givesemaphore();
-    }
+  sched_signal_free();
+  leave_critical_section(flags);
 #endif
 }
 
@@ -130,33 +119,38 @@ void sched_kfree(FAR void *address)
    * must have exclusive access to the memory manager to do this.
    */
 
-  if (up_interrupt_context() || kmm_trysemaphore() != 0)
-    {
-      /* Yes.. Make sure that this is not a attempt to free user memory
-       * using the kernel deallocator.
-       */
+    /* Yes.. Make sure that this is not a attempt to free user memory
+     * using the kernel deallocator.
+     */
 
-      flags = enter_critical_section();
-      DEBUGASSERT(kmm_heapmember(address));
+    flags = enter_critical_section();
+    DEBUGASSERT(kmm_heapmember(address));
 
-      /* Delay the deallocation until a more appropriate time. */
+    /* Delay the deallocation until a more appropriate time. */
 
-      sq_addlast((FAR sq_entry_t *)address,
-                 (FAR sq_queue_t *)&g_delayed_kfree);
+    sq_addlast((FAR sq_entry_t *)address,
+               (FAR sq_queue_t *)&g_delayed_kfree);
 
-      /* Signal the worker thread that is has some clean up to do */
+    /* Signal the worker thread that is has some clean up to do */
 
-#ifdef CONFIG_SCHED_WORKQUEUE
-      work_signal(LPWORK);
-#endif
-      leave_critical_section(flags);
-    }
-  else
-    {
-      /* No.. just deallocate the memory now. */
-
-      kmm_free(address);
-      kmm_givesemaphore();
-    }
+    sched_signal_free();
+    leave_critical_section(flags);
 }
 #endif
+
+/****************************************************************************
+ * Name: sched_signal_free
+ *
+ * Description:
+ *   Signal the worker thread that is has some clean up to do.
+ *
+ ****************************************************************************/
+
+void sched_signal_free(void)
+{
+#ifdef CONFIG_SCHED_WORKQUEUE
+  /* Signal the worker thread that is has some clean up to do */
+
+  work_signal(LPWORK);
+#endif
+}

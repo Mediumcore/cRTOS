@@ -1,7 +1,7 @@
 /************************************************************************************
  * drivers/serial/serial.c
  *
- *   Copyright (C) 2007-2009, 2011-2013, 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2013, 2016-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,14 +63,6 @@
  * Pre-processor Definitions
  ************************************************************************************/
 
-/* The architecture must provide up_putc for this driver */
-
-#ifndef CONFIG_ARCH_LOWPUTC
-#  error "Architecture must provide up_putc() for this driver"
-#endif
-
-#define uart_putc(ch) up_putc(ch)
-
 /* Check watermark levels */
 
 #if defined(CONFIG_SERIAL_IFLOWCONTROL) && \
@@ -110,7 +102,7 @@ static void    uart_pollnotify(FAR uart_dev_t *dev, pollevent_t eventset);
 static int     uart_putxmitchar(FAR uart_dev_t *dev, int ch, bool oktoblock);
 static inline ssize_t uart_irqwrite(FAR uart_dev_t *dev, FAR const char *buffer,
                                     size_t buflen);
-static int     uart_tcdrain(FAR uart_dev_t *dev, systime_t timeout);
+static int     uart_tcdrain(FAR uart_dev_t *dev, clock_t timeout);
 
 /* Character driver methods */
 
@@ -359,6 +351,19 @@ static int uart_putxmitchar(FAR uart_dev_t *dev, int ch, bool oktoblock)
 }
 
 /************************************************************************************
+ * Name: uart_putc
+ ************************************************************************************/
+
+static inline void uart_putc(FAR uart_dev_t *dev, int ch)
+{
+  while (!uart_txready(dev))
+    {
+    }
+
+  uart_send(dev, ch);
+}
+
+/************************************************************************************
  * Name: uart_irqwrite
  ************************************************************************************/
 
@@ -373,16 +378,16 @@ static inline ssize_t uart_irqwrite(FAR uart_dev_t *dev, FAR const char *buffer,
     {
       int ch = *buffer++;
 
-     /* If this is the console, then we should replace LF with CR-LF */
+      /* If this is the console, then we should replace LF with CR-LF */
 
-      if (ch == '\n')
+      if (dev->isconsole && ch == '\n')
         {
-          uart_putc('\r');
+          uart_putc(dev, '\r');
         }
 
       /* Output the character, using the low-level direct UART interfaces */
 
-      uart_putc(ch);
+      uart_putc(dev, ch);
     }
 
   return ret;
@@ -397,7 +402,7 @@ static inline ssize_t uart_irqwrite(FAR uart_dev_t *dev, FAR const char *buffer,
  *
  ************************************************************************************/
 
-static int uart_tcdrain(FAR uart_dev_t *dev, systime_t timeout)
+static int uart_tcdrain(FAR uart_dev_t *dev, clock_t timeout)
 {
   int ret;
 
@@ -412,7 +417,7 @@ static int uart_tcdrain(FAR uart_dev_t *dev, systime_t timeout)
   if (ret >= 0)
     {
       irqstate_t flags;
-      systime_t start;
+      clock_t start;
 
       /* Trigger emission to flush the contents of the tx buffer */
 
@@ -426,8 +431,7 @@ static int uart_tcdrain(FAR uart_dev_t *dev, systime_t timeout)
 
       if (dev->disconnected)
         {
-          dev->xmit.head = 0;  /* Drop the buffered TX data */
-          dev->xmit.tail = 0;
+          dev->xmit.tail = dev->xmit.head;  /* Drop the buffered TX data */
           ret = -ENOTCONN;
         }
       else
@@ -487,7 +491,7 @@ static int uart_tcdrain(FAR uart_dev_t *dev, systime_t timeout)
         {
           while (!uart_txempty(dev))
             {
-              systime_t elapsed;
+              clock_t elapsed;
 
 #ifndef CONFIG_DISABLE_SIGNALS
               nxsig_usleep(POLL_DELAY_USEC);
@@ -597,16 +601,9 @@ static int uart_open(FAR struct file *filep)
            goto errout_with_sem;
         }
 
-      /* Mark the io buffers empty */
-
-      dev->xmit.head = 0;
-      dev->xmit.tail = 0;
-      dev->recv.head = 0;
-      dev->recv.tail = 0;
-
+#ifdef CONFIG_SERIAL_TERMIOS
       /* Initialize termios state */
 
-#ifdef CONFIG_SERIAL_TERMIOS
       dev->tc_iflag = 0;
       if (dev->isconsole)
         {
@@ -687,6 +684,13 @@ static int uart_close(FAR struct file *filep)
       (void)uart_tcdrain(dev, 4 * TICK_PER_SEC);
     }
 
+  /* Mark the I/O buffers empty */
+
+  dev->xmit.head = 0;
+  dev->xmit.tail = 0;
+  dev->recv.head = 0;
+  dev->recv.tail = 0;
+
   /* Free the IRQ and disable the UART */
 
   flags = enter_critical_section();  /* Disable interrupts */
@@ -703,14 +707,7 @@ static int uart_close(FAR struct file *filep)
    * a thread currently blocking on any of them.
    */
 
-  nxsem_reset(&dev->xmitsem,  0);
-  nxsem_reset(&dev->recvsem,  0);
-  nxsem_reset(&dev->xmit.sem, 1);
-  nxsem_reset(&dev->recv.sem, 1);
-#ifndef CONFIG_DISABLE_POLL
-  nxsem_reset(&dev->pollsem,  1);
-#endif
-
+  uart_reset_sem(dev);
   uart_givesem(&dev->closesem);
   return OK;
 }
@@ -890,39 +887,45 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
 
       else
         {
+#ifdef CONFIG_SERIAL_DMA
+          /* Disable all interrupts and test again...
+           * uart_disablerxint() is insufficient for the check in DMA mode.
+           */
+
+          flags = enter_critical_section();
+#else
           /* Disable Rx interrupts and test again... */
 
           uart_disablerxint(dev);
+#endif
 
-          /* If the Rx ring buffer still empty?  Bytes may have been addded
-           * between the last time that we checked and when we disabled Rx
+          /* If the Rx ring buffer still empty?  Bytes may have been added
+           * between the last time that we checked and when we disabled
            * interrupts.
            */
 
           if (rxbuf->head == rxbuf->tail)
             {
-              /* Yes.. the buffer is still empty.  Wait for some characters
-               * to be received into the buffer with the RX interrupt re-
-               * enabled.  All interrupts are disabled briefly to assure
-               * that the following operations are atomic.
+              /* Yes.. the buffer is still empty.  We will need to wait for
+               * additional data to be received.
+               */
+
+#ifdef CONFIG_SERIAL_DMA
+              /* Notify DMA that there is free space in the RX buffer */
+
+              uart_dmarxfree(dev);
+#else
+              /* Wait with the RX interrupt re-enabled.  All interrupts are
+               * disabled briefly to assure that the following operations
+               * are atomic.
                */
 
               flags = enter_critical_section();
 
-#ifdef CONFIG_SERIAL_DMA
-              /* If RX buffer is empty move tail and head to zero position */
-
-              if (rxbuf->head == rxbuf->tail)
-                {
-                  rxbuf->head = rxbuf->tail = 0;
-                }
-
-              /* Notify DMA that there is free space in the RX buffer */
-
-              uart_dmarxfree(dev);
-#endif
+              /* Re-enable UART Rx interrupts */
 
               uart_enablerxint(dev);
+#endif
 
 #ifdef CONFIG_SERIAL_REMOVABLE
               /* Check again if the removable device is still connected
@@ -937,7 +940,7 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
               else
 #endif
                {
-                  /* Now wait with the Rx interrupt re-enabled.  NuttX will
+                  /* Now wait with the Rx interrupt enabled.  NuttX will
                    * automatically re-enable global interrupts when this
                    * thread goes to sleep.
                    */
@@ -988,27 +991,24 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
                * the loop.
                */
 
+#ifdef CONFIG_SERIAL_DMA
+              leave_critical_section(flags);
+#else
               uart_enablerxint(dev);
+#endif
             }
         }
     }
 
 #ifdef CONFIG_SERIAL_DMA
-  flags = enter_critical_section();
-
-  /* If RX buffer is empty move tail and head to zero position */
-
-  if (rxbuf->head == rxbuf->tail)
-    {
-      rxbuf->head = rxbuf->tail = 0;
-    }
-
-  leave_critical_section(flags);
-
   /* Notify DMA that there is free space in the RX buffer */
 
+  flags = enter_critical_section();
   uart_dmarxfree(dev);
+  leave_critical_section(flags);
+#endif
 
+#ifndef CONFIG_SERIAL_DMA
   /* RX interrupt could be disabled by RX buffer overflow. Enable it now. */
 
   uart_enablerxint(dev);
@@ -1069,13 +1069,15 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer,
   int               ret;
   char              ch;
 
-  /* We may receive console writes through this path from interrupt handlers and
+  /* We may receive serial writes through this path from interrupt handlers and
    * from debug output in the IDLE task!  In these cases, we will need to do things
    * a little differently.
    */
 
   if (up_interrupt_context() || sched_idletask())
     {
+      irqstate_t flags;
+
 #ifdef CONFIG_SERIAL_REMOVABLE
       /* If the removable device is no longer connected, refuse to write to
        * the device.
@@ -1087,21 +1089,11 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer,
         }
 #endif
 
-      /* up_putc() will be used to generate the output in a busy-wait loop.
-       * up_putc() is only available for the console device.
-       */
+      flags = enter_critical_section();
+      ret = uart_irqwrite(dev, buffer, buflen);
+      leave_critical_section(flags);
 
-      if (dev->isconsole)
-        {
-          irqstate_t flags = enter_critical_section();
-          ret = uart_irqwrite(dev, buffer, buflen);
-          leave_critical_section(flags);
-          return ret;
-        }
-      else
-        {
-          return -EPERM;
-        }
+      return ret;
     }
 
   /* Only one user can access dev->xmit.head at a time */
@@ -1165,19 +1157,14 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer,
           if ((ch == '\n') && (dev->tc_oflag & (ONLCR | ONLRET)) != 0)
             {
               ret = uart_putxmitchar(dev, '\r', oktoblock);
-              if (ret < 0)
-                {
-                  nwritten = ret;
-                  break;
-                }
             }
 
           /* Specifically not handled:
            *
-           * OXTABS - primarily a full-screen terminal optimisation
+           * OXTABS - primarily a full-screen terminal optimization
            * ONOEOT - Unix interoperability hack
            * OLCUC  - Not specified by POSIX
-           * ONOCR  - low-speed interactive optimisation
+           * ONOCR  - low-speed interactive optimization
            */
         }
 
@@ -1192,7 +1179,7 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer,
 
       /* Put the character into the transmit buffer */
 
-      if (ret == OK)
+      if (ret >= 0)
         {
           ret = uart_putxmitchar(dev, ch, oktoblock);
         }
@@ -1355,14 +1342,22 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
               if (arg == TCIFLUSH || arg == TCIOFLUSH)
                 {
-                  dev->recv.head = 0;
-                  dev->recv.tail = 0;
+                  dev->recv.tail = dev->recv.head;
+
+#ifdef CONFIG_SERIAL_IFLOWCONTROL
+                  /* De-activate RX flow control. */
+
+                  (void)uart_rxflowcontrol(dev, 0, false);
+#endif
                 }
 
               if (arg == TCOFLUSH || arg == TCIOFLUSH)
                 {
-                  dev->xmit.head = 0;
-                  dev->xmit.tail = 0;
+                  dev->xmit.tail = dev->xmit.head;
+
+                  /* Inform any waiters there there is space available. */
+
+                  uart_datasent(dev);
                 }
 
               leave_critical_section(flags);
@@ -1373,6 +1368,27 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           case TCDRN:
             {
               ret = uart_tcdrain(dev, 10 * TICK_PER_SEC);
+            }
+            break;
+#endif
+
+#if defined(CONFIG_TTY_SIGINT) || defined(CONFIG_TTY_SIGSTP)
+          /* Make the given terminal the controlling terminal of the calling process */
+
+          case TIOCSCTTY:
+            {
+              /* Check if the ISIG flag is set in the termios c_lflag to enable
+               * this feature.  This flag is set automatically for a serial console
+               * device.
+               */
+
+             if ((dev->tc_lflag & ISIG) != 0)
+               {
+                  /* Save the PID of the recipient of the SIGINT signal. */
+
+                  dev->pid = (pid_t)arg;
+                  DEBUGASSERT((unsigned long)(dev->pid) == arg);
+               }
             }
             break;
 #endif
@@ -1419,6 +1435,17 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
               dev->tc_iflag = termiosp->c_iflag;
               dev->tc_oflag = termiosp->c_oflag;
               dev->tc_lflag = termiosp->c_lflag;
+
+#if defined(CONFIG_TTY_SIGINT) || defined(CONFIG_TTY_SIGSTP)
+              /* If the ISIG flag has been cleared in c_lflag, then un-
+               * register the controlling terminal.
+               */
+
+              if ((dev->tc_lflag & ISIG) == 0)
+                {
+                  dev->pid = (pid_t)-1;
+                }
+#endif
             }
             break;
         }
@@ -1584,6 +1611,19 @@ errout:
 
 int uart_register(FAR const char *path, FAR uart_dev_t *dev)
 {
+#if defined(CONFIG_TTY_SIGINT) || defined(CONFIG_TTY_SIGSTP)
+  /* Initialize  of the task that will receive SIGINT signals. */
+
+  dev->pid = (pid_t)-1;
+
+  /* If this UART is a serial console, then enable signals by default */
+
+  if (dev->isconsole)
+    {
+      dev->tc_lflag |= ISIG;
+    }
+#endif
+
   /* Initialize semaphores */
 
   nxsem_init(&dev->xmit.sem, 0, 1);
@@ -1728,3 +1768,23 @@ void uart_connected(FAR uart_dev_t *dev, bool connected)
   leave_critical_section(flags);
 }
 #endif
+
+/************************************************************************************
+ * Name: uart_reset_sem
+ *
+ * Description:
+ *   This function is called when need reset uart semphore, this may used in kill one
+ *   process, but this process was reading/writing with the semphore.
+ *
+ ************************************************************************************/
+
+void uart_reset_sem(FAR uart_dev_t *dev)
+{
+  nxsem_reset(&dev->xmitsem,  0);
+  nxsem_reset(&dev->recvsem,  0);
+  nxsem_reset(&dev->xmit.sem, 1);
+  nxsem_reset(&dev->recv.sem, 1);
+#ifndef CONFIG_DISABLE_POLL
+  nxsem_reset(&dev->pollsem,  1);
+#endif
+}

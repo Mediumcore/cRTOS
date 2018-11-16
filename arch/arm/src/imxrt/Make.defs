@@ -47,7 +47,7 @@ CMN_CSRCS += up_memfault.c up_modifyreg8.c up_modifyreg16.c up_modifyreg32.c
 CMN_CSRCS += up_releasepending.c up_releasestack.c up_reprioritizertr.c
 CMN_CSRCS += up_schedulesigaction.c up_sigdeliver.c up_stackframe.c
 CMN_CSRCS += up_unblocktask.c up_usestack.c up_doirq.c up_hardfault.c
-CMN_CSRCS += up_svcall.c up_vfork.c
+CMN_CSRCS += up_svcall.c up_vfork.c up_trigger_irq.c
 
 # Configuration-dependent common files
 
@@ -85,11 +85,7 @@ endif
 
 ifeq ($(CONFIG_ARCH_FPU),y)
 CMN_ASRCS += up_fpu.S
-ifneq ($(CONFIG_ARMV7M_CMNVECTOR),y)
 CMN_CSRCS += up_copyarmstate.c
-else ifeq ($(CONFIG_ARMV7M_LAZYFPU),y)
-CMN_CSRCS += up_copyarmstate.c
-endif
 endif
 
 # Required i.MX RT files
@@ -124,6 +120,29 @@ ifeq ($(CONFIG_IMXRT_EDMA),y)
 CHIP_CSRCS += imxrt_edma.c
 endif
 
+ifdef CONFIG_IMXRT_USDHC
+CHIP_CSRCS += imxrt_usdhc.c
+endif
+
+ifeq ($(CONFIG_IMXRT_SNVS_LPSRTC),y)
+CHIP_CSRCS += imxrt_lpsrtc.c
+CHIP_CSRCS += imxrt_hprtc.c
+else ifeq ($(CONFIG_IMXRT_SNVS_HPRTC),y)
+CHIP_CSRCS += imxrt_hprtc.c
+endif
+
+ifeq ($(CONFIG_RTC_DRIVER),y)
+CHIP_CSRCS += imxrt_rtc_lowerhalf.c
+endif
+
 ifeq ($(CONFIG_IMXRT_ENET),y)
 CHIP_CSRCS += imxrt_enet.c
+endif
+
+ifeq ($(CONFIG_IMXRT_LPI2C),y)
+CHIP_CSRCS += imxrt_lpi2c.c
+endif
+
+ifeq ($(CONFIG_IMXRT_LPSPI),y)
+CHIP_CSRCS += imxrt_lpspi.c
 endif

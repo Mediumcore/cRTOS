@@ -81,7 +81,7 @@ struct sendto_s
   FAR struct socket *st_sock;         /* Points to the parent socket structure */
 #endif
 #ifdef CONFIG_NET_SOCKOPTS
-  systime_t st_time;                  /* Last send time for determining timeout */
+  clock_t st_time;                    /* Last send time for determining timeout */
 #endif
   FAR struct devif_callback_s *st_cb; /* Reference to callback instance */
   sem_t st_sem;                       /* Semaphore signals sendto completion */
@@ -560,6 +560,30 @@ errout_with_lock:
 
   net_unlock();
   return ret;
+}
+
+/****************************************************************************
+ * Name: psock_udp_cansend
+ *
+ * Description:
+ *   psock_udp_cansend() returns a value indicating if a write to the socket
+ *   would block.  It is still possible that the write may block if another
+ *   write occurs first.
+ *
+ * Input Parameters:
+ *   psock    An instance of the internal socket structure.
+ *
+ * Returned Value:
+ *   -ENOSYS (Function not implemented, always have to wait to send).
+ *
+ * Assumptions:
+ *   None
+ *
+ ****************************************************************************/
+
+int psock_udp_cansend(FAR struct socket *psock)
+{
+  return -ENOSYS;
 }
 
 #endif /* CONFIG_NET_UDP */

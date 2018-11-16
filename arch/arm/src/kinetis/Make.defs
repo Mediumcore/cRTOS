@@ -33,11 +33,7 @@
 #
 ############################################################################
 
-ifeq ($(CONFIG_ARMV7M_CMNVECTOR),y)
 HEAD_ASRC =
-else
-HEAD_ASRC = kinetis_vectors.S
-endif
 
 CMN_UASRCS =
 CMN_UCSRCS =
@@ -52,20 +48,18 @@ CMN_CSRCS += up_modifyreg16.c up_modifyreg32.c up_releasestack.c
 CMN_CSRCS += up_reprioritizertr.c up_schedulesigaction.c up_releasepending.c
 CMN_CSRCS += up_sigdeliver.c up_stackframe.c up_unblocktask.c up_usestack.c
 CMN_CSRCS += up_doirq.c up_hardfault.c up_svcall.c up_vfork.c
-CMN_CSRCS += up_systemreset.c
+CMN_CSRCS += up_systemreset.c up_trigger_irq.c
 
 ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
 CMN_CSRCS += up_stackcheck.c
 endif
 
-ifeq ($(CONFIG_ARMV7M_CMNVECTOR),y)
 ifeq ($(CONFIG_ARMV7M_LAZYFPU),y)
 CMN_ASRCS += up_lazyexception.S
 else
 CMN_ASRCS += up_exception.S
 endif
 CMN_CSRCS += up_vectors.c
-endif
 
 ifeq ($(CONFIG_ARCH_RAMVECTORS),y)
 CMN_CSRCS += up_ramvec_initialize.c up_ramvec_attach.c
@@ -95,11 +89,7 @@ endif
 
 ifeq ($(CONFIG_ARCH_FPU),y)
 CMN_ASRCS += up_fpu.S
-ifneq ($(CONFIG_ARMV7M_CMNVECTOR),y)
 CMN_CSRCS += up_copyarmstate.c
-else ifeq ($(CONFIG_ARMV7M_LAZYFPU),y)
-CMN_CSRCS += up_copyarmstate.c
-endif
 endif
 
 ifeq ($(CONFIG_ARMV7M_ITMSYSLOG),y)
@@ -167,10 +157,6 @@ endif
 
 ifeq ($(CONFIG_PWM),y)
 CHIP_CSRCS += kinetis_pwm.c
-endif
-
-ifeq ($(CONFIG_PWM),y)
-CHIP_CSRCS += kinetis_dma.c
 endif
 
 ifeq ($(CONFIG_I2C),y)

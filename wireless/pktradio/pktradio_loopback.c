@@ -168,7 +168,7 @@ static int  lo_ifup(FAR struct net_driver_s *dev);
 static int  lo_ifdown(FAR struct net_driver_s *dev);
 static void lo_txavail_work(FAR void *arg);
 static int  lo_txavail(FAR struct net_driver_s *dev);
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  lo_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 static int  lo_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
@@ -592,6 +592,7 @@ static void lo_txavail_work(FAR void *arg)
   if (priv->lo_bifup)
     {
       /* If so, then poll the network for new XMIT data */
+
 #ifdef CONFIG_NET_6LOWPAN
       /* Make sure the our single packet buffer is attached */
 
@@ -670,12 +671,12 @@ static int lo_txavail(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int lo_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
 #if CONFIG_PKTRADIO_ADDRLEN == 1
   ninfo("MAC: %02x\n", mac[0]);
-  
+
 #elif CONFIG_PKTRADIO_ADDRLEN == 2
   ninfo("MAC: %02x:%02x\n", mac[0], mac[1]);
 
@@ -708,12 +709,12 @@ static int lo_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int lo_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
 #if CONFIG_PKTRADIO_ADDRLEN == 1
   ninfo("MAC: %02x\n", mac[0]);
-  
+
 #elif CONFIG_PKTRADIO_ADDRLEN == 2
   ninfo("MAC: %02x:%02x\n", mac[0], mac[1]);
 
@@ -1025,7 +1026,7 @@ int pktradio_loopback(void)
   dev->d_ifup         = lo_ifup;          /* I/F up (new IP address) callback */
   dev->d_ifdown       = lo_ifdown;        /* I/F down callback */
   dev->d_txavail      = lo_txavail;       /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   dev->d_addmac       = lo_addmac;        /* Add multicast MAC address */
   dev->d_rmmac        = lo_rmmac;         /* Remove multicast MAC address */
 #endif

@@ -455,13 +455,6 @@ LPCXpresso Configuration Options
 
     CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
 
-    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-       cause a 100 second delay during boot-up.  This 100 second delay
-       serves no purpose other than it allows you to calibratre
-       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-       the delay actually is 100 seconds.
-
     Individual subsystems can be enabled:
       CONFIG_LPC11_MAINOSC=y
       CONFIG_LPC11_PLL0=y
@@ -496,11 +489,12 @@ LPCXpresso Configuration Options
 
     CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
       Standard 11-bit IDs.
-    CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC11_CAN1 is defined.
-    CONFIG_CAN1_DIVISOR - CAN1 is clocked at CCLK divided by this number.
-      (the CCLK frequency is divided by this number to get the CAN clock).
-      Options = {1,2,4,6}. Default: 4.
-    CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
+    CONFIG_LPC11_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC11_CAN1
+      is defined.
+    CONFIG_LPC11_CAN1_DIVISOR - CAN1 is clocked at CCLK divided by this
+      number. (the CCLK frequency is divided by this number to get the CAN
+      clock). Options = {1,2,4,6}. Default: 4.
+    CONFIG_LPC11_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
 
 Configurations
 ^^^^^^^^^^^^^^

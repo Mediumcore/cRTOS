@@ -135,7 +135,7 @@ SYSCALL_LOOKUP(up_assert,                  2, STUB_up_assert)
   SYSCALL_LOOKUP(exec,                     4, STUB_exec)
 #endif
 #ifdef CONFIG_LIBC_EXECFUNCS
-#ifdef CONFIG_BINFMT_EXEPATH
+#ifdef CONFIG_LIB_ENVPATH
   SYSCALL_LOOKUP(posix_spawnp,             6, STUB_posix_spawnp)
 #else
   SYSCALL_LOOKUP(posix_spawn,              6, STUB_posix_spawn)
@@ -164,7 +164,7 @@ SYSCALL_LOOKUP(up_assert,                  2, STUB_up_assert)
  * NuttX configuration.
  */
 
-  SYSCALL_LOOKUP(syscall_clock_systimer,   0, STUB_clock_systimer)
+  SYSCALL_LOOKUP(syscall_clock,            0, STUB_clock)
   SYSCALL_LOOKUP(clock_getres,             2, STUB_clock_getres)
   SYSCALL_LOOKUP(clock_gettime,            2, STUB_clock_gettime)
   SYSCALL_LOOKUP(clock_settime,            2, STUB_clock_settime)
@@ -210,6 +210,12 @@ SYSCALL_LOOKUP(up_assert,                  2, STUB_up_assert)
 #  ifndef CONFIG_DISABLE_POLL
   SYSCALL_LOOKUP(poll,                     3, STUB_poll)
   SYSCALL_LOOKUP(select,                   5, STUB_select)
+  SYSCALL_LOOKUP(ppoll,                    4, STUB_ppoll)
+  SYSCALL_LOOKUP(pselect,                  6, STUB_pselect)
+#  endif
+#  ifdef CONFIG_NETDEV_IFINDEX
+  SYSCALL_LOOKUP(if_indextoname,           2, STUB_if_indextoname)
+  SYSCALL_LOOKUP(if_nametoindex,           1, STUB_if_nametoindex)
 #  endif
 #  ifdef CONFIG_SERIAL_TERMIOS
   SYSCALL_LOOKUP(tcdrain,                  1, STUB_tcdrain)
@@ -365,6 +371,8 @@ SYSCALL_LOOKUP(up_assert,                  2, STUB_up_assert)
   SYSCALL_LOOKUP(accept,                   3, STUB_accept)
   SYSCALL_LOOKUP(bind,                     3, STUB_bind)
   SYSCALL_LOOKUP(connect,                  3, STUB_connect)
+  SYSCALL_LOOKUP(getpeername,              3, STUB_getpeername)
+  SYSCALL_LOOKUP(getsockname,              3, STUB_getsockname)
   SYSCALL_LOOKUP(getsockopt,               5, STUB_getsockopt)
   SYSCALL_LOOKUP(listen,                   2, STUB_listen)
   SYSCALL_LOOKUP(recv,                     4, STUB_recv)

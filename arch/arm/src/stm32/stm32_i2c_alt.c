@@ -245,7 +245,7 @@ struct stm32_trace_s
   uint32_t count;              /* Interrupt count when status change */
   uint32_t event;              /* Last event that occurred with this status */
   uint32_t parm;               /* Parameter associated with the event */
-  systime_t time;              /* First of event or first status */
+  clock_t time;                /* First of event or first status */
 };
 
 /* I2C Device hardware configuration */
@@ -289,7 +289,7 @@ struct stm32_i2c_priv_s
 
 #ifdef CONFIG_I2C_TRACE
   int tndx;                    /* Trace array index */
-  systime_t start_time;        /* Time when the trace was started */
+  clock_t start_time;          /* Time when the trace was started */
 
   /* The actual trace data */
 
@@ -655,9 +655,9 @@ static int stm32_i2c_sem_waitdone(FAR struct stm32_i2c_priv_s *priv)
 #else
 static int stm32_i2c_sem_waitdone(FAR struct stm32_i2c_priv_s *priv)
 {
-  systime_t timeout;
-  systime_t start;
-  systime_t elapsed;
+  clock_t timeout;
+  clock_t start;
+  clock_t elapsed;
   int ret;
 
   /* Get the timeout value */
@@ -714,9 +714,9 @@ static int stm32_i2c_sem_waitdone(FAR struct stm32_i2c_priv_s *priv)
 
 static inline void stm32_i2c_sem_waitstop(FAR struct stm32_i2c_priv_s *priv)
 {
-  systime_t start;
-  systime_t elapsed;
-  systime_t timeout;
+  clock_t start;
+  clock_t elapsed;
+  clock_t timeout;
   uint32_t cr1;
   uint32_t sr1;
 
@@ -1601,7 +1601,7 @@ static int stm32_i2c_isr_process(struct stm32_i2c_priv_s *priv)
            * do nothing.
            */
 
-          else if (priv->msgc > 0 && ((priv->msgv->flags & I2C_M_NORESTART) != 0))
+          else if (priv->msgc > 0 && ((priv->msgv->flags & I2C_M_NOSTART) != 0))
             {
               /* Set condition to get to next message */
 
@@ -2266,11 +2266,11 @@ static int stm32_i2c_reset(FAR struct i2c_master_s * dev)
   uint32_t frequency;
   int ret = ERROR;
 
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   /* Our caller must own a ref */
 
-  ASSERT(priv->refs > 0);
+  DEBUGASSERT(priv->refs > 0);
 
   /* Lock out other clients */
 
@@ -2448,7 +2448,7 @@ int stm32_i2cbus_uninitialize(FAR struct i2c_master_s *dev)
   FAR struct stm32_i2c_priv_s *priv = (FAR struct stm32_i2c_priv_s *)dev;
   irqstate_t flags;
 
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   /* Decrement reference count and check for underflow */
 

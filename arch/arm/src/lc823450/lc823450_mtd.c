@@ -110,13 +110,11 @@ static sem_t g_sem = SEM_INITIALIZER(1);
 static FAR struct mtd_dev_s *g_mtdpart[LC823450_NPARTS];
 static FAR struct mtd_dev_s *g_mtdmaster[CONFIG_MTD_DEV_MAX];   /* 0: eMMC, 1: SDC */
 
-#ifdef CONFIG_MTD_REGISTRATION
 static const char g_mtdname[2][4] =
 {
   "sd",
   "mmc"
 };
-#endif
 
 static struct lc823450_partinfo_s partinfo[LC823450_NPARTS] =
 {
@@ -515,6 +513,7 @@ exit_with_error:
 static FAR struct mtd_dev_s *lc823450_mtd_allocdev(uint32_t channel)
 {
   int ret;
+  int mtype = lc823450_sdc_refmediatype(channel);
   FAR struct lc823450_mtd_dev_s *priv;
 
   /* Create an instance of the LC823450 MTD device state structure */
@@ -539,6 +538,7 @@ static FAR struct mtd_dev_s *lc823450_mtd_allocdev(uint32_t channel)
   priv->mtd.write  = NULL;
 #endif
   priv->mtd.ioctl  = lc823450_ioctl;
+  priv->mtd.name   = g_mtdname[mtype];
 
   priv->channel = channel;
 
@@ -631,12 +631,6 @@ int lc823450_mtd_initialize(uint32_t devno)
 
   priv = (FAR struct lc823450_mtd_dev_s *)g_mtdmaster[ch];
 
-#ifdef CONFIG_MTD_REGISTRATION
-  int mtype = lc823450_sdc_refmediatype(ch);
-  mtd_register(g_mtdmaster[ch], g_mtdname[mtype]);
-  g_mtdmaster[ch]->mtdno = devno;
-#endif
-
   /* If SDC, create no child partition */
 
 #if CONFIG_MTD_DEV_MAX > 1
@@ -655,9 +649,9 @@ int lc823450_mtd_initialize(uint32_t devno)
 #ifdef CONFIG_DEBUG
   for (i = 0; i < LC823450_NPARTS - 1; i++)
     {
-      ASSERT(partinfo[i].startblock < partinfo[i + 1].startblock);
-      ASSERT(partinfo[i].startblock + partinfo[i].nblocks <= maxblock);
-      ASSERT(partinfo[i + 1].startblock + partinfo[i + 1].nblocks <= maxblock);
+      DEBUGASSERT(partinfo[i].startblock < partinfo[i + 1].startblock);
+      DEBUGASSERT(partinfo[i].startblock + partinfo[i].nblocks <= maxblock);
+      DEBUGASSERT(partinfo[i + 1].startblock + partinfo[i + 1].nblocks <= maxblock);
     }
 #endif
 

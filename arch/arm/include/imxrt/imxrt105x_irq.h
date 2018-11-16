@@ -81,7 +81,7 @@
 #define IMXRT_IRQ_LPI2C1       (IMXRT_IRQ_EXTINT + 28)  /* I2C1 Interrupt */
 #define IMXRT_IRQ_LPI2C2       (IMXRT_IRQ_EXTINT + 29)  /* I2C2 Interrupt */
 #define IMXRT_IRQ_LPI2C3       (IMXRT_IRQ_EXTINT + 30)  /* I2C3 Interrupt */
-#define IMXRT_IRQ_LPI2C4       (IMXRT_IRQ_EXTINT + 31)  /* I2C- Interrupt */
+#define IMXRT_IRQ_LPI2C4       (IMXRT_IRQ_EXTINT + 31)  /* I2C4 Interrupt */
 #define IMXRT_IRQ_LPSPI1       (IMXRT_IRQ_EXTINT + 32)  /* LPSPI1 interrupt */
 #define IMXRT_IRQ_LPSPI2       (IMXRT_IRQ_EXTINT + 33)  /* LPSPI2 interrupt */
 #define IMXRT_IRQ_LPSPI3       (IMXRT_IRQ_EXTINT + 34)  /* LPSPI3 interrupt */
@@ -482,7 +482,6 @@
 
 /* Total number of IRQ numbers **********************************************************/
 
-#define NR_VECTORS             IMXRT_IRQ_NIRQS
 #define NR_IRQS                (IMXRT_IRQ_EXTINT + IMXRT_IRQ_NEXTINT + IMXRT_GPIO_NIRQS)
 
 /****************************************************************************************

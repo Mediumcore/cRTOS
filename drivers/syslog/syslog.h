@@ -188,6 +188,24 @@ int syslog_console_channel(void);
 #endif
 
 /****************************************************************************
+ * Name: syslog_register
+ *
+ * Description:
+ *   Register a simple character driver at /dev/syslog whose write() method
+ *   will transfer data to the SYSLOG device.  This can be useful if, for
+ *   example, you want to redirect the output of a program to the SYSLOG.
+ *
+ *   NOTE that unlike other syslog output, this data is unformatted raw
+ *   byte output with no time-stamping or any other SYSLOG features
+ *   supported.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SYSLOG_CHARDEV
+void syslog_register(void);
+#endif
+
+/****************************************************************************
  * Name: syslog_add_intbuffer
  *
  * Description:
@@ -270,26 +288,6 @@ int syslog_putc(int ch);
  ****************************************************************************/
 
 ssize_t syslog_write(FAR const char *buffer, size_t buflen);
-
-/****************************************************************************
- * Name: syslog_default_write
- *
- * Description:
- *   This provides a default write method for syslog devices that do not
- *   support multiple byte writes  This functions simply loops, outputting
- *   one cahracter at a time.
- *
- * Input Parameters:
- *   buffer - The buffer containing the data to be output
- *   buflen - The number of bytes in the buffer
- *
- * Returned Value:
- *   On success, the number of characters written is returned.  A negated
- *   errno value is returned on any failure.
- *
- ****************************************************************************/
-
-ssize_t syslog_default_write(FAR const char *buffer, size_t buflen);
 
 /****************************************************************************
  * Name: syslog_force

@@ -67,6 +67,10 @@
 #  undef CONFIG_ARCH_USBDUMP
 #endif
 
+#ifndef CONFIG_BOARD_RESET_ON_ASSERT
+#  define CONFIG_BOARD_RESET_ON_ASSERT 0
+#endif
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -77,6 +81,10 @@
 
 static void _up_assert(int errorcode) /* noreturn_function */
 {
+  /* Flush any buffered SYSLOG data */
+
+  (void)syslog_flush();
+
   /* Are we in an interrupt handler or the idle task? */
 
   if (up_interrupt_context() || this_task()->pid == 0)
@@ -84,6 +92,9 @@ static void _up_assert(int errorcode) /* noreturn_function */
        (void)up_irq_save();
         for (;;)
           {
+#if CONFIG_BOARD_RESET_ON_ASSERT >= 1
+            board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
+#endif
 #ifdef CONFIG_ARCH_LEDS
             board_autoled_on(LED_PANIC);
             up_mdelay(250);
@@ -94,6 +105,9 @@ static void _up_assert(int errorcode) /* noreturn_function */
     }
   else
     {
+#if CONFIG_BOARD_RESET_ON_ASSERT >= 2
+      board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
+#endif
       exit(errorcode);
     }
 }
@@ -143,6 +157,10 @@ void up_assert(void)
 
   board_autoled_on(LED_ASSERTION);
 
+  /* Flush any buffered SYSLOG data (from prior to the assertion) */
+
+  (void)syslog_flush();
+
 #ifdef CONFIG_HAVE_FILENAME
 #if CONFIG_TASK_NAME_SIZE > 0
   _alert("Assertion failed at file:%s line: %d task: %s\n",
@@ -159,14 +177,18 @@ void up_assert(void)
 #endif
 #endif
 
-  up_stackdump();
   up_registerdump();
+  up_stackdump();
 
 #ifdef CONFIG_ARCH_USBDUMP
   /* Dump USB trace data */
 
   (void)usbtrace_enumerate(assert_tracecallback, NULL);
 #endif
+
+  /* Flush any buffered SYSLOG data (from the above) */
+
+  (void)syslog_flush();
 
 #ifdef CONFIG_BOARD_CRASHDUMP
   board_crashdump(up_getsp(), this_task(), filename, lineno);

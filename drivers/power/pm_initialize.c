@@ -54,7 +54,16 @@
 
 /* All PM global data: */
 
-struct pm_global_s g_pmglobals;
+/* Initialize the registry and the PM global data structures.  The PM
+ * global data structure resides in .data which is zeroed at boot time.  So
+ * it is only required to initialize non-zero elements of the PM global
+ * data structure here.
+ */
+
+struct pm_global_s g_pmglobals =
+{
+  SEM_INITIALIZER(1)
+};
 
 /****************************************************************************
  * Public Functions
@@ -66,7 +75,7 @@ struct pm_global_s g_pmglobals;
  * Description:
  *   This function is called by MCU-specific one-time at power on reset in
  *   order to initialize the power management capabilities.  This function
- *   must be called *very* early in the initializeation sequence *before* any
+ *   must be called *very* early in the initialization sequence *before* any
  *   other device drivers are initialize (since they may attempt to register
  *   with the power management subsystem).
  *
@@ -80,14 +89,17 @@ struct pm_global_s g_pmglobals;
 
 void pm_initialize(void)
 {
-  /* Initialize the registry and the PM global data structures.  The PM
-   * global data structure resides in .bss which is zeroed at boot time.  So
-   * it is only required to initialize non-zero elements of the PM global
-   * data structure here.
-   */
+  FAR struct pm_domain_s *pdom;
+  int i;
 
-  sq_init(&g_pmglobals.registry);
-  nxsem_init(&g_pmglobals.regsem, 0, 1);
+  /* Init saved time slice */
+
+  for (i = 0; i < CONFIG_PM_NDOMAINS; i++)
+    {
+      pdom = &g_pmglobals.domain[i];
+      pdom->stime = clock_systimer();
+      pdom->btime = clock_systimer();
+    }
 }
 
 #endif /* CONFIG_PM */

@@ -1,5 +1,5 @@
 /****************************************************************************
- * libs/libc/netdb/lib_dnsclien.c
+ * libs/libc/netdb/lib_dnsbind.c
  *
  *   Copyright (C) 2007, 2009, 2012, 2014-2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -107,7 +107,7 @@ int dns_bind(void)
 
   /* Set up a receive timeout */
 
-  tv.tv_sec  = 30;
+  tv.tv_sec  = CONFIG_NETDB_DNSCLIENT_RECV_TIMEOUT;
   tv.tv_usec = 0;
 
   ret = setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval));

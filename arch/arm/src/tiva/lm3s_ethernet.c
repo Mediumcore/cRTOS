@@ -216,7 +216,7 @@ struct tiva_driver_s
 
 /* A single packet buffer is used */
 
-static uint8_t g_pktbuf[MAX_NET_DEV_MTU + CONFIG_NET_GUARDSIZE];
+static uint8_t g_pktbuf[MAX_NETDEV_PKTSIZE + CONFIG_NET_GUARDSIZE];
 
 /* Ethernet peripheral state */
 
@@ -270,7 +270,7 @@ static int  tiva_ifdown(struct net_driver_s *dev);
 static void tiva_txavail_work(void *arg);
 static int  tiva_txavail(struct net_driver_s *dev);
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  tiva_addmac(struct net_driver_s *dev, const uint8_t *mac);
 static int  tiva_rmmac(struct net_driver_s *dev, const uint8_t *mac);
 #endif
@@ -644,11 +644,14 @@ static int tiva_txpoll(struct net_driver_s *dev)
         }
 #endif /* CONFIG_NET_IPv6 */
 
-      /* Send the packet.  tiva_transmit() will return zero if the
-       * packet was successfully handled.
-       */
+      if (!devif_loopback(&priv->ld_dev))
+        {
+          /* Send the packet.  tiva_transmit() will return zero if the
+           * packet was successfully handled.
+           */
 
-      ret = tiva_transmit(priv);
+          ret = tiva_transmit(priv);
+        }
     }
 
   /* If zero is returned, the polling will continue until all connections have
@@ -713,7 +716,7 @@ static void tiva_receive(struct tiva_driver_s *priv)
        * and 4 byte FCS that are not copied into the network packet.
        */
 
-      if (pktlen > (CONFIG_NET_ETH_MTU + 6) || pktlen <= (ETH_HDRLEN + 6))
+      if (pktlen > (CONFIG_NET_ETH_PKTSIZE + 6) || pktlen <= (ETH_HDRLEN + 6))
         {
           int wordlen;
 
@@ -1590,7 +1593,7 @@ static int tiva_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int tiva_addmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   struct tiva_driver_s *priv = (struct tiva_driver_s *)dev->d_private;
@@ -1620,7 +1623,7 @@ static int tiva_addmac(struct net_driver_s *dev, const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int tiva_rmmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   struct tiva_driver_s *priv = (struct tiva_driver_s *)dev->d_private;
@@ -1680,7 +1683,7 @@ static inline int tiva_ethinitialize(int intf)
   priv->ld_dev.d_ifup    = tiva_ifup;     /* I/F down callback */
   priv->ld_dev.d_ifdown  = tiva_ifdown;   /* I/F up (new IP address) callback */
   priv->ld_dev.d_txavail = tiva_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->ld_dev.d_addmac  = tiva_addmac;   /* Add multicast MAC address */
   priv->ld_dev.d_rmmac   = tiva_rmmac;    /* Remove multicast MAC address */
 #endif

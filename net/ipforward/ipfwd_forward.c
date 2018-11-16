@@ -159,7 +159,10 @@ static inline bool ipfwd_addrchk(FAR struct forward_s *fwd)
     {
 #if !defined(CONFIG_NET_ARP_IPIN) && !defined(CONFIG_NET_ARP_SEND)
       FAR struct ipv4_hdr_s *ipv4 = (FAR struct ipv4_hdr_s *)fwd->f_iob->io_data;
-      return (arp_find(*(in_addr_t *)ipv4->destipaddr) != NULL);
+      int ret;
+
+      ret = arp_find(*(in_addr_t *)ipv4->destipaddr, NULL);
+      return (ret >= 0);
 #else
       return true;
 #endif
@@ -173,7 +176,7 @@ static inline bool ipfwd_addrchk(FAR struct forward_s *fwd)
     {
 #if defined(CONFIG_NET_ICMPv6_NEIGHBOR)
       FAR struct ipv6_hdr_s *ipv6 = (FAR struct ipv6_hdr_s *)fwd->f_iob->io_data;
-      return (neighbor_findentry(ipv6->destipaddr) != NULL);
+      return (neighbor_lookup(ipv6->destipaddr, NULL) >= 0);
 #else
       return true;
 #endif
@@ -189,13 +192,14 @@ static inline bool ipfwd_addrchk(FAR struct forward_s *fwd)
  * Name: ipfwd_eventhandler
  *
  * Description:
- *   This function is called from the interrupt level to perform the actual
+ *   This function is called with the network locked to perform the actual
  *   send operation when polled by the lower, device interfacing layer.
  *
  * Input Parameters:
- *   dev        The structure of the network driver that caused the interrupt
- *   conn       An instance of the forwarding structure cast to void *
- *   pvpriv     An instance of struct forward_s cast to void*
+ *   dev        The structure of the network driver that generated the
+ *              event
+ *   conn       An instance of the forwarding structure cast to (void *)
+ *   pvpriv     An instance of struct forward_s cast to (void *)
  *   flags      Set of events describing why the callback was invoked
  *
  * Returned Value:

@@ -228,7 +228,7 @@
  * will use the 16-byte alignment in all cases.
  */
 
-#define OPTIMAL_EMAC_BUFSIZE ((CONFIG_NET_ETH_MTU + 4 + 15) & ~15)
+#define OPTIMAL_EMAC_BUFSIZE ((CONFIG_NET_ETH_PKTSIZE + 4 + 15) & ~15)
 
 #if OPTIMAL_EMAC_BUFSIZE > EMAC_TDES1_TBS1_MASK
 #  error OPTIMAL_EMAC_BUFSIZE is too large
@@ -727,10 +727,10 @@ static int  tiva_ifdown(struct net_driver_s *dev);
 static void tiva_txavail_work(FAR void *arg);
 static int  tiva_txavail(struct net_driver_s *dev);
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int  tiva_addmac(struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  tiva_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
 #ifdef CONFIG_NETDEV_IOCTL
@@ -1136,7 +1136,7 @@ static int tiva_transmit(FAR struct tiva_ethmac_s *priv)
 
       /* Set frame size */
 
-      DEBUGASSERT(priv->dev.d_len <= CONFIG_NET_ETH_MTU);
+      DEBUGASSERT(priv->dev.d_len <= CONFIG_NET_ETH_PKTSIZE);
       txdesc->tdes1 = priv->dev.d_len;
 
       /* Set the Buffer1 address pointer */
@@ -1273,44 +1273,47 @@ static int tiva_txpoll(struct net_driver_s *dev)
         }
 #endif /* CONFIG_NET_IPv6 */
 
-      /* Send the packet */
-
-      tiva_transmit(priv);
-      DEBUGASSERT(dev->d_len == 0 && dev->d_buf == NULL);
-
-      /* Check if the next TX descriptor is owned by the Ethernet DMA or CPU.  We
-       * cannot perform the TX poll if we are unable to accept another packet for
-       * transmission.
-       *
-       * In a race condition, EMAC_TDES0_OWN may be cleared BUT still not available
-       * because tiva_freeframe() has not yet run.  If tiva_freeframe() has run,
-       * the buffer1 pointer (tdes2) will be nullified (and inflight should be <
-       * CONFIG_TIVA_EMAC_NTXDESC).
-       */
-
-      if ((priv->txhead->tdes0 & EMAC_TDES0_OWN) != 0 ||
-           priv->txhead->tdes2 != 0)
+      if (!devif_loopback(&priv->dev))
         {
-          /* We have to terminate the poll if we have no more descriptors
-           * available for another transfer.
+          /* Send the packet */
+
+          tiva_transmit(priv);
+          DEBUGASSERT(dev->d_len == 0 && dev->d_buf == NULL);
+
+          /* Check if the next TX descriptor is owned by the Ethernet DMA or CPU.  We
+           * cannot perform the TX poll if we are unable to accept another packet for
+           * transmission.
+           *
+           * In a race condition, EMAC_TDES0_OWN may be cleared BUT still not available
+           * because tiva_freeframe() has not yet run.  If tiva_freeframe() has run,
+           * the buffer1 pointer (tdes2) will be nullified (and inflight should be <
+           * CONFIG_TIVA_EMAC_NTXDESC).
            */
 
-          return -EBUSY;
-        }
+          if ((priv->txhead->tdes0 & EMAC_TDES0_OWN) != 0 ||
+               priv->txhead->tdes2 != 0)
+            {
+              /* We have to terminate the poll if we have no more descriptors
+               * available for another transfer.
+               */
 
-      /* We have the descriptor, we can continue the poll. Allocate a new
-       * buffer for the poll.
-       */
+              return -EBUSY;
+            }
 
-      dev->d_buf = tiva_allocbuffer(priv);
+          /* We have the descriptor, we can continue the poll. Allocate a new
+           * buffer for the poll.
+           */
 
-      /* We can't continue the poll if we have no buffers */
+          dev->d_buf = tiva_allocbuffer(priv);
 
-      if (dev->d_buf == NULL)
-        {
-          /* Terminate the poll. */
+          /* We can't continue the poll if we have no buffers */
 
-          return -ENOMEM;
+          if (dev->d_buf == NULL)
+            {
+              /* Terminate the poll. */
+
+              return -ENOMEM;
+            }
         }
     }
 
@@ -1711,7 +1714,7 @@ static void tiva_receive(FAR struct tiva_ethmac_s *priv)
        * (this should not happen)
        */
 
-      if (dev->d_len > CONFIG_NET_ETH_MTU)
+      if (dev->d_len > CONFIG_NET_ETH_PKTSIZE)
         {
           nwarn("DROPPED: Too big: %d\n", dev->d_len);
         }
@@ -2523,7 +2526,7 @@ static int tiva_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static uint32_t tiva_calcethcrc(const uint8_t *data, size_t length)
 {
   uint32_t crc = 0xffffffff;
@@ -2548,7 +2551,7 @@ static uint32_t tiva_calcethcrc(const uint8_t *data, size_t length)
 
   return ~crc;
 }
-#endif /* CONFIG_NET_IGMP || CONFIG_NET_ICMPv6 */
+#endif /* CONFIG_NET_MCASTGROUP || CONFIG_NET_ICMPv6 */
 
 /****************************************************************************
  * Function: tiva_addmac
@@ -2568,7 +2571,7 @@ static uint32_t tiva_calcethcrc(const uint8_t *data, size_t length)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int tiva_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   uint32_t crc;
@@ -2625,7 +2628,7 @@ static int tiva_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int tiva_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   uint32_t crc;
@@ -4038,7 +4041,7 @@ int tiva_ethinitialize(int intf)
   priv->dev.d_ifup    = tiva_ifup;     /* I/F up (new IP address) callback */
   priv->dev.d_ifdown  = tiva_ifdown;   /* I/F down callback */
   priv->dev.d_txavail = tiva_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->dev.d_addmac  = tiva_addmac;   /* Add multicast MAC address */
   priv->dev.d_rmmac   = tiva_rmmac;    /* Remove multicast MAC address */
 #endif

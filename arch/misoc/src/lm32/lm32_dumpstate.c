@@ -144,6 +144,10 @@ void lm32_dumpstate(void)
   uint32_t istacksize;
 #endif
 
+  /* Dump the registers (if available) */
+
+  up_registerdump();
+
   /* Get the limits on the user stack memory */
 
   if (rtcb->pid == 0)
@@ -187,6 +191,11 @@ void lm32_dumpstate(void)
       sp = g_intstackbase;
       _alert("sp:     %08x\n", sp);
     }
+  else if (g_current_regs)
+    {
+      _alert("ERROR: Stack pointer is not within the interrupt stack\n");
+      up_stackdump(istackbase - istacksize, istackbase);
+    }
 
   /* Show user stack info */
 
@@ -205,18 +214,13 @@ void lm32_dumpstate(void)
 
   if (sp > ustackbase || sp <= ustackbase - ustacksize)
     {
-#if !defined(CONFIG_ARCH_INTERRUPTSTACK) || CONFIG_ARCH_INTERRUPTSTACK < 4
       _alert("ERROR: Stack pointer is not within allocated stack\n");
-#endif
+      up_stackdump(ustackbase - ustacksize, ustackbase);
     }
   else
     {
       up_stackdump(sp, ustackbase);
     }
-
-  /* Then dump the registers (if available) */
-
-  up_registerdump();
 }
 
 #endif /* CONFIG_ARCH_STACKDUMP */

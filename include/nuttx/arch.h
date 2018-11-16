@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/arch.h
  *
- *   Copyright (C) 2007-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -732,7 +732,26 @@ uintptr_t pgalloc(uintptr_t brkaddr, unsigned int npages);
 #endif
 
 /****************************************************************************
- * Name: up_setpicbase, up_getpicbase
+ * Name: up_sched_have_garbage and up_sched_garbage_collection
+ *
+ * Description:
+ *   Some architectures may soft unique memory allocators.  If
+ *   CONFIG_ARCH_HAVE_GARBAGE is defined, those architectures must provide
+ *   both up_sched_have_garbage and up_sched_garbage_collection.  These will
+ *   be tied into the NuttX memory garbage collection logic.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_HAVE_GARBAGE
+bool up_sched_have_garbage(void);
+void up_sched_garbage_collection(void);
+#else
+#  define up_sched_have_garbage() false
+#  define up_sched_garbage_collection()
+#endif
+
+/****************************************************************************
+ * Name: up_setpicbase and up_getpicbase
  *
  * Description:
  *   It NXFLAT external modules (or any other binary format that requires)
@@ -815,6 +834,7 @@ uintptr_t pgalloc(uintptr_t brkaddr, unsigned int npages);
  *   up_addrenv_kstackfree   - Destroy the kernel stack.
  *
  ****************************************************************************/
+
 /****************************************************************************
  * Name: up_addrenv_create
  *
@@ -1220,6 +1240,44 @@ int up_addrenv_kstackfree(FAR struct tcb_s *tcb);
 #endif
 
 /****************************************************************************
+ * Name: up_addrenv_pa_to_va
+ *
+ * Description:
+ *   Map phy address to virtual address.  Not supported by all architectures.
+ *
+ *   REVISIT:  Should this not then be conditional on having that
+ *   architecture-specific support?
+ *
+ * Input Parameters:
+ *   pa - The phy address to be mapped.
+ *
+ * Returned Value:
+ *   Virtual address on success; NULL on failure.
+ *
+ ****************************************************************************/
+
+FAR void *up_addrenv_pa_to_va(uintptr_t pa);
+
+/****************************************************************************
+ * Name: up_addrenv_va_to_pa
+ *
+ * Description:
+ *   Map virtual address to phy address.  Not supported by all architectures.
+ *
+ *   REVISIT:  Should this not then be conditional on having that
+ *   architecture-specific support?
+ *
+ * Input Parameters:
+ *   va - The virtual address to be mapped.  Not supported by all architectures.
+ *
+ * Returned Value:
+ *   Phy address on success; NULL on failure.
+ *
+ ****************************************************************************/
+
+uintptr_t up_addrenv_va_to_pa(FAR void *va);
+
+/****************************************************************************
  * Name: up_shmat
  *
  * Description:
@@ -1387,6 +1445,18 @@ void up_enable_irq(int irq);
 
 #ifndef CONFIG_ARCH_NOINTC
 void up_disable_irq(int irq);
+#endif
+
+/****************************************************************************
+ * Name: up_trigger_irq
+ *
+ * Description:
+ *   Trigger an IRQ by software. May not be supported by all architectures.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_HAVE_IRQTRIGGER
+void up_trigger_irq(int irq);
 #endif
 
 /****************************************************************************
@@ -2113,7 +2183,7 @@ size_t  up_check_tcbstack(FAR struct tcb_s *tcb);
 ssize_t up_check_tcbstack_remain(FAR struct tcb_s *tcb);
 size_t  up_check_stack(void);
 ssize_t up_check_stack_remain(void);
-#if CONFIG_ARCH_INTERRUPTSTACK > 3
+#if defined(CONFIG_ARCH_INTERRUPTSTACK) && CONFIG_ARCH_INTERRUPTSTACK > 3
 size_t  up_check_intstack(void);
 size_t  up_check_intstack_remain(void);
 #endif

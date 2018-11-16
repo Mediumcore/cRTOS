@@ -38,6 +38,10 @@
 #
 ############################################################################
 
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+export SHELL=cmd
+endif
+
 # These are configuration variables that are quoted by configuration tool
 # but which must be unquoated when used in the build system.
 
@@ -212,8 +216,8 @@ endif
 # Depends on these settings defined in board-specific Make.defs file
 # installed at $(TOPDIR)/Make.defs:
 #
-#   LD - The command to invoke the linker (includes any options)
-#    OBJCOPY - The command to invoke the object cop (includes any options)
+#   LD      - The command to invoke the linker (includes any options)
+#   OBJCOPY - The command to invoke the object cop (includes any options)
 #
 # Depends on this settings defined in board-specific defconfig file installed
 # at $(TOPDIR)/.config:
@@ -267,6 +271,45 @@ define MOVEFILE
 	$(Q) mv -f $1 $2
 endef
 endif
+
+# COPYFILE - Copy one file
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+define COPYFILE
+	$(Q) if exist $1 (copy /y /b $1 $2)
+endef
+else
+define COPYFILE
+	$(Q) cp -f $1 $2
+endef
+endif
+
+# CATFILE - Cat and append a list of files
+#
+# USAGE: $(call CATFILE,dest,src1,src2,src3,...)
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+define CATFILE
+	$(Q) type $(2) >> $1
+endef
+else
+define CATFILE
+	$(Q) cat $(2) >> $1
+endef
+endif
+
+# RWILDCARD - Recursive wildcard used to get lists of files from directories
+#
+# USAGE:  FILELIST = $(call RWILDCARD,<dir>,<wildcard-filename)
+#
+# This is functionally equivent to the fillowing, but has the advantage in
+# that it is portable
+#
+# FILELIST = ${shell find <dir> -name <wildcard-file>}
+
+define RWILDCARD
+  $(foreach d,$(wildcard $1/*),$(call RWILDCARD,$d,$2)$(filter $(subst *,%,$2),$d))
+endef
 
 # CLEAN - Default clean target
 

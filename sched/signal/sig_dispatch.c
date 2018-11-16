@@ -227,8 +227,8 @@ static FAR sigpendq_t *
  *
  ****************************************************************************/
 
-static FAR sigpendq_t *nxsig_add_pendingsignal(FAR struct tcb_s *stcb,
-                                               FAR siginfo_t *info)
+static void nxsig_add_pendingsignal(FAR struct tcb_s *stcb,
+                                    FAR siginfo_t *info)
 {
   FAR struct task_group_s *group;
   FAR sigpendq_t *sigpend;
@@ -240,7 +240,7 @@ static FAR sigpendq_t *nxsig_add_pendingsignal(FAR struct tcb_s *stcb,
   /* Check if the signal is already pending for the group */
 
   sigpend = nxsig_find_pendingsignal(group, info->si_signo);
-  if (sigpend)
+  if (sigpend != NULL)
     {
       /* The signal is already pending... retain only one copy */
 
@@ -254,7 +254,7 @@ static FAR sigpendq_t *nxsig_add_pendingsignal(FAR struct tcb_s *stcb,
       /* Allocate a new pending signal entry */
 
       sigpend = nxsig_alloc_pendingsignal();
-      if (sigpend)
+      if (sigpend != NULL)
         {
           /* Put the signal information into the allocated structure */
 
@@ -268,7 +268,7 @@ static FAR sigpendq_t *nxsig_add_pendingsignal(FAR struct tcb_s *stcb,
         }
     }
 
-  return sigpend;
+  DEBUGASSERT(sigpend);
 }
 
 /****************************************************************************
@@ -338,7 +338,7 @@ int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
       else
         {
           leave_critical_section(flags);
-          ASSERT(nxsig_add_pendingsignal(stcb, info));
+          nxsig_add_pendingsignal(stcb, info);
         }
     }
 
@@ -391,15 +391,31 @@ int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
           nxsem_wait_irq(stcb, EINTR);
         }
 
+#ifndef CONFIG_DISABLE_MQUEUE
       /* If the task is blocked waiting on a message queue, then that task
        * must be unblocked when a signal is received.
        */
 
-#ifndef CONFIG_DISABLE_MQUEUE
       if (stcb->task_state == TSTATE_WAIT_MQNOTEMPTY ||
           stcb->task_state == TSTATE_WAIT_MQNOTFULL)
         {
           nxmq_wait_irq(stcb, EINTR);
+        }
+#endif
+
+#ifdef CONFIG_SIG_SIGSTOP_ACTION
+      /* If the task was stopped by SIGSTOP or SIGSTP, then unblock the task
+       * if SIGCONT is received.
+       */
+
+      if (stcb->task_state == TSTATE_TASK_STOPPED &&
+          info->si_signo == SIGCONT)
+        {
+#ifdef HAVE_GROUP_MEMBERS
+          group_continue(stcb);
+#else
+          sched_continue(stcb);
+#endif
         }
 #endif
     }

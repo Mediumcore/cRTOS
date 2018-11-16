@@ -81,7 +81,6 @@
 #define HAVE_SDIO       1
 #define HAVE_CS43L22    1
 #define HAVE_RTC_DRIVER 1
-#define HAVE_ELF        1
 #define HAVE_NETMONITOR 1
 #define HAVE_HCIUART    1
 
@@ -176,12 +175,6 @@
 
 #if !defined(CONFIG_RTC) || !defined(CONFIG_RTC_DRIVER)
 #  undef HAVE_RTC_DRIVER
-#endif
-
-/* ELF */
-
-#if defined(CONFIG_BINFMT_DISABLE) || !defined(CONFIG_ELF)
-#  undef HAVE_ELF
 #endif
 
 /* NSH Network monitor  */
@@ -507,6 +500,18 @@ int nunchuck_initialize(FAR char *devname);
 #endif
 
 /****************************************************************************
+ * Name: stm32_max7219init
+ *
+ * Description:
+ *   Initialize and register the max7219 numeric display controller
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_LEDS_MAX7219
+int stm32_max7219init(FAR const char *devpath);
+#endif
+
+/****************************************************************************
  * Name: stm32_usbinitialize
  *
  * Description:
@@ -711,6 +716,19 @@ int stm32_zerocross_initialize(void);
 #ifdef CONFIG_SENSORS_MAX31855
 int stm32_max31855initialize(FAR const char *devpath, int bus,
                              uint16_t devid);
+#endif
+
+/***********************************************************************************
+ * Name: stm32_mlx90614init
+ *
+ * Description:
+ *   Called to configure an I2C and to register MLX90614 for the stm32f103-minimum
+ *   board.
+ *
+ ***********************************************************************************/
+
+#ifdef CONFIG_SENSORS_MLX90614
+int stm32_mlx90614init(FAR const char *devpath);
 #endif
 
 /****************************************************************************

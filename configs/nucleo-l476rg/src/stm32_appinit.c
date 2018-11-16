@@ -64,9 +64,23 @@
 #  include "stm32l4_rtc.h"
 #endif
 
+#include "stm32l4_i2c.h"
+
+/****************************************************************************
+ * Private Data
+ ***************************************************************************/
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+/* Checking needed by MMC/SDCard */
+
+#ifdef CONFIG_NSH_MMCSDMINOR
+#  define MMCSD_MINOR       CONFIG_NSH_MMCSDMINOR
+#else
+#  define MMCSD_MINOR       0
+#endif
 
 /****************************************************************************
  * Name: board_app_initialize
@@ -145,7 +159,7 @@ int board_app_initialize(uintptr_t arg)
     }
 #endif
 
-#ifdef HAVE_MMCSD
+#ifdef HAVE_MMCSD_SDIO
   /* First, get an instance of the SDIO interface */
 
   g_sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
@@ -196,15 +210,22 @@ int board_app_initialize(uintptr_t arg)
     }
 #endif
 
-/* Initialize CAN and register the CAN driver.
- * Added by: Ben vd Veen (DisruptiveNL) -- www.nuttx.nl
- */
-
 #ifdef CONFIG_CAN
   ret = stm32l4_can_setup();
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: stm32l4_can_setup failed: %d\n", ret);
+      return ret;
+    }
+#endif
+
+/* Initialize MMC and register the MMC driver. */
+
+#ifdef HAVE_MMCSD_SPI
+  ret = stm32l4_mmcsd_initialize(MMCSD_MINOR);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "Failed to initialize SD slot %d: %d\n", ret);
       return ret;
     }
 #endif
@@ -313,9 +334,29 @@ int board_app_initialize(uintptr_t arg)
 #endif
 #endif /* CONFIG_SENSORS_QENCODER */
 
-/* Initialize CAN and register the CAN driver.
- * Added by: Ben vd Veen (DisruptiveNL) -- www.nuttx.nl
- */
+#ifdef CONFIG_SENSORS_HTS221
+  ret = stm32l4_hts221_initialize("/dev/hts221");
+  if (ret < 0)
+    {
+      serr("ERROR: Failed to initialize HTC221 driver: %d\n", ret);
+    }
+#endif
+
+#ifdef CONFIG_SENSORS_LSM6DSL
+  ret = stm32l4_lsm6dsl_initialize("/dev/lsm6dsl0");
+  if (ret < 0)
+    {
+      serr("ERROR: Failed to initialize LSM6DSL driver: %d\n", ret);
+    }
+#endif
+
+#ifdef CONFIG_SENSORS_LSM303AGR
+  ret = stm32l4_lsm303agr_initialize("/dev/lsm303mag0");
+  if (ret < 0)
+    {
+      serr("ERROR: Failed to initialize LSM303AGR driver: %d\n", ret);
+    }
+#endif    
 
 #ifdef CONFIG_DEV_GPIO
   ret = stm32l4_gpio_initialize();

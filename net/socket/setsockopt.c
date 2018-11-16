@@ -52,7 +52,9 @@
 #include <nuttx/net/net.h>
 
 #include "socket/socket.h"
+#include "inet/inet.h"
 #include "tcp/tcp.h"
+#include "udp/udp.h"
 #include "usrsock/usrsock.h"
 #include "utils/utils.h"
 
@@ -92,6 +94,13 @@ static int psock_socketlevel_option(FAR struct socket *psock, int option,
   if (!_SO_SETVALID(option) || !value)
     {
       return -EINVAL;
+    }
+
+  /* Verify that the sockfd corresponds to valid, allocated socket */
+
+  if (psock == NULL || psock->s_crefs <= 0)
+    {
+      return -EBADF;
     }
 
 #ifdef CONFIG_NET_USRSOCK
@@ -154,8 +163,8 @@ static int psock_socketlevel_option(FAR struct socket *psock, int option,
 
           setting = *(FAR int *)value;
 
-          /* Disable interrupts so that there is no conflict with interrupt
-           * level access to options.
+          /* Lock the network so that we have exclusive access to the socket
+           * options.
            */
 
            net_lock();
@@ -251,11 +260,11 @@ static int psock_socketlevel_option(FAR struct socket *psock, int option,
 
           setting = (FAR struct linger *)value;
 
-          /* Disable interrupts so that there is no conflict with interrupt
-           * level access to options.
+          /* Lock the network so that we have exclusive access to the socket
+           * options.
            */
 
-           net_lock();
+          net_lock();
 
           /* Set or clear the linger option bit and linger time (in deciseconds) */
 
@@ -360,28 +369,40 @@ int psock_setsockopt(FAR struct socket *psock, int level, int option,
   switch (level)
     {
       case SOL_SOCKET: /* Socket-level options (see include/sys/socket.h) */
-       ret = psock_socketlevel_option(psock, option, value, value_len);
-       break;
+        ret = psock_socketlevel_option(psock, option, value, value_len);
+        break;
 
       case SOL_TCP:    /* TCP protocol socket options (see include/netinet/tcp.h) */
 #ifdef CONFIG_NET_TCPPROTO_OPTIONS
-       ret = tcp_setsockopt(psock, option, value, value_len);
-       break;
+        ret = tcp_setsockopt(psock, option, value, value_len);
+        break;
+#endif
+
+      case SOL_UDP:    /* UDP protocol socket options (see include/netinet/udp.h) */
+#ifdef CONFIG_NET_UDPPROTO_OPTIONS
+        ret = udp_setsockopt(psock, option, value, value_len);
+        break;
 #endif
 
       /* These levels are defined in sys/socket.h, but are not yet
        * implemented.
        */
 
-      case SOL_IP:     /* TCP protocol socket options (see include/netinet/ip.h) */
-      case SOL_IPV6:   /* TCP protocol socket options (see include/netinet/ip6.h) */
-      case SOL_UDP:    /* TCP protocol socket options (see include/netinit/udp.h) */
-        ret = -ENOSYS;
-       break;
+#ifdef CONFIG_NET_IPv4
+      case SOL_IP:     /* TCP protocol socket options (see include/netinet/in.h) */
+        ret = ipv4_setsockopt(psock, option, value, value_len);
+        break;
+#endif
+
+#ifdef CONFIG_NET_IPv6
+      case SOL_IPV6:   /* TCP protocol socket options (see include/netinet/in.h) */
+        ret = ipv6_setsockopt(psock, option, value, value_len);
+        break;
+#endif
 
       default:         /* The provided level is invalid */
         ret = -EINVAL;
-       break;
+        break;
     }
 
   return ret;
@@ -444,14 +465,8 @@ int setsockopt(int sockfd, int level, int option, const void *value, socklen_t v
   int ret;
 
   /* Get the underlying socket structure */
-  /* Verify that the sockfd corresponds to valid, allocated socket */
 
   psock = sockfd_socket(sockfd);
-  if (!psock || psock->s_crefs <= 0)
-    {
-      set_errno(EBADF);
-      return ERROR;
-    }
 
   /* Then let psock_setockopt() do all of the work */
 

@@ -3197,7 +3197,7 @@ static inline void lpc31_portsc_bottomhalf(void)
 static inline void lpc31_syserr_bottomhalf(void)
 {
   usbhost_trace1(EHCI_TRACE1_SYSERR_INTR, 0);
-  PANIC();
+  DEBUGPANIC();
 }
 
 /****************************************************************************
@@ -3429,7 +3429,7 @@ static int lpc31_ehci_interrupt(int irq, FAR void *context, FAR void *arg)
  *      connection related event.
  *
  * Returned Value:
- *   Zero (OK) is returned on success when a device in connected or
+ *   Zero (OK) is returned on success when a device is connected or
  *   disconnected. This function will not return until either (1) a device is
  *   connected or disconnect to/from any hub port or until (2) some failure
  *   occurs.  On a failure, a negated errno value is returned indicating the

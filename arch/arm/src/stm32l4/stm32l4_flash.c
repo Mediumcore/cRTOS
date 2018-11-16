@@ -64,7 +64,7 @@
 #include "up_arch.h"
 
 #if !(defined(CONFIG_STM32L4_STM32L4X3) || defined(CONFIG_STM32L4_STM32L4X5) || \
-      defined(CONFIG_STM32L4_STM32L4X6))
+      defined(CONFIG_STM32L4_STM32L4X6) || defined(CONFIG_STM32L4_STM32L4XR))
 #  error "Unrecognized STM32 chip"
 #endif
 
@@ -85,7 +85,13 @@
 #define FLASH_PAGE_SIZE    STM32L4_FLASH_PAGESIZE
 #define FLASH_PAGE_WORDS   (FLASH_PAGE_SIZE / 4)
 #define FLASH_PAGE_MASK    (FLASH_PAGE_SIZE - 1)
-#define FLASH_PAGE_SHIFT   (11)    /* 2**11  = 2048B */
+#if FLASH_PAGE_SIZE == 2048
+#  define FLASH_PAGE_SHIFT   (11)    /* 2**11  = 2048B */
+#elif FLASH_PAGE_SIZE == 8192
+#  define FLASH_PAGE_SHIFT   (13)    /* 2**13  = 8192B */
+#else
+#  error Unsupported STM32L4_FLASH_PAGESIZE
+#endif
 #define FLASH_BYTE2PAGE(o) ((o) >> FLASH_PAGE_SHIFT)
 
 #define FLASH_CR_PAGE_ERASE              FLASH_CR_PER
@@ -276,7 +282,7 @@ size_t up_progmem_pagesize(size_t page)
   return STM32L4_FLASH_PAGESIZE;
 }
 
-size_t up_progmem_erasesize(size_t page)
+size_t up_progmem_erasesize(size_t block)
 {
   return STM32L4_FLASH_PAGESIZE;
 }
@@ -306,7 +312,7 @@ size_t up_progmem_getaddress(size_t page)
   return page * STM32L4_FLASH_PAGESIZE + STM32L4_FLASH_BASE;
 }
 
-size_t up_progmem_npages(void)
+size_t up_progmem_neraseblocks(void)
 {
   return STM32L4_FLASH_NPAGES;
 }
@@ -316,28 +322,28 @@ bool up_progmem_isuniform(void)
   return true;
 }
 
-ssize_t up_progmem_erasepage(size_t page)
+ssize_t up_progmem_eraseblock(size_t block)
 {
-  if (page >= STM32L4_FLASH_NPAGES)
+  if (block >= STM32L4_FLASH_NPAGES)
     {
       return -EFAULT;
     }
 
-  /* Erase single page */
+  /* Erase single block */
 
   sem_lock();
   flash_unlock();
 
-  flash_erase(page);
+  flash_erase(block);
 
   flash_lock();
   sem_unlock();
 
   /* Verify */
 
-  if (up_progmem_ispageerased(page) == 0)
+  if (up_progmem_ispageerased(block) == 0)
     {
-      return up_progmem_pagesize(page);
+      return up_progmem_erasesize(block);
     }
   else
     {

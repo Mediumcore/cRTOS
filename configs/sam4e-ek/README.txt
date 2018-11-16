@@ -223,8 +223,7 @@ Networking Support
   Networking Support
     CONFIG_NET=y                        : Enable Neworking
     CONFIG_NET_SOCKOPTS=y               : Enable socket operations
-    CONFIG_NET_ETH_MTU=562              : Maximum packet size (MTU) 1518 is more standard
-    CONFIG_NET_ETH_TCP_RECVWNDO=536     : Should be the same as CONFIG_NET_ETH_MTU
+    CONFIG_NET_ETH_PKTSIZE=562          : Maximum packet size 1518 is more standard
     CONFIG_NET_TCP=y                    : Enable TCP/IP networking
     CONFIG_NET_TCPBACKLOG=y             : Support TCP/IP backlog
     CONFIG_NET_TCP_READAHEAD_BUFSIZE=536  Read-ahead buffer size
@@ -928,13 +927,6 @@ SAM4E-EK-specific Configuration Options
 
     CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
 
-    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-       cause a 100 second delay during boot-up.  This 100 second delay
-       serves no purpose other than it allows you to calibratre
-       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-       the delay actually is 100 seconds.
-
   Individual subsystems can be enabled:
 
     CONFIG_SAM34_SPI0          - Serial Peripheral Interface 0 (SPI0)
@@ -1404,53 +1396,11 @@ Configurations
 
     The NxWM window manager can be found here:
 
-      nuttx-git/NxWidgets/nxwm
+      apps/graphics/NxWidgets/nxwm
 
     The NxWM unit test can be found at:
 
-      nuttx-git/NxWidgets/UnitTests/nxwm
-
-    Documentation for installing the NxWM unit test can be found here:
-
-      nuttx-git/NxWidgets/UnitTests/README.txt
-
-    Here is the quick summary of the build steps.  These steps assume that
-    you have the entire NuttX GIT in some directory ~/nuttx-git.  You may
-    have these components installed elsewhere.  In that case, you will need
-    to adjust all of the paths in the following accordingly:
-
-    1. Install the nxwm configuration
-
-       $ tools/configure.sh sam4e-ek/nxwm
-
-    2. Make the build context (only)
-
-       $ make context
-
-    3. Install the nxwm unit test
-
-       $ cd ~/nuttx-git/NxWidgets
-       $ tools/install.sh ~/nuttx-git/apps nxwm
-       Creating symbolic link
-        - To ~/nuttx-git/NxWidgets/UnitTests/nxwm
-        - At ~/nuttx-git/apps/external
-
-    4. Build the NxWidgets library
-
-       $ cd ~/nuttx-git/NxWidgets/libnxwidgets
-       $ make TOPDIR=~/nuttx-git/nuttx
-       ...
-
-    5. Build the NxWM library
-
-       $ cd ~/nuttx-git/NxWidgets/nxwm
-       $ make TOPDIR=~/nuttx-git/nuttx
-       ...
-
-    6. Built NuttX with the installed unit test as the application
-
-       $ cd ~/nuttx-git/nuttx
-       $ make
+      apps/graphics/NxWidgets/UnitTests/nxwm
 
     STATUS:
     2014-08-20. I have seen the demo work well but it is not thoroughly

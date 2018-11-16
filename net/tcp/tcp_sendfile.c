@@ -106,7 +106,7 @@ struct sendfile_s
   uint32_t           snd_isn;     /* Initial sequence number */
   uint32_t           snd_acked;   /* The number of bytes acked */
 #ifdef CONFIG_NET_SOCKOPTS
-  systime_t          snd_time;    /* Last send time for determining timeout */
+  clock_t            snd_time;    /* Last send time for determining timeout */
 #endif
 };
 
@@ -296,7 +296,7 @@ static inline bool sendfile_addrcheck(FAR struct tcp_conn_s *conn)
 #endif
     {
 #if !defined(CONFIG_NET_ARP_IPIN) && !defined(CONFIG_NET_ARP_SEND)
-      return (arp_find(conn->u.ipv4.raddr) != NULL);
+      return (arp_find(conn->u.ipv4.raddr, NULL) >= 0);
 #else
       return true;
 #endif
@@ -309,7 +309,7 @@ static inline bool sendfile_addrcheck(FAR struct tcp_conn_s *conn)
 #endif
     {
 #if !defined(CONFIG_NET_ICMPv6_NEIGHBOR)
-      return (neighbor_findentry(conn->u.ipv6.raddr) != NULL);
+      return (neighbor_lookup(conn->u.ipv6.raddr, NULL) >= 0);
 #else
       return true;
 #endif
@@ -662,7 +662,7 @@ ssize_t tcp_sendfile(FAR struct socket *psock, FAR struct file *infile,
   if (state.snd_datacb == NULL)
     {
       nerr("ERROR: Failed to allocate data callback\n");
-      ret =- ENOMEM;
+      ret = -ENOMEM;
       goto errout_locked;
     }
 
@@ -725,8 +725,6 @@ errout_locked:
 
   nxsem_destroy(&state. snd_sem);
   net_unlock();
-
-errout:
 
   if (ret < 0)
     {

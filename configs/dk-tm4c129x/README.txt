@@ -226,8 +226,7 @@ Networking Support
     CONFIG_NET=y                        : Enable Neworking
     CONFIG_NET_ETHERNET=y               : Support Ethernet data link
     CONFIG_NET_SOCKOPTS=y               : Enable socket operations
-    CONFIG_NET_ETH_MTU=590              : Maximum packet size (MTU) 1518 is more standard
-    CONFIG_NET_ETH_TCP_RECVWNDO=536     : Should be the same as CONFIG_NET_ETH_MTU
+    CONFIG_NET_ETH_PKTSIZE=590          : Maximum packet size 1518 is more standard
     CONFIG_NET_ARP=y                    : Enable ARP
     CONFIG_NET_ARPTAB_SIZE=16           : ARP table size
     CONFIG_NET_ARP_IPIN=y               : Enable ARP address harvesting
@@ -598,13 +597,6 @@ DK-TM4129X Configuration Options
     CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
 
     CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
-
-    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-       cause a 100 second delay during boot-up.  This 100 second delay
-       serves no purpose other than it allows you to calibratre
-       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-       the delay actually is 100 seconds.
 
   There are configurations for disabling support for interrupts GPIO ports.
   Only GPIOP and GPIOQ pins can be used as interrupting sources on the

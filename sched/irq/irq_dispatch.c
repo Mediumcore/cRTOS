@@ -45,10 +45,13 @@
 #include <nuttx/random.h>
 
 #include "irq/irq.h"
+#include "clock/clock.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+/* INCR_COUNT - Increment the count of interrupts taken on this IRQ number */
 
 #ifdef CONFIG_SCHED_IRQMONITOR
 #  ifdef CONFIG_HAVE_LONG_LONG
@@ -73,6 +76,32 @@
 #  define INCR_COUNT(ndx)
 #endif
 
+/* CALL_VECTOR - Call the interrupt service routine attached to this interrupt
+ * request
+ */
+
+#if defined(CONFIG_SCHED_IRQMONITOR) && defined(CONFIG_SCHED_TICKLESS)
+#  define CALL_VECTOR(ndx, vector, irq, context, arg) \
+     do \
+       { \
+         struct timespec start; \
+         struct timespec end; \
+         struct timespec delta; \
+         clock_systimespec(&start); \
+         vector(irq, context, arg); \
+         clock_systimespec(&end); \
+         clock_timespec_subtract(&end, &start, &delta); \
+         if (delta.tv_nsec > g_irqvector[ndx].time) \
+           { \
+             g_irqvector[ndx].time = delta.tv_nsec; \
+           } \
+       } \
+     while (0)
+#else
+#  define CALL_VECTOR(ndx, vector, irq, context, arg) \
+     vector(irq, context, arg)
+#endif
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -89,41 +118,35 @@
 
 void irq_dispatch(int irq, FAR void *context)
 {
-  xcpt_t vector;
-  FAR void *arg;
-
-  /* Perform some sanity checks */
+  xcpt_t vector = irq_unexpected_isr;
+  FAR void *arg = NULL;
+  unsigned int ndx = irq;
 
 #if NR_IRQS > 0
-  if ((unsigned)irq >= NR_IRQS)
-    {
-      vector = irq_unexpected_isr;
-      arg    = NULL;
-    }
-  else
+  if ((unsigned)irq < NR_IRQS)
     {
 #ifdef CONFIG_ARCH_MINIMAL_VECTORTABLE
-      irq_mapped_t ndx = g_irqmap[irq];
-      if (ndx >= CONFIG_ARCH_NUSER_INTERRUPTS)
+      ndx = g_irqmap[irq];
+      if (ndx < CONFIG_ARCH_NUSER_INTERRUPTS)
         {
-          vector = irq_unexpected_isr;
-          arg    = NULL;
-        }
-      else
-        {
-          vector = g_irqvector[ndx].handler;
-          arg    = g_irqvector[ndx].arg;
+          if (g_irqvector[ndx].handler)
+            {
+              vector = g_irqvector[ndx].handler;
+              arg    = g_irqvector[ndx].arg;
+            }
+
           INCR_COUNT(ndx);
         }
 #else
-      vector = g_irqvector[irq].handler;
-      arg    = g_irqvector[irq].arg;
-      INCR_COUNT(irq);
+      if (g_irqvector[ndx].handler)
+        {
+          vector = g_irqvector[ndx].handler;
+          arg    = g_irqvector[ndx].arg;
+        }
+
+      INCR_COUNT(ndx);
 #endif
     }
-#else
-  vector = irq_unexpected_isr;
-  arg    = NULL;
 #endif
 
 #ifdef CONFIG_CRYPTO_RANDOM_POOL_COLLECT_IRQ_RANDOMNESS
@@ -134,5 +157,6 @@ void irq_dispatch(int irq, FAR void *context)
 
   /* Then dispatch to the interrupt handler */
 
-  vector(irq, context, arg);
+  CALL_VECTOR(ndx, vector, irq, context, arg);
+  UNUSED(ndx);
 }

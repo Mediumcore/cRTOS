@@ -49,7 +49,6 @@
 #include <nuttx/signal.h>
 
 #include "clock/clock.h"
-#include "signal/signal.h"
 #include "timer/timer.h"
 
 #ifndef CONFIG_DISABLE_POSIX_TIMERS
@@ -71,7 +70,7 @@ static void timer_timeout(int argc, wdparm_t itimer);
  * Name: timer_signotify
  *
  * Description:
- *   This function basically reimplements nxsig_queue() so that the si_code
+ *   This function basically re-implements nxsig_queue() so that the si_code
  *   can be correctly set to SI_TIMER
  *
  * Input Parameters:
@@ -87,40 +86,7 @@ static void timer_timeout(int argc, wdparm_t itimer);
 
 static inline void timer_signotify(FAR struct posix_timer_s *timer)
 {
-  siginfo_t info;
-
-  /* Notify client via a signal? */
-
-  if (timer->pt_event.sigev_notify == SIGEV_SIGNAL)
-    {
-      /* Yes.. Create the siginfo structure */
-
-      info.si_signo           = timer->pt_event.sigev_signo;
-      info.si_code            = SI_TIMER;
-      info.si_errno           = OK;
-#ifdef CONFIG_CAN_PASS_STRUCTS
-      info.si_value           = timer->pt_event.sigev_value;
-#else
-      info.si_value.sival_ptr = timer->pt_event.sigev_value.sival_ptr;
-#endif
-#ifdef CONFIG_SCHED_HAVE_PARENT
-      info.si_pid             = 0;  /* Not applicable */
-      info.si_status          = OK;
-#endif
-
-      /* Send the signal */
-
-      DEBUGVERIFY(nxsig_dispatch(timer->pt_owner, &info));
-    }
-
-#ifdef CONFIG_SIG_EVTHREAD
-  /* Notify the client via a function call */
-
-  else if (timer->pt_event.sigev_notify == SIGEV_THREAD)
-    {
-      DEBUGVERIFY(nxsig_notification(timer->pt_owner, &timer->pt_event));
-    }
-#endif
+  DEBUGVERIFY(nxsig_notification(timer->pt_owner, &timer->pt_event, SI_TIMER));
 }
 
 /****************************************************************************
@@ -279,7 +245,7 @@ static void timer_timeout(int argc, wdparm_t itimer)
  * Input Parameters:
  *   timerid - The pre-thread timer, previously created by the call to
  *     timer_create(), to be be set.
- *   flags - Specifie characteristics of the timer (see above)
+ *   flags - Specifies characteristics of the timer (see above)
  *   value - Specifies the timer value to set
  *   ovalue - A location in which to return the time remaining from the
  *     previous timer setting. (ignored)
@@ -305,7 +271,7 @@ int timer_settime(timer_t timerid, int flags,
 {
   FAR struct posix_timer_s *timer = (FAR struct posix_timer_s *)timerid;
   irqstate_t intflags;
-  ssystime_t delay;
+  sclock_t delay;
   int ret = OK;
 
   /* Some sanity checks */
@@ -329,13 +295,13 @@ int timer_settime(timer_t timerid, int flags,
       return OK;
     }
 
-  /* Setup up any repititive timer */
+  /* Setup up any repetitive timer */
 
   if (value->it_interval.tv_sec > 0 || value->it_interval.tv_nsec > 0)
     {
       (void)clock_time2ticks(&value->it_interval, &delay);
 
-      /* REVISIT: Should pt_delay be ssystime_t? */
+      /* REVISIT: Should pt_delay be sclock_t? */
 
       timer->pt_delay = (int)delay;
     }
@@ -372,7 +338,7 @@ int timer_settime(timer_t timerid, int flags,
     }
 
   /* If the time is in the past or now, then set up the next interval
-   * instead (assuming a repititive timer).
+   * instead (assuming a repetitive timer).
    */
 
   if (delay <= 0)
@@ -384,8 +350,8 @@ int timer_settime(timer_t timerid, int flags,
 
   if (delay > 0)
     {
-      /* REVISIT: Should pt_last be ssystime_t? Should wd_start delay be
-       *          ssystime_t?
+      /* REVISIT: Should pt_last be sclock_t? Should wd_start delay be
+       *          sclock_t?
        */
 
       timer->pt_last = delay;

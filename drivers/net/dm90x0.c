@@ -341,7 +341,7 @@ struct dm9x_driver_s
 
 /* A single packet buffer is used */
 
-static uint8_t g_pktbuf[MAX_NET_DEV_MTU + CONFIG_NET_GUARDSIZE];
+static uint8_t g_pktbuf[MAX_NETDEV_PKTSIZE + CONFIG_NET_GUARDSIZE];
 
 /* At present, only a single DM90x0 device is supported. */
 
@@ -404,7 +404,7 @@ static int dm9x_ifdown(struct net_driver_s *dev);
 static void dm9x_txavail_work(FAR void *arg);
 static int dm9x_txavail(struct net_driver_s *dev);
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int dm9x_addmac(struct net_driver_s *dev, FAR const uint8_t *mac);
 static int dm9x_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
@@ -819,19 +819,22 @@ static int dm9x_txpoll(struct net_driver_s *dev)
         }
 #endif /* CONFIG_NET_IPv6 */
 
-      /* Send the packet */
-
-      dm9x_transmit(priv);
-
-      /* Check if there is room in the DM90x0 to hold another packet.  In 100M mode,
-       * that can be 2 packets, otherwise it is a single packet.
-       */
-
-      if (priv->dm_ntxpending > 1 || !priv->dm_b100M)
+      if (!devif_loopback(&priv->dm_dev))
         {
-          /* Returning a non-zero value will terminate the poll operation */
+          /* Send the packet */
 
-          return 1;
+          dm9x_transmit(priv);
+
+          /* Check if there is room in the DM90x0 to hold another packet.  In 100M mode,
+           * that can be 2 packets, otherwise it is a single packet.
+           */
+
+          if (priv->dm_ntxpending > 1 || !priv->dm_b100M)
+            {
+              /* Returning a non-zero value will terminate the poll operation */
+
+              return 1;
+            }
         }
     }
 
@@ -908,7 +911,7 @@ static void dm9x_receive(FAR struct dm9x_driver_s *priv)
 
       /* Also check if the packet is a valid size for the network configuration */
 
-      else if (rx.desc.rx_len < ETH_HDRLEN || rx.desc.rx_len > (CONFIG_NET_ETH_MTU + 2))
+      else if (rx.desc.rx_len < ETH_HDRLEN || rx.desc.rx_len > (CONFIG_NET_ETH_PKTSIZE + 2))
         {
           nerr("ERROR: RX length error\n");
           NETDEV_RXERRORS(&priv->dm_dev);
@@ -1690,7 +1693,7 @@ static int dm9x_txavail(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int dm9x_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct dm9x_driver_s *priv = (FAR struct dm9x_driver_s *)dev->d_private;
@@ -1720,7 +1723,7 @@ static int dm9x_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int dm9x_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct dm9x_driver_s *priv = (FAR struct dm9x_driver_s *)dev->d_private;
@@ -1942,7 +1945,7 @@ int dm9x_initialize(void)
   g_dm9x[0].dm_dev.d_ifup    = dm9x_ifup;     /* I/F down callback */
   g_dm9x[0].dm_dev.d_ifdown  = dm9x_ifdown;   /* I/F up (new IP address) callback */
   g_dm9x[0].dm_dev.d_txavail = dm9x_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   g_dm9x[0].dm_dev.d_addmac  = dm9x_addmac;   /* Add multicast MAC address */
   g_dm9x[0].dm_dev.d_rmmac   = dm9x_rmmac;    /* Remove multicast MAC address */
 #endif

@@ -48,7 +48,6 @@
 #include <debug.h>
 
 #include <nuttx/net/netdev.h>
-#include <nuttx/net/arp.h>
 #include <nuttx/net/pkt.h>
 
 #include "devif/devif.h"
@@ -117,7 +116,6 @@ int pkt_input(struct net_driver_s *dev)
            */
 
            nwarn("WARNING: Packet not processed\n");
-           //dev->d_len = 0; REVISIT
            ret = ERROR;
         }
     }

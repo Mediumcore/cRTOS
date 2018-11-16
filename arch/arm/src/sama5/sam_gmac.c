@@ -140,14 +140,14 @@
 
 /* GMAC buffer sizes, number of buffers, and number of descriptors. *********/
 
-#define GMAC_RX_UNITSIZE 128                 /* Fixed size for RX buffer  */
-#define GMAC_TX_UNITSIZE CONFIG_NET_ETH_MTU  /* MAX size for Ethernet packet */
+#define GMAC_RX_UNITSIZE 128                    /* Fixed size for RX buffer  */
+#define GMAC_TX_UNITSIZE CONFIG_NET_ETH_PKTSIZE /* MAX size for Ethernet packet */
 
 /* The MAC can support frame lengths up to 1536 bytes */
 
 #define GMAC_MAX_FRAMELEN       1536
-#if CONFIG_NET_ETH_MTU >GMAC_MAX_FRAMELEN
-#  error CONFIG_NET_ETH_MTU is too large
+#if CONFIG_NET_ETH_PKTSIZE >GMAC_MAX_FRAMELEN
+#  error CONFIG_NET_ETH_PKTSIZE is too large
 #endif
 
 /* We need at least one more free buffer than transmit buffers */
@@ -247,7 +247,7 @@ static struct sam_gmac_s g_gmac;
  * a full packet.
  */
 
-static uint8_t g_pktbuf[MAX_NET_DEV_MTU + CONFIG_NET_GUARDSIZE];
+static uint8_t g_pktbuf[MAX_NETDEV_PKTSIZE + CONFIG_NET_GUARDSIZE];
 
 #ifdef CONFIG_SAMA5_GMAC_PREALLOCATE
 /* Preallocated data */
@@ -330,11 +330,11 @@ static int  sam_ifdown(struct net_driver_s *dev);
 static void sam_txavail_work(FAR void *arg);
 static int  sam_txavail(struct net_driver_s *dev);
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static unsigned int sam_hashindx(const uint8_t *mac);
 static int  sam_addmac(struct net_driver_s *dev, const uint8_t *mac);
 #endif
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  sam_rmmac(struct net_driver_s *dev, const uint8_t *mac);
 #endif
 
@@ -830,21 +830,24 @@ static int sam_txpoll(struct net_driver_s *dev)
         }
 #endif /* CONFIG_NET_IPv6 */
 
-      /* Send the packet */
-
-      sam_transmit(priv);
-
-      /* Check if there are any free TX descriptors.  We cannot perform
-       * the TX poll if we do not have buffering for another packet.
-       */
-
-      if (sam_txfree(priv) == 0)
+      if (!devif_loopback(&priv->dev))
         {
-          /* We have to terminate the poll if we have no more descriptors
-           * available for another transfer.
+          /* Send the packet */
+
+          sam_transmit(priv);
+
+          /* Check if there are any free TX descriptors.  We cannot perform
+           * the TX poll if we do not have buffering for another packet.
            */
 
-          return -EBUSY;
+          if (sam_txfree(priv) == 0)
+            {
+              /* We have to terminate the poll if we have no more descriptors
+               * available for another transfer.
+               */
+
+              return -EBUSY;
+            }
         }
     }
 
@@ -1031,9 +1034,9 @@ static int sam_recvframe(struct sam_gmac_s *priv)
           /* Get the number of bytes to copy from the buffer */
 
           copylen = GMAC_RX_UNITSIZE;
-          if ((pktlen + copylen) > CONFIG_NET_ETH_MTU)
+          if ((pktlen + copylen) > CONFIG_NET_ETH_PKTSIZE)
             {
-              copylen = CONFIG_NET_ETH_MTU - pktlen;
+              copylen = CONFIG_NET_ETH_PKTSIZE - pktlen;
             }
 
           /* Get the data source.  Invalidate the source memory region to
@@ -1169,7 +1172,7 @@ static void sam_receive(struct sam_gmac_s *priv)
        * (this should not happen)
        */
 
-      if (dev->d_len > CONFIG_NET_ETH_MTU)
+      if (dev->d_len > CONFIG_NET_ETH_PKTSIZE)
         {
           nwarn("WARNING: Dropped, Too big: %d\n", dev->d_len);
           continue;
@@ -2010,7 +2013,7 @@ static int sam_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static unsigned int sam_hashindx(const uint8_t *mac)
 {
   unsigned int ndx;
@@ -2108,7 +2111,7 @@ static unsigned int sam_hashindx(const uint8_t *mac)
 
   return ndx & 0x3f;
 }
-#endif /* CONFIG_NET_IGMP || CONFIG_NET_ICMPv6 */
+#endif /* CONFIG_NET_MCASTGROUP || CONFIG_NET_ICMPv6 */
 
 /****************************************************************************
  * Function: sam_addmac
@@ -2128,7 +2131,7 @@ static unsigned int sam_hashindx(const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int sam_addmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   struct sam_gmac_s *priv = (struct sam_gmac_s *)dev->d_private;
@@ -2201,7 +2204,7 @@ static int sam_addmac(struct net_driver_s *dev, const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int sam_rmmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   struct sam_gmac_s *priv = (struct sam_gmac_s *)dev->d_private;
@@ -3744,7 +3747,7 @@ int sam_gmac_initialize(void)
   priv->dev.d_ifup    = sam_ifup;        /* I/F up (new IP address) callback */
   priv->dev.d_ifdown  = sam_ifdown;      /* I/F down callback */
   priv->dev.d_txavail = sam_txavail;     /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->dev.d_addmac  = sam_addmac;      /* Add multicast MAC address */
   priv->dev.d_rmmac   = sam_rmmac;       /* Remove multicast MAC address */
 #endif

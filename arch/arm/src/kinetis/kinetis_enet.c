@@ -200,7 +200,7 @@
 
 #define BUF ((struct eth_hdr_s *)priv->dev.d_buf)
 
-#define KINETIS_BUF_SIZE  ((CONFIG_NET_ETH_MTU & 0xfffffff0) + 0x10)
+#define KINETIS_BUF_SIZE  ((CONFIG_NET_ETH_PKTSIZE & 0xfffffff0) + 0x10)
 
 /* If this SoC has the RMII Clock Source selection configure it */
 
@@ -306,7 +306,7 @@ static int  kinetis_ifdown(struct net_driver_s *dev);
 static void kinetis_txavail_work(FAR void *arg);
 static int  kinetis_txavail(struct net_driver_s *dev);
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  kinetis_addmac(struct net_driver_s *dev,
               FAR const uint8_t *mac);
 static int  kinetis_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac);
@@ -494,7 +494,7 @@ static int kinetis_transmit(FAR struct kinetis_driver_s *priv)
     }
   else
     {
-       ASSERT(txdesc->data == buf);
+       DEBUGASSERT(txdesc->data == buf);
     }
 
   /* Start the TX transfer (if it was not already waiting for buffers) */
@@ -571,19 +571,22 @@ static int kinetis_txpoll(struct net_driver_s *dev)
         }
 #endif /* CONFIG_NET_IPv6 */
 
-      /* Send the packet */
-
-      kinetis_transmit(priv);
-      priv->dev.d_buf =
-        (uint8_t*)kinesis_swap32((uint32_t)priv->txdesc[priv->txhead].data);
-
-      /* Check if there is room in the device to hold another packet. If not,
-       * return a non-zero value to terminate the poll.
-       */
-
-      if (kinetis_txringfull(priv))
+      if (!devif_loopback(&priv->dev))
         {
-          return -EBUSY;
+          /* Send the packet */
+
+          kinetis_transmit(priv);
+          priv->dev.d_buf =
+            (uint8_t*)kinesis_swap32((uint32_t)priv->txdesc[priv->txhead].data);
+
+          /* Check if there is room in the device to hold another packet. If not,
+           * return a non-zero value to terminate the poll.
+           */
+
+          if (kinetis_txringfull(priv))
+            {
+              return -EBUSY;
+            }
         }
     }
 
@@ -1390,7 +1393,7 @@ static int kinetis_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int kinetis_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct kinetis_driver_s *priv =
@@ -1420,7 +1423,7 @@ static int kinetis_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int kinetis_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct kinetis_driver_s *priv =
@@ -1807,11 +1810,11 @@ static inline int kinetis_initphy(struct kinetis_driver_s *priv)
 
 #ifdef CONFIG_KINETIS_ENETUSEMII
   rcr = ENET_RCR_CRCFWD |
-        CONFIG_NET_ETH_MTU << ENET_RCR_MAX_FL_SHIFT |
+        CONFIG_NET_ETH_PKTSIZE << ENET_RCR_MAX_FL_SHIFT |
         ENET_RCR_MII_MODE;
 #else
   rcr = ENET_RCR_RMII_MODE | ENET_RCR_CRCFWD |
-        CONFIG_NET_ETH_MTU << ENET_RCR_MAX_FL_SHIFT |
+        CONFIG_NET_ETH_PKTSIZE << ENET_RCR_MAX_FL_SHIFT |
         ENET_RCR_MII_MODE;
 #endif
   tcr = 0;
@@ -2072,15 +2075,6 @@ int kinetis_netinitialize(int intf)
   kinetis_pinconfig(PIN_RMII0_TXEN);
 #endif
 
-#ifdef CONFIG_ARCH_IRQPRIO
-  /* Set interrupt priority levels */
-
-  up_prioritize_irq(KINETIS_IRQ_EMACTMR, CONFIG_KINETIS_EMACTMR_PRIO);
-  up_prioritize_irq(KINETIS_IRQ_EMACTX, CONFIG_KINETIS_EMACTX_PRIO);
-  up_prioritize_irq(KINETIS_IRQ_EMACRX, CONFIG_KINETIS_EMACRX_PRIO);
-  up_prioritize_irq(KINETIS_IRQ_EMACMISC, CONFIG_KINETIS_EMACMISC_PRIO);
-#endif
-
   /* Attach the Ethernet MAC IEEE 1588 timer interrupt handler */
 
 #if 0
@@ -2129,7 +2123,7 @@ int kinetis_netinitialize(int intf)
   priv->dev.d_ifup    = kinetis_ifup;     /* I/F up (new IP address) callback */
   priv->dev.d_ifdown  = kinetis_ifdown;   /* I/F down callback */
   priv->dev.d_txavail = kinetis_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->dev.d_addmac  = kinetis_addmac;   /* Add multicast MAC address */
   priv->dev.d_rmmac   = kinetis_rmmac;    /* Remove multicast MAC address */
 #endif

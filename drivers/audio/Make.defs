@@ -73,12 +73,12 @@ ifeq ($(CONFIG_AUDIO_NULL),y)
 CSRCS += audio_null.c
 endif
 
-ifeq ($(CONFIG_AUDIO_I2SCHAR),y)
-CSRCS += i2schar.c
-endif
-
 ifeq ($(CONFIG_AUDIO_TONE),y)
 CSRCS += tone.c
+endif
+
+ifeq ($(CONFIG_AUDIO_I2S),y)
+CSRCS += audio_i2s.c
 endif
 
 # Include Audio driver support

@@ -48,7 +48,6 @@
 #include <nuttx/net/netconfig.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/netdev.h>
-#include <nuttx/net/arp.h>
 
 #include "devif/devif.h"
 #include "icmp/icmp.h"
@@ -118,9 +117,7 @@ FAR struct icmp_conn_s *icmp_alloc(void)
   FAR struct icmp_conn_s *conn = NULL;
   int ret;
 
-  /* The free list is only accessed from user, non-interrupt level and
-   * is protected by a semaphore (that behaves like a mutex).
-   */
+  /* The free list is protected by a semaphore (that behaves like a mutex). */
 
   ret = net_lockedwait(&g_free_sem);
   if (ret >= 0)
@@ -156,9 +153,7 @@ void icmp_free(FAR struct icmp_conn_s *conn)
 {
   int ret;
 
-  /* The free list is only accessed from user, non-interrupt level and
-   * is protected by a semaphore (that behaves like a mutex).
-   */
+  /* The free list is protected by a semaphore (that behaves like a mutex). */
 
   DEBUGASSERT(conn->crefs == 0);
 
@@ -269,7 +264,8 @@ FAR struct icmp_conn_s *icmp_nextconn(FAR struct icmp_conn_s *conn)
  *
  ****************************************************************************/
 
-FAR struct icmp_conn_s *icmp_findconn(FAR struct net_driver_s *dev, uint8_t id)
+FAR struct icmp_conn_s *icmp_findconn(FAR struct net_driver_s *dev,
+                                      uint16_t id)
 {
   FAR struct icmp_conn_s *conn;
 

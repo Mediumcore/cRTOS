@@ -43,6 +43,7 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
+#include <stdbool.h>
 #include <signal.h>
 
 /****************************************************************************
@@ -60,6 +61,11 @@
  * (libuc.a and libunx.a).  The that case, the correct interface must be
  * used for the build context.
  *
+ * REVISIT:  In the flat build, the same functions must be used both by
+ * the OS and by applications.  We have to use the normal user functions
+ * in this case or we will fail to set the errno or fail to create the
+ * cancellation point.
+ *
  * The interfaces sigtimedwait(), sigwait(), sigwaitinfo(), sleep(),
  * nanosleep(), and usleep()  are cancellation points.
  *
@@ -68,26 +74,28 @@
  * the calling function to become a cancellation points!
  */
 
-#if defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
-#  define _SIG_PROCMASK(h,s,o) nxsig_procmask(h,s,o)
-#  define _SIG_QUEUE(p,s,v)    nxsig_queue(p,s,v)
-#  define _SIG_KILL(p,s)       nxsig_kill(p,s);
-#  define _SIG_WAITINFO(s,i)   nxsig_timedwait(s,i,NULL)
-#  define _SIG_NANOSLEEP(r,a)  nxsig_nanosleep(r,a)
-#  define _SIG_SLEEP(s)        nxsig_sleep(s)
-#  define _SIG_USLEEP(u)       nxsig_usleep(u)
-#  define _SIG_ERRNO(r)        (-(r))
-#  define _SIG_ERRVAL(r)       (r)
+#if !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
+#  define _SIG_PROCMASK(h,s,o)  nxsig_procmask(h,s,o)
+#  define _SIG_SIGACTION(s,a,o) nxsig_action(s,a,o,false)
+#  define _SIG_QUEUE(p,s,v)     nxsig_queue(p,s,v)
+#  define _SIG_KILL(p,s)        nxsig_kill(p,s);
+#  define _SIG_WAITINFO(s,i)    nxsig_timedwait(s,i,NULL)
+#  define _SIG_NANOSLEEP(r,a)   nxsig_nanosleep(r,a)
+#  define _SIG_SLEEP(s)         nxsig_sleep(s)
+#  define _SIG_USLEEP(u)        nxsig_usleep(u)
+#  define _SIG_ERRNO(r)         (-(r))
+#  define _SIG_ERRVAL(r)        (r)
 #else
-#  define _SIG_PROCMASK(h,s,o) sigprocmask(h,s,o)
-#  define _SIG_QUEUE(p,s,v)    sigqueue(p,s,v)
-#  define _SIG_KILL(p,s)       kill(p,s);
-#  define _SIG_WAITINFO(s,i)   sigwaitinfo(s,i)
-#  define _SIG_NANOSLEEP(r,a)  nanosleep(r,a)
-#  define _SIG_SLEEP(s)        sleep(s)
-#  define _SIG_USLEEP(u)       usleep(u)
-#  define _SIG_ERRNO(r)        errno
-#  define _SIG_ERRVAL(r)       (-errno)
+#  define _SIG_PROCMASK(h,s,o)  sigprocmask(h,s,o)
+#  define _SIG_SIGACTION(s,a,o) sigaction(s,a,o)
+#  define _SIG_QUEUE(p,s,v)     sigqueue(p,s,v)
+#  define _SIG_KILL(p,s)        kill(p,s);
+#  define _SIG_WAITINFO(s,i)    sigwaitinfo(s,i)
+#  define _SIG_NANOSLEEP(r,a)   nanosleep(r,a)
+#  define _SIG_SLEEP(s)         sleep(s)
+#  define _SIG_USLEEP(u)        usleep(u)
+#  define _SIG_ERRNO(r)         errno
+#  define _SIG_ERRVAL(r)        (-errno)
 #endif
 
 /****************************************************************************
@@ -139,6 +147,32 @@ struct timespec;  /* Forward reference */
 int nxsig_procmask(int how, FAR const sigset_t *set, FAR sigset_t *oset);
 
 /****************************************************************************
+ * Name: nxsig_action
+ *
+ * Description:
+ *   This function allows the calling process to examine and/or specify the
+ *   action to be associated with a specific signal.  This is a non-standard,
+ *   OS internal version of the standard sigaction() function. nxsig_action()
+ *   adds an additional parameter, force, that is used to set default signal
+ *   actions (which may not normally be settable).  nxsig_action() does not
+ *   alter the errno variable.
+ *
+ * Input Parameters:
+ *   sig   - Signal of interest
+ *   act   - Location of new handler
+ *   oact  - Location to store only handler
+ *   force - Force setup of the signal handler
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned
+ *   on failure.
+ *
+ ****************************************************************************/
+
+int nxsig_action(int signo, FAR const struct sigaction *act,
+                 FAR struct sigaction *oact, bool force);
+
+/****************************************************************************
  * Name: nxsig_queue
  *
  * Description:
@@ -186,7 +220,7 @@ int nxsig_queue(int pid, int signo, void *sival_ptr);
  *   The nxsig_kill() system call can be used to send any signal to any task.
  *
  *   This is an internal OS interface.  It is functionally equivalent to
- *   the POSIX standard kill() function but does not modify the appliation
+ *   the POSIX standard kill() function but does not modify the application
  *   errno variable.
  *
  *   Limitation: Sending of signals to 'process groups' is not
@@ -281,8 +315,6 @@ int nxsig_kill(pid_t pid, int signo);
  *
  ****************************************************************************/
 
-int nxsig_timedwait(FAR const sigset_t *set, FAR struct siginfo *info,
-                    FAR const struct timespec *timeout);
 int nxsig_timedwait(FAR const sigset_t *set, FAR struct siginfo *info,
                     FAR const struct timespec *timeout);
 
@@ -405,14 +437,14 @@ int nxsig_usleep(useconds_t usec);
  * Name: nxsig_notification
  *
  * Description:
- *   Notify a client a signal event via a function call.  This function is
- *   an internal OS interface that implements the common logic for signal
- *   event notification for the case of SIGEV_THREAD.
+ *   Notify a client an event via either a signal or a function call
+ *   base on the sigev_notify field.
  *
  * Input Parameters:
  *   pid   - The task/thread ID a the client thread to be signaled.
  *   event - The instance of struct sigevent that describes how to signal
  *           the client.
+ *   code  - Source: SI_USER, SI_QUEUE, SI_TIMER, SI_ASYNCIO, or SI_MESGQ
  *
  * Returned Value:
  *   This is an internal OS interface and should not be used by applications.
@@ -421,8 +453,6 @@ int nxsig_usleep(useconds_t usec);
  *
  ****************************************************************************/
 
-#if defined(CONFIG_SIG_EVTHREAD) && defined(CONFIG_BUILD_FLAT)
-int nxsig_notification(pid_t pid, FAR struct sigevent *event);
-#endif
+int nxsig_notification(pid_t pid, FAR struct sigevent *event, int code);
 
 #endif /* __INCLUDE_NUTTX_SIGNAL_H */

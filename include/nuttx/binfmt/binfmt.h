@@ -58,14 +58,6 @@
  * Public Types
  ****************************************************************************/
 
-/* EXEPATH_HANDLE is an opaque handle used to traverse the absolute paths
- * assigned to the PATH environment variable.
- */
-
-#if !defined(CONFIG_BINFMT_DISABLE) && defined(CONFIG_BINFMT_EXEPATH)
-typedef FAR void *EXEPATH_HANDLE;
-#endif
-
 /* The type of one C++ constructor or destructor */
 
 typedef FAR void (*binfmt_ctor_t)(void);
@@ -74,7 +66,7 @@ typedef FAR void (*binfmt_dtor_t)(void);
 /* This describes the file to be loaded.
  *
  * NOTE 1: The 'filename' must be the full, absolute path to the file to be
- * executed unless CONFIG_BINFMT_EXEPATH is defined.  In that case,
+ * executed unless CONFIG_LIB_ENVPATH is defined.  In that case,
  * 'filename' may be a relative path; a set of candidate absolute paths
  * will be generated using the PATH environment variable and load_module()
  * will attempt to load each file that is found at those absolute paths.
@@ -83,18 +75,6 @@ typedef FAR void (*binfmt_dtor_t)(void);
 struct symtab_s;
 struct binary_s
 {
-  /* If CONFIG_SCHED_HAVE_PARENT is defined then schedul_unload() will
-   * manage instances of struct binary_s allocated with kmm_malloc.  It
-   * will keep the binary data in a link list and when SIGCHLD is received
-   * (meaning that the task has exit'ed, schedul_unload() will find the
-   * data, unload the module, and free the structure.
-   */
-
-#ifdef CONFIG_SCHED_HAVE_PARENT
-  FAR struct binary_s *flink;          /* Supports a singly linked list */
-  pid_t pid;                           /* Task ID of the child task */
-#endif
-
   /* Information provided to the loader to load and bind a module */
 
   FAR const char *filename;            /* Full path to the binary to be loaded (See NOTE 1 above) */
@@ -115,22 +95,22 @@ struct binary_s
   FAR void *mapped;                    /* Memory-mapped, address space */
   FAR void *alloc[BINFMT_NALLOC];      /* Allocated address spaces */
 
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
   /* Constructors/destructors */
 
-#ifdef CONFIG_BINFMT_CONSTRUCTORS
   FAR binfmt_ctor_t *ctors;            /* Pointer to a list of constructors */
   FAR binfmt_dtor_t *dtors;            /* Pointer to a list of destructors */
   uint16_t nctors;                     /* Number of constructors in the list */
   uint16_t ndtors;                     /* Number of destructors in the list */
 #endif
 
+#ifdef CONFIG_ARCH_ADDRENV
   /* Address environment.
    *
    * addrenv - This is the handle created by up_addrenv_create() that can be
    *   used to manage the tasks address space.
    */
 
-#ifdef CONFIG_ARCH_ADDRENV
   group_addrenv_t addrenv;             /* Task group address environment */
 #endif
 
@@ -177,6 +157,16 @@ extern "C"
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: binfmt_initialize
+ *
+ * Description:
+ *   initialize binfmt subsystem
+ *
+ ****************************************************************************/
+
+void binfmt_initialize(void);
 
 /****************************************************************************
  * Name: register_binfmt
@@ -261,40 +251,12 @@ int unload_module(FAR struct binary_s *bin);
 int exec_module(FAR const struct binary_s *bin);
 
 /****************************************************************************
- * Name: schedule_unload
- *
- * Description:
- *   If CONFIG_SCHED_HAVE_PARENT is defined, this function may be called by
- *   the parent of the newly created task to automatically unload the
- *   module when the task exits.  This assumes that (1) the caller is the
- *   parent of the created task, (2) that bin was allocated with kmm_malloc()
- *   or friends.  It will also automatically free the structure with
- *   kmm_free() after unloading the module.
- *
- * Input Parameters:
- *   pid - The task ID of the child task
- *   bin - This structure must have been allocated with kmm_malloc() and must
- *         persist until the task unloads
- *
- * Returned Value:
- *   This is a NuttX internal function so it follows the convention that
- *   0 (OK) is returned on success and a negated errno is returned on
- *   failure.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_SCHED_HAVE_PARENT
-int schedule_unload(pid_t pid, FAR struct binary_s *bin);
-#endif
-
-/****************************************************************************
  * Name: exec
  *
  * Description:
  *   This is a convenience function that wraps load_ and exec_module into
- *   one call.  If CONFIG_SCHED_ONEXIT and CONFIG_SCHED_HAVE_PARENT are
- *   also defined, this function will automatically call schedule_unload()
- *   to unload the module when task exits.
+ *   one call.  If CONFIG_BINFMT_LOADABLE is defined, this function will
+ *   schedule to unload the module when task exits.
  *
  *   This non-standard, NuttX function is similar to execv() and
  *   posix_spawn() but differs in the following ways;
@@ -316,7 +278,7 @@ int schedule_unload(pid_t pid, FAR struct binary_s *bin);
  *   The interface is available in the FLAT build mode although it is not
  *   really necessary in that case. It is currently used by some example
  *   code under the apps/ that that generate their own symbol tables for
- *   linking test programs. So althought it is not necessary, it can still
+ *   linking test programs. So although it is not necessary, it can still
  *   be useful.
  *
  *   The interface would be completely useless and will not be supported in
@@ -324,13 +286,13 @@ int schedule_unload(pid_t pid, FAR struct binary_s *bin);
  *   process cannot provide any meaning symbolic information for use in
  *   linking a different process.
  *
- *   NOTE: This function is flawed and useless without CONFIG_SCHED_ONEXIT
- *   and CONFIG_SCHED_HAVE_PARENT because without those features there is
- *   then no mechanism to unload the module once it exits.
+ *   NOTE: This function is flawed and useless without CONFIG_BINFMT_LOADABLE
+ *   because without that features there is then no mechanism to unload the
+ *   module once it exits.
  *
  * Input Parameters:
  *   filename - The path to the program to be executed. If
- *              CONFIG_BINFMT_EXEPATH is defined in the configuration, then
+ *              CONFIG_LIB_ENVPATH is defined in the configuration, then
  *              this may be a relative path from the current working
  *              directory. Otherwise, path must be the absolute path to the
  *              program.
@@ -353,86 +315,26 @@ int exec(FAR const char *filename, FAR char * const *argv,
          FAR const struct symtab_s *exports, int nexports);
 
 /****************************************************************************
- * Name: exepath_init
+ * Name: binfmt_exit
  *
  * Description:
- *   Initialize for the traversal of each value in the PATH variable.  The
- *   usage is sequence is as follows:
- *
- *   1) Call exepath_init() to initialize for the traversal.  exepath_init()
- *      will return an opaque handle that can then be provided to
- *      exepath_next() and exepath_release().
- *   2) Call exepath_next() repeatedly to examine every file that lies
- *      in the directories of the PATH variable
- *   3) Call exepath_release() to free resources set aside by exepath_init().
+ *   This function may be called when a tasked loaded into RAM exits.
+ *   This function will unload the module when the task exits and reclaim
+ *   all resources used by the module.
  *
  * Input Parameters:
- *   None
+ *   bin - This structure must have been allocated with kmm_malloc() and must
+ *         persist until the task unloads
  *
  * Returned Value:
- *   On success, exepath_init() return a non-NULL, opaque handle that may
- *   subsequently be used in calls to exepath_next() and exepath_release().
- *   On error, a NULL handle value will be returned.  The most likely cause
- *   of an error would be that there is no value associated with the PATH
- *   variable.
+ *   This is a NuttX internal function so it follows the convention that
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
  *
  ****************************************************************************/
 
-#if !defined(CONFIG_BINFMT_DISABLE) && defined(CONFIG_BINFMT_EXEPATH)
-EXEPATH_HANDLE exepath_init(void);
-#endif
-
-/****************************************************************************
- * Name: exepath_next
- *
- * Description:
- *   Traverse all possible values in the PATH variable in attempt to find
- *   the full path to an executable file when only a relative path is
- *   provided.
- *
- * Input Parameters:
- *   handle - The handle value returned by exepath_init
- *   relpath - The relative path to the file to be found.
- *
- * Returned Value:
- *   On success, a non-NULL pointer to a null-terminated string is provided.
- *   This is the full path to a file that exists in the file system.  This
- *   function will verify that the file exists (but will not verify that it
- *   is marked executable).
- *
- *   NOTE: The string pointer return in the success case points to allocated
- *   memory.  This memory must be freed by the called by calling kmm_free().
- *
- *   NULL is returned if no path is found to any file with the provided
- *   'relpath' from any absolute path in the PATH variable.  In this case,
- *   there is no point in calling exepath_next() further; exepath_release()
- *   must be called to release resources set aside by expath_init().
- *
- ****************************************************************************/
-
-#if !defined(CONFIG_BINFMT_DISABLE) && defined(CONFIG_BINFMT_EXEPATH)
-FAR char *exepath_next(EXEPATH_HANDLE handle, FAR const char *relpath);
-#endif
-
-/****************************************************************************
- * Name: exepath_release
- *
- * Description:
- *   Release all resources set aside by exepath_init() when the handle value
- *   was created.  The handle value is invalid on return from this function.
- *   Attempts to all exepath_next() or exepath_release() with such a 'stale'
- *   handle will result in undefined (i.e., not good) behavior.
- *
- * Input Parameters:
- *   handle - The handle value returned by exepath_init
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-#if !defined(CONFIG_BINFMT_DISABLE) && defined(CONFIG_BINFMT_EXEPATH)
-void exepath_release(EXEPATH_HANDLE handle);
+#ifdef CONFIG_BINFMT_LOADABLE
+int binfmt_exit(FAR struct binary_s *bin);
 #endif
 
 #undef EXTERN

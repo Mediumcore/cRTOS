@@ -217,7 +217,7 @@ static void tcp_shutdown_monitor(FAR struct tcp_conn_s *conn, uint16_t flags)
   net_lock();
   (void)tcp_callback(conn->dev, conn, flags);
 
-  /* Free all allocated connection event callback structure s*/
+  /* Free all allocated connection event callback structures */
 
   while (conn->connevents != NULL)
     {
@@ -395,6 +395,8 @@ void tcp_close_monitor(FAR struct socket *psock)
         }
     }
 #endif
+
+  net_unlock();
 }
 
 /****************************************************************************

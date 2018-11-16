@@ -99,7 +99,7 @@
 #  define CONFIG_EZ80_RAMADDR EZ80_EMACSRAM
 #endif
 
-#if CONFIG_NET_ETH_MTU > 1518
+#if CONFIG_NET_ETH_PKTSIZE > 1518
 #  error "MAXF size too big for this device"
 #endif
 
@@ -360,7 +360,7 @@ struct ez80emac_driver_s
 
 /* A single packet buffer is used */
 
-static uint8_t g_pktbuf[MAX_NET_DEV_MTU + CONFIG_NET_GUARDSIZE];
+static uint8_t g_pktbuf[MAX_NETDEV_PKTSIZE + CONFIG_NET_GUARDSIZE];
 
 /* There is only a single instance of driver private data (because there is
  * only one EMAC interface.
@@ -424,7 +424,7 @@ static int  ez80emac_ifdown(struct net_driver_s *dev);
 static void ez80emac_txavail_work(FAR void *arg);
 static int  ez80emac_txavail(struct net_driver_s *dev);
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int ez80emac_addmac(struct net_driver_s *dev, FAR const uint8_t *mac);
 static int ez80emac_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
@@ -1147,11 +1147,14 @@ static int ez80emac_txpoll(struct net_driver_s *dev)
         }
 #endif /* CONFIG_NET_IPv6 */
 
-      /* Send the packet.  ez80emac_transmit() will return zero if the
-       * packet was successfully handled.
-       */
+      if (!devif_loopback(&priv->dev))
+        {
+          /* Send the packet.  ez80emac_transmit() will return zero if the
+           * packet was successfully handled.
+           */
 
-      ret = ez80emac_transmit(priv);
+          ret = ez80emac_transmit(priv);
+        }
     }
 
   /* If zero is returned, the polling will continue until all connections have
@@ -1272,10 +1275,10 @@ static int ez80emac_receive(struct ez80emac_driver_s *priv)
        * for the network buffer configuration (I routinely see
        */
 
-      if (rxdesc->pktsize > CONFIG_NET_ETH_MTU)
+      if (rxdesc->pktsize > CONFIG_NET_ETH_PKTSIZE)
         {
-          ninfo("Truncated oversize RX pkt: %d->%d\n", rxdesc->pktsize, CONFIG_NET_ETH_MTU);
-          pktlen = CONFIG_NET_ETH_MTU;
+          ninfo("Truncated oversize RX pkt: %d->%d\n", rxdesc->pktsize, CONFIG_NET_ETH_PKTSIZE);
+          pktlen = CONFIG_NET_ETH_PKTSIZE;
         }
       else
         {
@@ -2213,7 +2216,7 @@ static int ez80emac_txavail(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int ez80emac_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct ez80emac_driver_s *priv = (FAR struct ez80emac_driver_s *)dev->d_private;
@@ -2243,7 +2246,7 @@ static int ez80emac_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int ez80emac_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct ez80emac_driver_s *priv = (FAR struct ez80emac_driver_s *)dev->d_private;
@@ -2531,7 +2534,7 @@ int up_netinitialize(void)
   priv->dev.d_ifup    = ez80emac_ifup;      /* I/F down callback */
   priv->dev.d_ifdown  = ez80emac_ifdown;    /* I/F up (new IP address) callback */
   priv->dev.d_txavail = ez80emac_txavail;   /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->dev.d_addmac  = ez80emac_addmac;    /* Add multicast MAC address */
   priv->dev.d_rmmac   = ez80emac_rmmac;     /* Remove multicast MAC address */
 #endif

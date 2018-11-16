@@ -1868,7 +1868,7 @@ static void khci_eptransfer(struct khci_usbdev_s *priv, uint8_t epno,
  * Name: khci_ep0nextsetup
  *
  * Description:
- *   This function is called (1) after sucessful completion of an EP0 Setup
+ *   This function is called (1) after successful completion of an EP0 Setup
  *   command, or (2) after receipt of the OUT complete event (for simple
  *   transfers).  It simply sets up the single BDT to accept the next
  *   SETUP commend.
@@ -2793,6 +2793,7 @@ static int khci_interrupt(int irq, void *context, FAR void *arg)
       /* Clear all pending USB error interrupts */
 
       khci_putreg(USB_EINT_ALL, KINETIS_USB0_ERRSTAT);
+      khci_putreg(USB_INT_ERROR, KINETIS_USB0_ISTAT);
     }
 
   /* Service resume interrupts */
@@ -4402,12 +4403,6 @@ void up_usbinitialize(void)
       up_usbuninitialize();
       return;
     }
-
-#ifdef CONFIG_ARCH_IRQPRIO
-  /* Set the interrupt priority */
-
-  up_prioritize_irq(KINETIS_IRQ_USBOTG, 112);
-#endif
 
   khci_hwinitalize(priv);
 }

@@ -60,7 +60,7 @@
 #include "stm32l4_exti.h"
 #include "stm32l4_rtc.h"
 
-#ifdef CONFIG_RTC
+#ifdef CONFIG_STM32L4_RTC
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -149,16 +149,6 @@ static inline void rtc_enable_alarm(void);
 
 /****************************************************************************
  * Name: rtc_dumpregs
- *
- * Description:
- *    Disable RTC write protection
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   None
- *
  ****************************************************************************/
 
 #ifdef CONFIG_DEBUG_RTC_INFO
@@ -190,16 +180,6 @@ static void rtc_dumpregs(FAR const char *msg)
 
 /****************************************************************************
  * Name: rtc_dumptime
- *
- * Description:
- *    Disable RTC write protection
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   None
- *
  ****************************************************************************/
 
 #ifdef CONFIG_DEBUG_RTC_INFO
@@ -664,9 +644,7 @@ static int rtchw_set_alrmar(rtc_alarmreg_t alarmreg)
   int isr;
   int ret = -EBUSY;
 
-  /* Need to allow RTC register write
-   * Disable the write protection for RTC registers
-   */
+  /* Disable the write protection for RTC registers */
 
   rtc_wprunlock();
 
@@ -709,9 +687,7 @@ static int rtchw_set_alrmbr(rtc_alarmreg_t alarmreg)
   int isr;
   int ret = -EBUSY;
 
-  /* Need to allow RTC register write
-   * Disable the write protection for RTC registers
-   */
+  /* Disable the write protection for RTC registers */
 
   rtc_wprunlock();
 
@@ -807,7 +783,7 @@ static int stm32l4_rtc_getalarmdatetime(rtc_alarmreg_t reg, FAR struct tm *tp)
 {
   uint32_t data, tmp;
 
-  ASSERT(tp != NULL);
+  DEBUGASSERT(tp != NULL);
 
   /* Sample the data time register. */
 
@@ -1367,7 +1343,7 @@ int stm32l4_rtc_setalarm(FAR struct alm_setalarm_s *alminfo)
   rtc_alarmreg_t alarmreg;
   int ret = -EINVAL;
 
-  ASSERT(alminfo != NULL);
+  DEBUGASSERT(alminfo != NULL);
   DEBUGASSERT(RTC_ALARM_LAST > alminfo->as_id);
 
   /* Make sure the alarm interrupt is enabled at the NVIC */
@@ -1467,9 +1443,7 @@ int stm32l4_rtc_cancelalarm(enum alm_id_e alarmid)
            g_alarmcb[alarmid].ac_cb  = NULL;
            g_alarmcb[alarmid].ac_arg = NULL;
 
-          /* Need to follow RTC register wrote protection.
-           * Disable the write protection for RTC registers
-           */
+          /* Disable the write protection for RTC registers */
 
           rtc_wprunlock();
 
@@ -1500,9 +1474,7 @@ int stm32l4_rtc_cancelalarm(enum alm_id_e alarmid)
            g_alarmcb[alarmid].ac_cb  = NULL;
            g_alarmcb[alarmid].ac_arg = NULL;
 
-          /* Need to follow RTC register wrote protection.
-           * Disable the write protection for RTC registers
-           */
+          /* Disable the write protection for RTC registers */
 
           rtc_wprunlock();
 
@@ -1559,7 +1531,7 @@ int stm32l4_rtc_rdalarm(FAR struct alm_rdalarm_s *alminfo)
   rtc_alarmreg_t alarmreg;
   int ret = -EINVAL;
 
-  ASSERT(alminfo != NULL);
+  DEBUGASSERT(alminfo != NULL);
   DEBUGASSERT(RTC_ALARM_LAST > alminfo->ar_id);
 
   switch (alminfo->ar_id)
@@ -1860,4 +1832,4 @@ int stm32l4_rtc_cancelperiodic(void)
 }
 #endif
 
-#endif /* CONFIG_RTC */
+#endif /* CONFIG_STM32L4_RTC */

@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttShell (NSH)</i></font></big></h1>
-      <p>Last Updated: May 11, 2018</p>
+      <p>Last Updated:  October 2, 2018</p>
     </td>
   </tr>
 </table>
@@ -191,325 +191,337 @@
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdexec">2.18 Execute User Code (exec)</a>
+    <a href="#cmdenv">2.18 Show Environment Variables (env)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdexit">2.19 Exit NSH (exit)</a>
+    <a href="#cmdexec">2.19 Execute User Code (exec)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdfree">2.20 Show Memory Manager Status (free)</a>
+    <a href="#cmdexit">2.20 Exit NSH (exit)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdget">2.21 Get File Via TFTP (get)</a>
+    <a href="#cmdexport">2.21 Set an Environment Variable (export)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdhelp">2.22 Show Usage Command Usage (help)</a>
+    <a href="#cmdfree">2.22 Show Memory Manager Status (free)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdhexdump">2.23 Hexadecimal Dump of File or Device (hexdump)</a>
+    <a href="#cmdget">2.23 Get File Via TFTP (get)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdifconfig">2.24 Manage Network Configuration (ifconfig)</a>
+    <a href="#cmdhelp">2.24 Show Usage Command Usage (help)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdifdown">2.25 Take a network down (ifdown)</a>
+    <a href="#cmdhexdump">2.25 Hexadecimal Dump of File or Device (hexdump)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdifup">2.26 Bring a network up (ifup)</a>
+    <a href="#cmdifconfig">2.26 Manage Network Configuration (ifconfig)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdinsmod">2.27 Install an OS module (insmod)</a>
+    <a href="#cmdifdown">2.27 Take a network down (ifdown)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdirqinfo">2.28 Show Interrupt Status (irqinfo)</a>
+    <a href="#cmdifup">2.28 Bring a network up (ifup)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdkill">2.29 Send a signal to a task (kill)</a>
+    <a href="#cmdinsmod">2.29 Install an OS module (insmod)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdlosetup">2.30 Setup/teardown the Loop Device (losetup)</a>
+    <a href="#cmdirqinfo">2.30 Show Interrupt Status (irqinfo)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdln">2.31 List to a File or Directory (ln)</a>
+    <a href="#cmdkill">2.31 Send a signal to a task (kill)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdls">2.32 List Directory Contents (ls)</a>
+    <a href="#cmdlosetup">2.32 Setup/teardown the Loop Device (losetup)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdlsmod">2.33 Show information about installed OS modules (lsmod)</a>
+    <a href="#cmdln">2.33 List to a File or Directory (ln)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdmd5">2.34 Calculate MD5 (md5)</a>
+    <a href="#cmdls">2.34 List Directory Contents (ls)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdmbhw">2.35 Access Memory (mb, mh, and mw)</a>
+    <a href="#cmdlsmod">2.35 Show information about installed OS modules (lsmod)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdps">2.36 Show Current Tasks and Threads (ps)</a>
+    <a href="#cmdmd5">2.36 Calculate MD5 (md5)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdmkdir">2.37 Create a Directory (mkdir)</a>
+    <a href="#cmdmbhw">2.37 Access Memory (mb, mh, and mw)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdmkfatfs">2.38 Create a FAT File System (mkfatfs)</a>
+    <a href="#cmdps">2.38 Show Current Tasks and Threads (ps)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdmkfifo">2.39 Create a FIFO (mkfifo)</a>
+    <a href="#cmdmkdir">2.39 Create a Directory (mkdir)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdmkrd">2.40 Create a RAMDISK (mkrd)</a>
+    <a href="#cmdmkfatfs">2.40 Create a FAT File System (mkfatfs)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdmount">2.41 Mount a File System (mount)</a>
+    <a href="#cmdmkfifo">2.41 Create a FIFO (mkfifo)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdmv">2.42 Rename a File (mv)</a>
+    <a href="#cmdmkrd">2.42 Create a RAMDISK (mkrd)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdnfsmount">2.43 Mount an NFS File System (nfsmount)</a>
+    <a href="#cmdmount">2.43 Mount a File System (mount)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdnslookup">2.44 Lookup a network address (nslookup)</a>
+    <a href="#cmdmv">2.44 Rename a File (mv)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdpasswd">2.45 Change a User's Password (passwd)</a>
+    <a href="#cmdnfsmount">2.45 Mount an NFS File System (nfsmount)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdpoweroff">2.46 Shut the system down (poweroff)</a>
+    <a href="#cmdnslookup">2.46 Lookup a network address (nslookup)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdput">2.47 Send File Via TFTP (put)</a>
+    <a href="#cmdpasswd">2.47 Change a User's Password (passwd)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdpwd">2.48 Show Current Working Directory (pwd)</a>
+    <a href="#cmdpoweroff">2.48 Shut the system down (poweroff)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdreadlink">2.49 Show target of a link (readlink)</a>
+    <a href="#cmdput">2.49 Send File Via TFTP (put)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdreboot">2.50 Reset and reboot the system (reboot)</a>
+    <a href="#cmdpwd">2.50 Show Current Working Directory (pwd)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdrm">2.51 Remove a File (rm)</a>
+    <a href="#cmdreadlink">2.51 Show target of a link (readlink)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdrmdir">2.52 Remove a Directory (rmdir)</a>
+    <a href="#cmdreboot">2.52 Reset and reboot the system (reboot)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdrmmod">2.53 Remove on OS Module (rmmod)</a>
+    <a href="#cmdrm">2.53 Remove a File (rm)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdroute">2.54 Show routing table (route)</a>
+    <a href="#cmdrmdir">2.54 Remove a Directory (rmdir)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdset">2.55 Set an Environment Variable (set)</a>
+    <a href="#cmdrmmod">2.55 Remove on OS Module (rmmod)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdsh">2.56 Execute an NSH Script (sh)</a>
+    <a href="#cmdroute">2.56 Show routing table (route)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdshutdown">2.57 Shut the system down (shutdown)</a>
+    <a href="#cmdset">2.57 Set a Variable (set)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdsleep">2.58 Wait for Seconds (sleep)</a>
+    <a href="#cmdsh">2.58 Execute an NSH Script (sh)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdtelnetd">2.59 Start the Telnet Daemon (telnetd)</a>
+    <a href="#cmdshutdown">2.59 Shut the system down (shutdown)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdtime">2.60 Time execution of another command (time)</a>
+    <a href="#cmdsleep">2.60 Wait for Seconds (sleep)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdtruncate">2.61 Set the Size of a File (truncate)</a>
+    <a href="#cmdtelnetd">2.61 Start the Telnet Daemon (telnetd)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdunmount">2.62 Unmount a File System (umount)</a>
+    <a href="#cmdtime">2.62 Time execution of another command (time)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmduname">2.63 Print system information (uname)</a>
+    <a href="#cmdtruncate">2.63 Set the Size of a File (truncate)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdunset">2.64 Unset an Environment Variable (unset)</a>
+    <a href="#cmdunmount">2.64 Unmount a File System (umount)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdurldec">2.65 URL Decode (urldecode)</a>
+    <a href="#cmduname">2.65 Print system information (uname)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdurlencode">2.66 URL Encode (urlencode)</a>
+    <a href="#cmdunset">2.66 Unset an Environment Variable (unset)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmduseradd">2.67 Add a New User (useradd)</a>
+    <a href="#cmdurldec">2.67 URL Decode (urldecode)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmduserdel">2.68 Delete a user (userdel)</a>
+    <a href="#cmdurlencode">2.68 URL Encode (urlencode)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdusleep">2.69 Wait for Microseconds (usleep)</a>
+    <a href="#cmduseradd">2.69 Add a New User (useradd)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdwget">2.70 Get File Via HTTP (wget)</a>
+    <a href="#cmduserdel">2.70 Delete a user (userdel)</a>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
-    <a href="#cmdxd">2.71 Hexadecimal Dump of Memory (xd)</a>
+    <a href="#cmdusleep">2.71 Wait for Microseconds (usleep)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdwget">2.72 Get File Via HTTP (wget)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdxd">2.73 Hexadecimal Dump of Memory (xd)</a>
   </td>
 </tr>
 <tr>
@@ -846,28 +858,44 @@ nsh&gt;
 </p>
 <ul>
 <li>
-  <b><code>CONFIG_NSH_CMDPARMS</code></b>.
-   If selected, then the output from commands, from file applications, and from NSH built-in commands can be used as arguments to other commands.
-   The entity to be executed is identified by enclosing the command line in back quotes.
+  <p>
+    <b><code>CONFIG_NSH_CMDPARMS</code></b>.
+     If selected, then the output from commands, from file applications, and from NSH built-in commands can be used as arguments to other commands.
+     The entity to be executed is identified by enclosing the command line in back quotes.
    For example,
-<p>
-<ul><pre>
+  </p>
+  <ul><pre>
 set FOO `myprogram $BAR`
 </pre></ul>
-<p>
-   Will execute the program named <code>myprogram</code> passing it the value of the environment variable <code>BAR</code>.
-   The value of the environment variable <code>FOO</code> is then set output of <code>myprogram</code> on <code>stdout</code>.
+  <p>
+     Will execute the program named <code>myprogram</code> passing it the value of the environment variable <code>BAR</code>.
+     The value of the environment variable <code>FOO</code> is then set output of <code>myprogram</code> on <code>stdout</code>.
+  </p>
 </li>
 <li>
-  <b><code>CONFIG_NSH_ARGCAT</code></b>.
-  Support concatenation of strings with environment variables or command output.  For example:
+  <p>
+    <b><code>CONFIG_NSH_ARGCAT</code></b>.
+    Support concatenation of strings with environment variables or command output.  For example:
+  </p>
   <ul><pre>
 set FOO XYZ
 set BAR 123
 set FOOBAR ABC_${FOO}_${BAR}
 </pre></ul>
-  would set the environment variable <code>FOO</code> to <code>XYZ</code>, <code>BAR</code> to <code>123</code> and <code>FOOBAR</code> to <code>ABC_XYZ_123</code>.
-  If <code>CONFIG_NSH_ARGCAT</code> is not selected, then a slightly smaller FLASH footprint results but then also only simple environment variables like <code>$FOO</code> can be used on the command line.
+  <p>
+    would set the environment variable <code>FOO</code> to <code>XYZ</code>, <code>BAR</code> to <code>123</code> and <code>FOOBAR</code> to <code>ABC_XYZ_123</code>.
+    If <code>CONFIG_NSH_ARGCAT</code> is not selected, then a slightly smaller FLASH footprint results but then also only simple environment variables like <code>$FOO</code> can be used on the command line.
+  </p>
+</li>
+<li>
+  <p>
+    <b><code>CONFIG_NSH_QUOTE</code></b>.
+    Enables back-slash quoting of certain characters within the command.
+    This option is useful for the case where an NSH script is used to dynamically generate a new NSH script.
+    In that case, commands must be treated as simple text strings without interpretation of any special characters.
+    Special characters such as <code>$</code>, <code>`</code>, <code>&quot;</code>, and others must be retained intact as part of the test string.
+    This option is currently only available is <code>CONFIG_NSH_ARGCAT</code> is also selected.
+  </p>
 </li>
 </ul>
 
@@ -886,13 +914,19 @@ set FOOBAR ABC_${FOO}_${BAR}
   (see the <a href="#cmdsh"><code>sh</code></a> command).  The syntax is as follows:
 </p>
 <ul><pre>
-if &lt;cmd&gt;
+if [!] &lt;cmd&gt;
 then
   [sequence of &lt;cmd&gt;]
 else
   [sequence of &lt;cmd&gt;]
 fi
 </pre></ul>
+
+<p>
+  Where <code>&lt;cmd&gt;</code> is a <a href="#cmdoverview">simple command</a>.
+  The command success value of zero is treated true; a non-zero command failure value is treated false.
+  The <a href="#cmdtest"><code>test</code></a> command is frequently used for comparisons.
+</p>
 
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
@@ -933,6 +967,12 @@ done
     </p>
   </li>
 </ul>
+
+<p>
+  Where <code>&lt;cmd&gt;</code> is a <a href="#cmdoverview">simple command</a>.
+  The command success value of zero is treated true; a non-zero command failure value is treated false.
+  The <a href="#cmdtest"><code>test</code></a> command is frequently used for comparisons.
+</p>
 
 <p><b>The <a href="#cmdbreak"><code>break</code></a> Command</b>.
   A <a href="#cmdbreak"><code>break</code></a> command is also supported.
@@ -988,6 +1028,9 @@ done
   <b>Environment Variables:</b>
 </p>
 <ul><table>
+  <tr>
+    <td><b><code>PATH</code></b></td><td>The default path in the file systems to look for executable, binary programs working directory</td>
+  </tr>
   <tr>
     <td><b><code>PWD</code></b></td><td>The current working directory</td>
   </tr>
@@ -1619,7 +1662,42 @@ echo [-n] [&lt;string|$name&gt; [&lt;string|$name&gt;...]]
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdexec"><h2>2.18 Execute User Code (exec)</h2></a>
+    <a name="cmdenv"><h2>2.18 Show Environment Variables (env)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+env
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Show the current name-value pairs in the  environment.  Example:.
+</p>
+<ul><pre>
+nsh&gt; env
+PATH=/bin
+
+nsh&gt; set foo bar
+nsh&gt; env
+PATH=/bin
+foo=bar
+
+nsh&gt; unset PATH
+nsh&gt; env
+foo=bar
+
+nsh>
+</pre></ul>
+<p>
+  <b>NOTE:</b>  NSH local variables are <i>not</i> shown by the <code>env</code> command.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdexec"><h2>2.19 Execute User Code (exec)</h2></a>
   </td>
   </tr>
 </table>
@@ -1638,7 +1716,7 @@ exec &lt;hex-address&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdexit"><h2>2.19 Exit NSH (exit)</h2></a>
+    <a name="cmdexit"><h2>2.20 Exit NSH (exit)</h2></a>
   </td>
   </tr>
 </table>
@@ -1657,7 +1735,66 @@ exit
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdfree"><h2>2.20 Show Memory Manager Status (free)</h2></a>
+    <a name="cmdexport"><h2>2.21 Set an Environment Variable (export)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+export &lt;name&gt; [&lt;value&gt;]
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  The <code>export</code> command sets an environment variable, or promotes an NSH variable to an environment variable.  As examples:
+</p>
+<ol>
+  <li>
+    <p>
+      Using <code>export</code> to promote an NSH variable to an environment variable.
+    </p>
+    <ul><pre>
+nsh> env
+PATH=/bin
+
+nsh> set foo bar
+nsh> env
+PATH=/bin
+
+nsh> export foo
+nsh> env
+PATH=/bin
+foo=bar
+</pre></ul>
+    <p>
+      A group-wide environment variable is created with the same value as the local NSH variable; the local NSH variable is removed.
+    </p>
+    <blockquote><small>
+     <b>NOTE:</b> This behavior differs from the <i>Bash</i> shell.
+     <i>Bash</i> would retain the local Bash variable which will shadow the environment variable of the same name and same value.
+    </small></blockquote>
+  </li>
+  <li>
+    <p>
+      Using <code>export</code> to set an environment variable
+    </p>
+    <ul><pre>
+nsh> export dog poop
+nsh> env
+PATH=/bin
+foo=bar
+dog=poop
+</pre></ul>
+  </li>
+</ol>
+<p>
+  The <code>export</code> command is not supported by NSH unless both <code>CONFIG_NSH_VARS=y</code> and <code>CONFIG_DISABLE_ENVIRON</code>is not set.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdfree"><h2>2.22 Show Memory Manager Status (free)</h2></a>
   </td>
   </tr>
 </table>
@@ -1699,7 +1836,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdget"><h2>2.21 Get File Via TFTP (get)</h2></a>
+    <a name="cmdget"><h2>2.23 Get File Via TFTP (get)</h2></a>
   </td>
   </tr>
 </table>
@@ -1734,7 +1871,7 @@ get [-b|-n] [-f &lt;local-path&gt;] -h &lt;ip-address&gt; &lt;remote-path&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdhelp"><h2>2.22 Show Usage Command Usage (help)</h2></a>
+    <a name="cmdhelp"><h2>2.24 Show Usage Command Usage (help)</h2></a>
   </td>
   </tr>
 </table>
@@ -1766,7 +1903,7 @@ help [-v] [&lt;cmd&gt;]
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdhexdump"><h2>2.23 Hexadecimal Dump of File or Device (hexdump)</h2></a>
+    <a name="cmdhexdump"><h2>2.25 Hexadecimal Dump of File or Device (hexdump)</h2></a>
   </td>
   </tr>
 </table>
@@ -1796,7 +1933,7 @@ The <code>skip</code> and <code>count</code> options are only available if <code
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdifconfig"><h2>2.24 Manage Network Configuration (ifconfig)</h2></a>
+    <a name="cmdifconfig"><h2>2.26 Manage Network Configuration (ifconfig)</h2></a>
   </td>
   </tr>
 </table>
@@ -1858,7 +1995,7 @@ nsh&gt; mount -t procfs /proc
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdifdown"><h2>2.25 Take a network down (ifdown)</h2></a>
+    <a name="cmdifdown"><h2>2.27 Take a network down (ifdown)</h2></a>
   </td>
   </tr>
 </table>
@@ -1881,7 +2018,7 @@ ifdown eth0
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdifup"><h2>2.26 Bring a network up (ifup)</h2></a>
+    <a name="cmdifup"><h2>2.28 Bring a network up (ifup)</h2></a>
   </td>
   </tr>
 </table>
@@ -1904,7 +2041,7 @@ ifup eth0
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdinsmod"><h2>2.27 Install an OS module (insmod)</h2></a>
+    <a name="cmdinsmod"><h2>2.29 Install an OS module (insmod)</h2></a>
   </td>
   </tr>
 </table>
@@ -1947,7 +2084,7 @@ mydriver         20404659 20404625        0 20404580      552 204047a8        0
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdirqinfo"><h2>2.28 Show Interrupt Status (irqinfo)</h2></a>
+    <a name="cmdirqinfo"><h2>2.30 Show Interrupt Status (irqinfo)</h2></a>
   </td>
   </tr>
 </table>
@@ -1974,7 +2111,7 @@ IRQ HANDLER  ARGUMENT    COUNT    RATE
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdkill"><h2>2.29 Send a signal to a task (kill)</h2></a>
+    <a name="cmdkill"><h2>2.31 Send a signal to a task (kill)</h2></a>
   </td>
   </tr>
 </table>
@@ -2006,17 +2143,22 @@ nsh&gt;
 </pre></ul>
 <p><small>
   <b>NOTE</b>:
-  NuttX does not support a FULL POSIX signalling system.
-  Standard signals like SIGCHLD, SIGINTR, SIGKILL, etc. do not exist in NuttX and sending those signals may not have the result that you expect.
+  NuttX does not support a FULL POSIX signaling system.
+  A few standard signal names like <code>SIGCHLD</code>, <code>SIGUSR1</code>, <code>SIGUSR2</code>, <code>SIGALRM</code>, and <code>SIGPOLL</code> exist in the system.
+  However, they do not have the default actions that you might expect.
   Rather, NuttX supports only what are referred to as POSIX real-time signals.
   These signals may be used to communicate with running tasks, may be use to waiting waiting tasks, etc.
-  But, as an example, <code>kill -9</code> (SIGKILL) will not terminate a task.
+</p>
+<p>
+  If the configuration option <code>CONFIG_SIG_DEFAULT</code> is enabled, then default actions for the <code>SIGINT</code> and <code>SIGKILL</code> signals (only) will be supported.
+  In that case, as an example, <code>kill -9</code> (SIGKILL) will, indeed, terminate a task.
+  Caution should be exercised, however, because this is likely to cause memory leaks and to strand resource since there is insufficient clean-up in certain build configurations.
 </p></small>
 
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdlosetup"><h2>2.30 Setup/teardown the Loop Device (losetup)</h2></a>
+    <a name="cmdlosetup"><h2>2.32 Setup/teardown the Loop Device (losetup)</h2></a>
   </td>
   </tr>
 </table>
@@ -2069,7 +2211,7 @@ losetup d &lt;dev-path&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdln"><h2>2.31 Link to a File or Directory (ln)</h2></a>
+    <a name="cmdln"><h2>2.33 Link to a File or Directory (ln)</h2></a>
   </td>
   </tr>
 </table>
@@ -2094,7 +2236,7 @@ ln [-s] &lt;target&gt; &lt;link&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdls"><h2>2.32 List Directory Contents (ls)</h2></a>
+    <a name="cmdls"><h2>2.34 List Directory Contents (ls)</h2></a>
   </td>
   </tr>
 </table>
@@ -2132,7 +2274,7 @@ ls [-lRs] &lt;dir-path&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdlsmod"><h2>2.33 Show information about installed OS modules (lsmod)</h2></a>
+    <a name="cmdlsmod"><h2>2.35 Show information about installed OS modules (lsmod)</h2></a>
   </td>
   </tr>
 </table>
@@ -2165,7 +2307,7 @@ mydriver         20404659 20404625        0 20404580      552 204047a8        0
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdmd5"><h2>2.34 Calculate MD5 (md5)</h2></a>
+    <a name="cmdmd5"><h2>2.36 Calculate MD5 (md5)</h2></a>
   </td>
   </tr>
 </table>
@@ -2182,7 +2324,7 @@ md5 [-f] &lt;string or filepath&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdmbhw"><h2>2.35 Access Memory (mb, mh, and mw)</h2></a>
+    <a name="cmdmbhw"><h2>2.37 Access Memory (mb, mh, and mw)</h2></a>
   </td>
   </tr>
 </table>
@@ -2235,7 +2377,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdps"><h2>2.36 Show Current Tasks and Threads (ps)</h2></a>
+    <a name="cmdps"><h2>2.38 Show Current Tasks and Threads (ps)</h2></a>
   </td>
   </tr>
 </table>
@@ -2269,7 +2411,7 @@ nsh&gt; mount -t procfs /proc
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdmkdir"><h2>2.37 Create a Directory (mkdir)</h2></a>
+    <a name="cmdmkdir"><h2>2.39 Create a Directory (mkdir)</h2></a>
   </td>
 </tr>
 </table>
@@ -2304,7 +2446,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdmkfatfs"><h2>2.38 Create a FAT File System (mkfatfs)</h2></a>
+    <a name="cmdmkfatfs"><h2>2.40 Create a FAT File System (mkfatfs)</h2></a>
   </td>
 </tr>
 </table>
@@ -2336,7 +2478,7 @@ mkfatfs [-F &lt;fatsize&gt;] [-r &lt;rootdirentries&gt;] &lt;block-driver&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdmkfifo"><h2>2.39 Create a FIFO (mkfifo)</h2></a>
+    <a name="cmdmkfifo"><h2>2.41 Create a FIFO (mkfifo)</h2></a>
   </td>
 </tr>
 </table>
@@ -2374,7 +2516,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdmkrd"><h2>2.40 Create a RAMDISK (mkrd)</h2></a>
+    <a name="cmdmkrd"><h2>2.42 Create a RAMDISK (mkrd)</h2></a>
   </td>
 </tr>
 </table>
@@ -2387,8 +2529,8 @@ mkrd [-m &lt;minor&gt;] [-s &lt;sector-size&gt;] &lt;nsectors&gt;
   <b>Synopsis</b>.
   Create a ramdisk consisting of <code>&lt;nsectors&gt;</code>, each of size
   <code>&lt;sector-size&gt;</code> (or 512 bytes if <code>&lt;sector-size&gt;</code> is not specified.
-  The ramdisk will be registered as <code>/dev/ram&lt;n&gt;</code> (if <code>&lt;n&gt;</code> is not
-  specified, mkrd will attempt to register the ramdisk as <code>/dev/ram0</code>.
+  The ramdisk will be registered as <code>/dev/ram&lt;minor&gt;</code>.  If <code>&lt;minor&gt;</code> is not
+  specified, <code>mkrd</code> will attempt to register the ramdisk as <code>/dev/ram0</code>.
 </p>
 <p><b>Example</b></p>
 <ul><pre>
@@ -2425,7 +2567,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdmount"><h2>2.41 Mount a File System (mount)</h2></a>
+    <a name="cmdmount"><h2>2.43 Mount a File System (mount)</h2></a>
   </td>
 </tr>
 </table>
@@ -2504,7 +2646,7 @@ nsh&gt; mount
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdmv"><h2>2.42 Rename a File (mv)</h2></a>
+    <a name="cmdmv"><h2>2.44 Rename a File (mv)</h2></a>
   </td>
   </tr>
 </table>
@@ -2522,7 +2664,7 @@ mv &lt;old-path&gt; &lt;new-path&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdnfsmount"><h2>2.43 Mount an NFS file system (nfsmount)</h2></a>
+    <a name="cmdnfsmount"><h2>2.45 Mount an NFS file system (nfsmount)</h2></a>
   </td>
   </tr>
 </table>
@@ -2541,7 +2683,7 @@ nfsmount &lt;server-address&gt; &lt;mount-point&gt; &lt;remote-path&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdnslookup"><h2>2.44 Lookup a network address (nslookup)</h2></a>
+    <a name="cmdnslookup"><h2>2.46 Lookup a network address (nslookup)</h2></a>
   </td>
   </tr>
 </table>
@@ -2558,7 +2700,7 @@ nslookup &lt;host-name&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdpasswd"><h2>2.45 Change a User's Password (passwd)</h2></a>
+    <a name="cmdpasswd"><h2>2.47 Change a User's Password (passwd)</h2></a>
   </td>
   </tr>
 </table>
@@ -2575,19 +2717,21 @@ passwd &lt;username&gt; &lt;password&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdpoweroff"><h2>2.46 Shut the system down (poweroff)</h2></a>
+    <a name="cmdpoweroff"><h2>2.48 Shut the system down (poweroff)</h2></a>
   </td>
   </tr>
 </table>
 
 <p><b>Command Syntax:</b></p>
 <ul><pre>
-poweroff
+poweroff [&lt;n&gt;]
 </pre></ul>
 <p>
   <b>Synopsis</b>.
   Shutdown and power off the system immediately.
-  This command depends on hardware support to power down the system.
+  This command depends on board-specific hardware support to power down the system.
+  The optional,decimal numeric argument <n> may be included to provide power off
+  mode to board-specific power off logic.
 </p>
 <p>
   NOTE: Supporting both the <code>poweroff</code> and <code>shutdown</code> commands is redundant.
@@ -2597,7 +2741,7 @@ poweroff
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdput"><h2>2.47 Send File Via TFTP (put)</h2></a>
+    <a name="cmdput"><h2>2.49 Send File Via TFTP (put)</h2></a>
   </td>
   </tr>
 </table>
@@ -2632,7 +2776,7 @@ put [-b|-n] [-f &lt;remote-path&gt;] -h &lt;ip-address&gt; &lt;local-path&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdpwd"><h2>2.48 Show Current Working Directory (pwd)</h2></a>
+    <a name="cmdpwd"><h2>2.50 Show Current Working Directory (pwd)</h2></a>
   </td>
   </tr>
 </table>
@@ -2662,7 +2806,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdreadlink"><h2>2.49 Show target of a link (readlink)</h2></a>
+    <a name="cmdreadlink"><h2>2.51 Show target of a link (readlink)</h2></a>
   </td>
   </tr>
 </table>
@@ -2679,19 +2823,20 @@ readlink &lt;link&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdreboot"><h2>2.50 Reboot the system (reboot)</h2></a>
+    <a name="cmdreboot"><h2>2.52 Reboot the system (reboot)</h2></a>
   </td>
   </tr>
 </table>
 
 <p><b>Command Syntax:</b></p>
 <ul><pre>
-reboot
+reboot [&lt;n&gt;]
 </pre></ul>
 <p>
   <b>Synopsis</b>.
   Reset and reboot the system immediately.
   This command depends on hardware support to reset the system.
+  The optional, decimal numeric argument &lt;n&gt; may be included to provide a reboot mode to board-specific reboot logic.
 </p>
 <p>
   NOTE: Supporting both the <code>reboot</code> and <code>shutdown</code> commands is redundant.
@@ -2700,7 +2845,7 @@ reboot
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdrm"><h2>2.51 Remove a File (rm)</h2></a>
+    <a name="cmdrm"><h2>2.53 Remove a File (rm)</h2></a>
   </td>
 </tr>
 </table>
@@ -2734,7 +2879,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdrmdir"><h2>2.52 Remove a Directory (rmdir)</h2></a>
+    <a name="cmdrmdir"><h2>2.54 Remove a Directory (rmdir)</h2></a>
   </td>
 </tr>
 </table>
@@ -2769,7 +2914,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdrmmod"><h2>2.53 Remove on OS Module (rmmod)</h2></a>
+    <a name="cmdrmmod"><h2>2.55 Remove on OS Module (rmmod)</h2></a>
   </td>
 </tr>
 </table>
@@ -2797,7 +2942,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdroute"><h2>2.54 Show routing table (route)</h2></a>
+    <a name="cmdroute"><h2>2.56 Show routing table (route)</h2></a>
   </td>
   </tr>
 </table>
@@ -2817,7 +2962,7 @@ route ipv4|ipv6
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdset"><h2>2.55 Set an Environment Variable (set)</h2></a>
+    <a name="cmdset"><h2>2.57 Set a Variable (set)</h2></a>
   </td>
   </tr>
 </table>
@@ -2828,7 +2973,10 @@ set [{+|-}{e|x|xe|ex}] [&lt;name&gt; &lt;value&gt;]
 </pre></ul>
 <p>
   <b>Synopsis</b>.
-  Set the environment variable <code>&lt;name&gt;</code> to the string <code>&lt;value&gt;</code> and or set NSH parser control options. For example,
+  Set the variable <code>&lt;name&gt;</code> to the string <code>&lt;value&gt;</code> and or set NSH parser control options.
+</p>
+<p>
+  For example, a variable may be set like this:
 </p>
 <ul><pre>
 nsh&gt; echo $foobar
@@ -2838,55 +2986,72 @@ nsh&gt; echo $foobar
 foovalue
 nsh&gt;
 </pre></ul>
-
 <p>
-    Set the 'exit on error control' and/or 'print a trace' of commands when parsing
-    scripts in NSH.  The settings are in effect from the point of execution, until
-    they are changed again, or in the case of the init script, the settings are
-    returned to the default settings when it exits. Included child scripts will run
-    with the parents settings and changes made in the child script will effect the
-    parent on return.
+  If <code>CONFIG_NSH_VARS</code> is selected, the effect of this <code>set</code> command is to set the local NSH variable.  Otherwise, the group-wide environment variable will be set.
+</p>
+  If the local NSH variable has already been <i>promoted</i> to an environment variable via the <a href="#cmdexport"><code>export</code></a>, then the <code>set</code> command will set the value of the environment variable rather than the local NSH variable.
 </p>
 <p>
-    Use 'set -e' to enable and 'set +e' to disable (ignore) the exit condition on commands.
-    The default is -e. Errors cause script to exit.
+  <blockquote><small>
+  <b>NOTE:</b>  The <i>Bash</i> shell does not work this way.
+  <i>Bash</i> would set the value of both the local <i>Bash</i> variable and the environment variable of the same name to the same value.
+  </small></blockquote>
 </p>
 <p>
-    Use 'set -x' to enable and 'set +x' to disable (silence) printing a trace of the script
-    commands as they are executed.
-    The default is +x: no printing of a trace of script commands as they are executed.
+  If <code>CONFIG_NSH_VARS=y</code> is selected and no arguments are provided, then the <code>set</code> command will list all of the local NSH variables.
 </p>
-
+<ul><pre>
+nsh> set
+foolbar=foovalue
+</pre></ul>
+<p>
+  Set the <i>exit on error control</i> and/or <i>print a trace</i> of commands when parsing scripts in NSH.
+  The settings are in effect from the point of execution, until they are changed again, or in the case of the initialization script, the settings are returned to the default settings when it exits.
+  Included child scripts will run with the parents settings and changes made in the child script will effect the parent on return.
+</p>
+<ul>
+<li><p>
+  Use <code>set -e</code> to enable and <code>set +e</code> to disable (ignore) the exit condition on commands.
+  The default is -e. Errors cause script to exit.
+</p></li>
+<li><p>
+  Use <code>set -x</code> to enable and <code>set +x</code> to disable (silence) printing a trace of the script commands as they are executed.
+  The default is <code>+x</code>: no printing of a trace of script commands as they are executed.
+</p></li>
+</ul>
+<p>
   Example 1 - no exit on command not found
+</p>
 <ul><pre>
-    set +e
-    notacommand
+set +e
+notacommand
 </pre></ul>
-
+<p>
   Example 2 - will exit on command not found
+</p>
 <ul><pre>
-    set -e
-    notacommand
+set -e
+notacommand
 </pre></ul>
-
+<p>
   Example 3 - will exit on command not found, and print a trace of the script commands
+</p>
 <ul><pre>
-    set -ex
+set -ex
 </pre></ul>
-
-  Example 4 - will exit on command not found, and print a trace of the script commands
-              and set foobar to foovalue.
+<p>
+  Example 4 - will exit on command not found, and print a trace of the script commands and set foobar to foovalue.
+</p>
 <ul><pre>
-    set -ex foobar foovalue
-    nsh&gt; echo $foobar
-    foovalue
+set -ex foobar foovalue
+nsh&gt; echo $foobar
+foovalue
 </pre></ul>
-
 
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdsh"><h2>2.56 Execute an NSH Script (sh)</h2></a>
+    <a name="cmdsh"><h2>2.58 Execute an NSH Script (sh)</h2></a>
   </td>
   </tr>
 </table>
@@ -2904,7 +3069,7 @@ sh &lt;script-path&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdshutdown"><h2>2.57 Shut the system down (shutdown)</h2></a>
+    <a name="cmdshutdown"><h2>2.59 Shut the system down (shutdown)</h2></a>
   </td>
   </tr>
 </table>
@@ -2925,7 +3090,7 @@ shutdown [--reboot]
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdsleep"><h2>2.58 Wait for Seconds (sleep)</h2></a>
+    <a name="cmdsleep"><h2>2.60 Wait for Seconds (sleep)</h2></a>
   </td>
   </tr>
 </table>
@@ -2942,7 +3107,7 @@ sleep &lt;sec&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdtelnetd"><h2>2.59 Time Start the Telnet Daemon (telnetd)</h2></a>
+    <a name="cmdtelnetd"><h2>2.61 Time Start the Telnet Daemon (telnetd)</h2></a>
   </td>
 </tr>
 </table>
@@ -2968,7 +3133,7 @@ telnetd
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdtime"><h2>2.60 Time execution of another command (time)</h2></a>
+    <a name="cmdtime"><h2>2.62 Time execution of another command (time)</h2></a>
   </td>
 </tr>
 </table>
@@ -3026,7 +3191,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdtruncate"><h2>2.61 Set the Size of a File (truncate)</h2></a>
+    <a name="cmdtruncate"><h2>2.63 Set the Size of a File (truncate)</h2></a>
   </td>
 </tr>
 </table>
@@ -3054,7 +3219,7 @@ truncate -s &lt;length&gt; &lt;file-path&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdunmount"><h2>2.62 Unmount a File System (umount)</h2></a>
+    <a name="cmdunmount"><h2>2.64 Unmount a File System (umount)</h2></a>
   </td>
 </tr>
 </table>
@@ -3084,7 +3249,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmduname"><h2>2.63 Print system information (uname)</h2></a>
+    <a name="cmduname"><h2>2.65 Print system information (uname)</h2></a>
   </td>
   </tr>
 </table>
@@ -3151,7 +3316,7 @@ uname [-a | -imnoprsv]
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdunset"><h2>2.64 Unset an Environment Variable (unset)</h2></a>
+    <a name="cmdunset"><h2>2.66 Unset an Environment Variable (unset)</h2></a>
   </td>
   </tr>
 </table>
@@ -3162,8 +3327,8 @@ unset &lt;name&gt;
 </pre></ul>
 <p>
   <b>Synopsis</b>.
-  Remove the value associated with the environment variable
-  <code>&lt;name&gt;</code>.  Example:
+  Remove the value associated with the variable <code>&lt;name&gt;</code>.
+  This will remove the name-value pair from both the NSH local variables and the group-wide environment variables.  For example:
 </p>
 <ul><pre>
 nsh&gt; echo $foobar
@@ -3177,7 +3342,7 @@ nsh&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdurldec"><h2>2.65 URL Decode (urldecode)</h2></a>
+    <a name="cmdurldec"><h2>2.67 URL Decode (urldecode)</h2></a>
   </td>
   </tr>
 </table>
@@ -3194,7 +3359,7 @@ urldecode [-f] &lt;string or filepath&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdurlencode"><h2>2.66 URL Encode (urlencode)</h2></a>
+    <a name="cmdurlencode"><h2>2.68 URL Encode (urlencode)</h2></a>
   </td>
   </tr>
 </table>
@@ -3211,7 +3376,7 @@ urlencode [-f] &lt;string or filepath&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmduseradd"><h2>2.67 Add a New User (useradd)</h2></a>
+    <a name="cmduseradd"><h2>2.69 Add a New User (useradd)</h2></a>
   </td>
   </tr>
 </table>
@@ -3228,7 +3393,7 @@ useradd &lt;username&gt; &lt;password&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmduserdel"><h2>2.68 Delete a user (userdel)</h2></a>
+    <a name="cmduserdel"><h2>2.70 Delete a user (userdel)</h2></a>
   </td>
   </tr>
 </table>
@@ -3245,7 +3410,7 @@ userdel &lt;username&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdusleep"><h2>2.69 Wait for Microseconds (usleep)</h2></a>
+    <a name="cmdusleep"><h2>2.71 Wait for Microseconds (usleep)</h2></a>
   </td>
   </tr>
 </table>
@@ -3262,7 +3427,7 @@ usleep &lt;usec&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdwget"><h2>2.70 Get File Via HTTP (wget)</h2></a>
+    <a name="cmdwget"><h2>2.72 Get File Via HTTP (wget)</h2></a>
   </td>
   </tr>
 </table>
@@ -3289,7 +3454,7 @@ wget [-o &lt;local-path&gt;] &lt;url&gt;
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
   <td>
-    <a name="cmdxd"><h2>2.71 Hexadecimal Dump of Memory (xd)</h2></a>
+    <a name="cmdxd"><h2>2.73 Hexadecimal Dump of Memory (xd)</h2></a>
   </td>
   </tr>
 </table>
@@ -3329,7 +3494,7 @@ nsh&gt;
 </p>
 
 <p>
-  There are several built-in appliations in the <code>apps/</code> repository.
+  There are several built-in applications in the <code>apps/</code> repository.
   No attempt is made here to enumerate all of them.
   But a few of the more common, useful built-in applications are listed below.
 </p>
@@ -3496,6 +3661,11 @@ nsh&gt;
     <td><code>CONFIG_NSH_DISABLE_ECHO</code></td>
   </tr>
   <tr>
+    <td><b><code>env</code></b></td>
+    <td><code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_FS_PROCFS</code> &amp;&amp; !<code>CONFIG_DISABLE_ENVIRON</code> &amp;&amp; !<code>CONFIG_PROCFS_EXCLUDE_ENVIRON</code>
+    <td><code>CONFIG_NSH_DISABLE_ENV</code></td>
+  </tr>
+  <tr>
     <td><b><code>exec</code></b></td>
     <td><br></td>
     <td><code>CONFIG_NSH_DISABLE_EXEC</code></td>
@@ -3504,6 +3674,11 @@ nsh&gt;
     <td><b><code>exit</code></b></td>
     <td><br></td>
     <td><code>CONFIG_NSH_DISABLE_EXIT</code></td>
+  </tr>
+  <tr>
+    <td><b><code>export</code></b></td>
+    <td><code>CONFIG_NSH_VARS</code> &amp;&amp; !<code>CONFIG_DISABLE_ENVIRON</code></td>
+    <td><code>CONFIG_NSH_DISABLE_EXPORT</code></td>
   </tr>
   <tr>
     <td><b><code>free</code></b></td>
@@ -3688,7 +3863,7 @@ nsh&gt;
   </tr>
   <tr>
     <td><b><code>set</code></b></td>
-    <td>!<code>CONFIG_DISABLE_ENVIRON</code></td>
+    <td><code>CONFIG_NSH_VARS</code> || !<code>CONFIG_DISABLE_ENVIRON</code></td>
     <td><code>CONFIG_NSH_DISABLE_SET</code></td>
   </tr>
   <tr>
@@ -3738,7 +3913,7 @@ nsh&gt;
   </tr>
   <tr>
     <td><b><code>unset</code></b></td>
-    <td>!<code>CONFIG_DISABLE_ENVIRON</code></td>
+    <td><code>CONFIG_NSH_VARS</code> || !<code>CONFIG_DISABLE_ENVIRON</code></td>
     <td><code>CONFIG_NSH_DISABLE_UNSET</code></td>
   </tr>
   <tr>
@@ -3939,6 +4114,74 @@ set FOOBAR ABC_${FOO}_${BAR}
 </pre></ul>
      would set the environment variable <code>FOO</code> to <code>XYZ</code>, <code>BAR</code> to <code>123</code> and <code>FOOBAR</code> to <code>ABC_XYZ_123</code>.
      If <code>CONFIG_NSH_ARGCAT</code> is not selected, then a slightly small FLASH footprint results but then also only simple environment variables like <code>$FOO</code> can be used on the command line.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_VARS</code></b></td>
+    <td>
+      By default, there are no internal NSH variables.  NSH will use OS
+      environment variables for all variable storage.  If this option, NSH
+      will also support local NSH variables.  These variables are, for the
+      most part, transparent and work just like the OS environment
+      variables.  The difference is that when you create new tasks, all of
+      environment variables are inherited by the created tasks.  NSH local
+      variables are not.
+      </p>
+      <p>
+      If this option is enabled (and CONFIG_DISABLE_ENVIRON is not), then a
+      new command called 'export' is enabled.  The export command works very
+      must like the set command except that is operates on environment
+      variables.  When CONFIG_NSH_VARS is enabled, there are changes in the
+      behavior of certain commands
+      </p>
+      <table border="1">
+        <tr>
+          <td valign="top" width="15%"><b>CMD</b></td>
+          <td valign="top" width="30%"><b>w/o <code>CONFIG_NSH_VARS</code></b></td>
+          <td valign="top" width="45%"><b>w/ <code>CONFIG_NSH_VARS</code></b></td>
+        </tr>
+        <tr>
+          <td valign="top"><code>set &lt;a&gt; &lt;b&gt;</code></td>
+          <td valign="top">Set environment variable &lt;a&gt; to &lt;b&gt;</td>
+          <td valign="top">Set NSH variable &lt;a&gt; to &lt;b&gt;
+          (Unless the NSH variable has been <i>promoted</i> via <code>export</code>, in which case the environment variable of the same name is set to &lt;b&gt;).
+          </td>
+        </tr>
+        <tr>
+          <td valign="top"><code>set</code></td>
+          <td valign="top">Causes an error.</td>
+          <td valign="top">Lists all NSH variables.</td>
+        </tr>
+        <tr>
+          <td valign="top"><code>unset &lt;a&gt;</code></td>
+          <td valign="top">Unsets environment variable &lt;a&gt;</td>
+          <td valign="top">Unsets both environment variable <i>and</i> NSH variable with and name &lt;a&gt;</td>
+        </tr>
+        <tr>
+          <td valign="top"><code>export &lt;a&gt; &lt;b&gt;</code></td>
+          <td valign="top">Causes an error,</td>
+          <td valign="top">Unsets NSH variable &lt;a&gt;. Sets environment variable &lt;a&gt; to &lt;b&gt;.</td>
+        </tr>
+        <tr>
+          <td valign="top"><code>export &lt;a&gt;</code></td>
+          <td valign="top">Causes an error.</td>
+          <td valign="top">Sets environment variable &lt;a&gt; to the value of NSH variable &lt;a&gt; (or &quot;&quot; if the NSH variable has not been set).  Unsets NSH local variable &lt;a&gt;.</td>
+        </tr>
+        <tr>
+          <td valign="top"><code>env</code></td>
+          <td valign="top">Lists all environment variables</td>
+          <td valign="top">Lists all environment variables (<i>only</i>)</td>
+        </tr>
+     </table>
+   </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_QUOTE</code></b></td>
+    <td>
+      Enables back-slash quoting of certain characters within the command.
+      This option is useful for the case where an NSH script is used to dynamically generate a new NSH script.
+      In that case, commands must be treated as simple text strings without interpretation of any special characters.
+      Special characters such as <code>$</code>, <code>`</code>, <code>&quot;</code>, and others must be retained intact as part of the test string.
+      This option is currently only available is <code>CONFIG_NSH_ARGCAT</code> is also selected.
     </td>
   </tr>
   <tr>
@@ -4270,7 +4513,7 @@ set FOOBAR ABC_${FOO}_${BAR}
     </td>
   </tr>
   <tr>
-    <td valign="top"><b><code>CONFIG_NET_ETH_MTU=650</code></b> (or larger)</td>
+    <td valign="top"><b><code>CONFIG_NET_ETH_PKTSIZE=650</code></b> (or larger)</td>
     <td>
       Per RFC2131 (p. 9), the DHCP client must be prepared to receive DHCP messages of up to
       576 bytes (excluding Ethernet, IP, or UDP headers and FCS).
@@ -5441,7 +5684,7 @@ xxd -i romfs_img >nsh_romfsimg.h
   </li>
 </ol>
 <p>
-  There is a good example of how to do this in the NSH simulation configuration at <a href="https://bitbucket.org/nuttx/nuttx/configs/src/master/sim/nsh/">configs/sim/nsh<a>.  The ROMFS support files are provided at <a href="https://bitbucket.org/nuttx/nuttx/configs/src/master/sim/include/">configs/sim/include<a> and the <a href="https://bitbucket.org/nuttx/nuttx/configs/src/master/sim/include/README.txt">README.txt</a> file at the location provides detailed information about creating and modifying the ROMFS file system.
+  There is a good example of how to do this in the NSH simulation configuration at <a href="https://bitbucket.org/nuttx/nuttx/configs/src/master/sim/nsh/">configs/sim/nsh</a>.  The ROMFS support files are provided at <a href="https://bitbucket.org/nuttx/nuttx/configs/src/master/sim/include/">configs/sim/include</a> and the <a href="https://bitbucket.org/nuttx/nuttx/configs/src/master/sim/include/README.txt">README.txt</a> file at the location provides detailed information about creating and modifying the ROMFS file system.
 </p>
 
 <table width ="100%">
@@ -5488,6 +5731,7 @@ xxd -i romfs_img >nsh_romfsimg.h
   <li><a href="#custinit"><code>CONFIG_NFILE_DESCRIPTORS</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_ARCHINIT</code></a></li>
   <li><a href="#custinit"><code>CONFIG_NSH_ARCHROMFS</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_ARCHROMFS</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_ARGCAT</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_BUILTIN_APPS</code></a></li>
   <li><a href="#custapps"><code>CONFIG_NSH_BUILTIN_APPS</code></a></li>
@@ -5514,11 +5758,11 @@ xxd -i romfs_img >nsh_romfsimg.h
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_NESTDEPTH</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_NETMASK</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_NOMAC</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_QUOTE</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_READLINE</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_ROMFSDEVNO</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_ROMFSETC</code></a></li>
   <li><a href="#custinit"><code>CONFIG_NSH_ROMFSETC</code></a></li>
-  <li><a href="#nshconfiguration"><code>CONFIG_NSH_ARCHROMFS</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_ROMFSMOUNTPT</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_ROMFSSECTSIZE</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_STRERROR</code></a></li>
@@ -5552,11 +5796,13 @@ xxd -i romfs_img >nsh_romfsimg.h
   <li><a href="#looping"><code>do</code></a></li>
   <li><a href="#looping"><code>done</code></a></li>
   <li><a href="#cmdecho"><code>echo</code></a></li>
+  <li><a href="#cmdenv"><code>env</code></a></li>
   <li><a href="#environvars">Environment Variables</a></li>
   <li><a href="#startupscript"><code>/etc/init.d/rcS</code></a>
   <li><a href="#cmdexec"><code>exec</code></a></li>
   <li><a href="#custapps"><code>exec_builtin()</code></a></li>
   <li><a href="#cmdexit"><code>exit</code></a></li>
+  <li><a href="#cmdexport"><code>export</code></a></li>
   <li><a href="#cmdfree"><code>free</code></a></li>
   <li><a href="#custoncmds"><code>g_cmdmap</code></a></li>
   <li><a href="#custinit"><code>genromfs</code></a></li>
@@ -5611,6 +5857,7 @@ xxd -i romfs_img >nsh_romfsimg.h
   <li><a href="#cmdpasswd"><code>passwd</code></a></li>
   <li><a href="#passwdfiles">Password File</a></li>
   <li><a href="#passwdromfs">Password File, ROMFS</a></li>
+  <li><a href="#environvars"><code>PATH</code></a></li>
   <li><a href="#builtinping"><code>ping</code></a></li>
   <li><a href="#builtinping"><code>ping6</code></a></li>
   <li><a href="#cmdpoweroff"><code>poweroff</code></a></li>

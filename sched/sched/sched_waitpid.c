@@ -1,7 +1,8 @@
 /****************************************************************************
  * sched/sched/sched_waitpid.c
  *
- *   Copyright (C) 2011-2013, 2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2013, 2015, 2017-2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -192,17 +193,6 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
   (void)enter_cancellation_point();
 
-  /* None of the options are supported */
-
-#ifdef CONFIG_DEBUG_FEATURES
-  if (options != 0)
-    {
-      set_errno(ENOSYS);
-      leave_cancellation_point();
-      return ERROR;
-    }
-#endif
-
   /* Disable pre-emption so that nothing changes in the following tests */
 
   sched_lock();
@@ -231,15 +221,26 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
    * others?
    */
 
-  if (stat_loc != NULL && group->tg_statloc == NULL)
+  if (group->tg_waitflags == 0)
     {
+      /* Save the waitpid() options, setting the non-standard WCLAIMED bit to
+       * assure that tg_waitflags is non-zero.
+       */
+
+      group->tg_waitflags = (uint8_t)options | WCLAIMED;
+
+      /* Save the return status location (which may be NULL) */
+
       group->tg_statloc = stat_loc;
+
+      /* We are the waipid() instance that gets the return status */
+
       mystat = true;
     }
 
   /* Then wait for the task to exit */
 
-  if (options & WNOHANG)
+  if ((options & WNOHANG) != 0)
     {
       /* Don't wait if status is not available */
 
@@ -267,7 +268,8 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
           if (mystat)
             {
-              group->tg_statloc = NULL;
+              group->tg_statloc   = NULL;
+              group->tg_waitflags = 0;
             }
 
           errcode = -ret;
@@ -321,17 +323,6 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
   /* waitpid() is a cancellation point */
 
   (void)enter_cancellation_point();
-
-  /* None of the options are supported */
-
-#ifdef CONFIG_DEBUG_FEATURES
-  if (options != 0)
-    {
-      set_errno(ENOSYS);
-      leave_cancellation_point();
-      return ERROR;
-    }
-#endif
 
   /* Create a signal set that contains only SIGCHLD */
 

@@ -1,7 +1,7 @@
 ############################################################################
 # drivers/sensors/Make.defs
 #
-#   Copyright (C) 2011-2012, 2015-2017 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012, 2015-2018 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,10 @@ ifeq ($(CONFIG_SENSORS_ADXL345),y)
   CSRCS += adxl345_base.c
 endif
 
+ifeq ($(CONFIG_SENSORS_DHTXX),y)
+  CSRCS += dhtxx.c
+endif
+
 # These drivers depend on I2C support
 
 ifeq ($(CONFIG_I2C),y)
@@ -67,6 +71,14 @@ endif
 
 ifeq ($(CONFIG_LIS331DL),y)
   CSRCS += lis331dl.c
+endif
+
+ifeq ($(CONFIG_SENSORS_LSM303AGR),y)
+  CSRCS += lsm303agr.c
+endif
+
+ifeq ($(CONFIG_SENSORS_LSM6DSL),y)
+  CSRCS += lsm6dsl.c
 endif
 
 ifeq ($(CONFIG_SENSORS_LSM9DS1),y)
@@ -121,6 +133,10 @@ ifeq ($(CONFIG_SENSORS_MLX90393),y)
   CSRCS += mlx90393.c
 endif
 
+ifeq ($(CONFIG_SENSORS_MLX90614),y)
+  CSRCS += mlx90614.c
+endif
+
 ifeq ($(CONFIG_SENSORS_MS58XX),y)
   CSRCS += ms58xx.c
 endif
@@ -133,12 +149,20 @@ ifeq ($(CONFIG_SENSORS_INA219),y)
   CSRCS += ina219.c
 endif
 
+ifeq ($(CONFIG_SENSORS_INA226),y)
+  CSRCS += ina226.c
+endif
+
 ifeq ($(CONFIG_SENSORS_INA3221),y)
   CSRCS += ina3221.c
 endif
 
 ifeq ($(CONFIG_SENSORS_SHT21),y)
   CSRCS += sht21.c
+endif
+
+ifeq ($(CONFIG_SENSORS_T67XX),y)
+  CSRCS += t67xx.c
 endif
 
 endif # CONFIG_I2C

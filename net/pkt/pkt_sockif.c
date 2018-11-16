@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/socket/pkt_sockif.c
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,10 +47,13 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/net/net.h>
 #include <netpacket/packet.h>
-#include <socket/socket.h>
 
+#include <nuttx/net/net.h>
+#include <nuttx/net/netdev.h>
+
+#include "netdev/netdev.h"
+#include <socket/socket.h>
 #include "pkt/pkt.h"
 
 #ifdef CONFIG_NET_PKT
@@ -65,6 +68,8 @@ static void       pkt_addref(FAR struct socket *psock);
 static int        pkt_bind(FAR struct socket *psock,
                     FAR const struct sockaddr *addr, socklen_t addrlen);
 static int        pkt_getsockname(FAR struct socket *psock,
+                    FAR struct sockaddr *addr, FAR socklen_t *addrlen);
+static int        pkt_getpeername(FAR struct socket *psock,
                     FAR struct sockaddr *addr, FAR socklen_t *addrlen);
 static int        pkt_listen(FAR struct socket *psock, int backlog);
 static int        pkt_connect(FAR struct socket *psock,
@@ -93,6 +98,7 @@ const struct sock_intf_s g_pkt_sockif =
   pkt_addref,      /* si_addref */
   pkt_bind,        /* si_bind */
   pkt_getsockname, /* si_getsockname */
+  pkt_getpeername, /* si_getpeername */
   pkt_listen,      /* si_listen */
   pkt_connect,     /* si_connect */
   pkt_accept,      /* si_accept */
@@ -161,7 +167,7 @@ static int pkt_sockif_alloc(FAR struct socket *psock)
  *   protocol (see sys/socket.h)
  *
  * Returned Value:
- *   Zero (OK) is returned on success.  Otherwise, a negater errno value is
+ *   Zero (OK) is returned on success.  Otherwise, a negated errno value is
  *   returned.
  *
  ****************************************************************************/
@@ -342,16 +348,6 @@ static int pkt_accept(FAR struct socket *psock, FAR struct sockaddr *addr,
 static int pkt_bind(FAR struct socket *psock, FAR const struct sockaddr *addr,
                     socklen_t addrlen)
 {
-#if 0
-  char hwaddr[6] =  /* our MAC for debugging */
-  {
-    0x00, 0xa1, 0xb1, 0xc1, 0xd1, 0xe1
-  };
-#endif
-  char hwaddr[6] =  /* MAC from ifconfig */
-  {
-    0x00, 0xe0, 0xde, 0xad, 0xbe, 0xef
-  };
   int ifindex;
 
   /* Verify that a valid address has been provided */
@@ -368,21 +364,31 @@ static int pkt_bind(FAR struct socket *psock, FAR const struct sockaddr *addr,
   if (psock->s_type == SOCK_RAW)
     {
       FAR struct pkt_conn_s *conn = (FAR struct pkt_conn_s *)psock->s_conn;
+      FAR struct net_driver_s *dev;
 
       /* Look at the addr and identify network interface */
 
-      ifindex = ((struct sockaddr_ll*)addr)->sll_ifindex;
+      ifindex = ((FAR struct sockaddr_ll *)addr)->sll_ifindex;
 
-#if 0
       /* Get the MAC address of that interface */
 
-      memcpy(hwaddr, g_netdevices->d_mac.ether, 6);
-#endif
+      dev = netdev_findbyindex(ifindex);
+      if (dev == NULL)
+        {
+          return -EADDRNOTAVAIL;
+        }
+
+      /* Only Ethernet is supported */
+
+      if (dev->d_lltype != NET_LL_ETHERNET)
+        {
+          return -EAFNOSUPPORT;
+        }
 
       /* Put ifindex and mac address into connection */
 
       conn->ifindex = ifindex;
-      memcpy(conn->lmac, hwaddr, 6);
+      memcpy(conn->lmac, dev->d_mac.ether.ether_addr_octet, 6);
 
       /* Mark the socket bound */
 
@@ -424,6 +430,40 @@ static int pkt_bind(FAR struct socket *psock, FAR const struct sockaddr *addr,
  ****************************************************************************/
 
 static int pkt_getsockname(FAR struct socket *psock,
+                           FAR struct sockaddr *addr, FAR socklen_t *addrlen)
+{
+  return -EAFNOSUPPORT;
+}
+
+/****************************************************************************
+ * Name: pkt_getpeername
+ *
+ * Description:
+ *   The pkt_getpeername() function retrieves the remote-connected name of the
+ *   specified packet socket, stores this address in the sockaddr structure
+ *   pointed to by the 'addr' argument, and stores the length of this
+ *   address in the object pointed to by the 'addrlen' argument.
+ *
+ *   If the actual length of the address is greater than the length of the
+ *   supplied sockaddr structure, the stored address will be truncated.
+ *
+ *   If the socket has not been bound to a local name, the value stored in
+ *   the object pointed to by address is unspecified.
+ *
+ * Parameters:
+ *   psock    Socket structure of the socket to be queried
+ *   addr     sockaddr structure to receive data [out]
+ *   addrlen  Length of sockaddr structure [in/out]
+ *
+ * Returned Value:
+ *   On success, 0 is returned, the 'addr' argument points to the address
+ *   of the socket, and the 'addrlen' argument points to the length of the
+ *   address.  Otherwise, a negated errno value is returned.  See
+ *   getpeername() for the list of appropriate error numbers.
+ *
+ ****************************************************************************/
+
+static int pkt_getpeername(FAR struct socket *psock,
                            FAR struct sockaddr *addr, FAR socklen_t *addrlen)
 {
   return -EAFNOSUPPORT;

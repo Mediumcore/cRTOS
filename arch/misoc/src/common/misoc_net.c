@@ -141,7 +141,7 @@ struct misoc_net_driver_s
 
 /* A single packet buffer is used */
 
-static uint8_t g_pktbuf[MAX_NET_DEV_MTU + CONFIG_NET_GUARDSIZE];
+static uint8_t g_pktbuf[MAX_NETDEV_PKTSIZE + CONFIG_NET_GUARDSIZE];
 
 /* Driver state structur */
 
@@ -180,9 +180,9 @@ static int misoc_net_ifdown(FAR struct net_driver_s *dev);
 static void misoc_net_txavail_work(FAR void *arg);
 static int misoc_net_txavail(FAR struct net_driver_s *dev);
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int misoc_net_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int misoc_net_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
 #ifdef CONFIG_NET_ICMPv6
@@ -334,13 +334,16 @@ static int misoc_net_txpoll(FAR struct net_driver_s *dev)
         }
 #endif /* CONFIG_NET_IPv6 */
 
-      /* Send the packet */
+      if (!devif_loopback(&priv->misoc_net_dev))
+        {
+          /* Send the packet */
 
-      misoc_net_transmit(priv);
+          misoc_net_transmit(priv);
 
-      /* Check if there is room in the device to hold another packet. If not,
-       * return a non-zero value to terminate the poll.
-       */
+          /* Check if there is room in the device to hold another packet. If not,
+           * return a non-zero value to terminate the poll.
+           */
+        }
     }
 
   /* If zero is returned, the polling will continue until all connections have
@@ -993,7 +996,7 @@ static int misoc_net_txavail(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int misoc_net_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct misoc_net_driver_s *priv = (FAR struct misoc_net_driver_s *)dev->d_private;
@@ -1022,7 +1025,7 @@ static int misoc_net_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int misoc_net_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct misoc_net_driver_s *priv = (FAR struct misoc_net_driver_s *)dev->d_private;
@@ -1166,7 +1169,7 @@ int misoc_net_initialize(int intf)
   priv->misoc_net_dev.d_ifup    = misoc_net_ifup;     /* I/F up (new IP address) callback */
   priv->misoc_net_dev.d_ifdown  = misoc_net_ifdown;   /* I/F down callback */
   priv->misoc_net_dev.d_txavail = misoc_net_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->misoc_net_dev.d_addmac  = misoc_net_addmac;   /* Add multicast MAC address */
   priv->misoc_net_dev.d_rmmac   = misoc_net_rmmac;    /* Remove multicast MAC address */
 #endif

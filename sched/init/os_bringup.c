@@ -45,11 +45,14 @@
 
 #include <sched.h>
 #include <stdlib.h>
+#include <string.h>
 #include <debug.h>
+#include <sys/mount.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
 #include <nuttx/init.h>
+#include <nuttx/symtab.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/kthread.h>
 #include <nuttx/userspace.h>
@@ -97,10 +100,6 @@
    * program.
    */
 
-#    ifndef CONFIG_BOARD_INITIALIZE
-#      warning You probably need CONFIG_BOARD_INITIALIZE to mount the file system
-#    endif
-
 #    ifndef CONFIG_USER_INITPATH
   /* Path to the initialization program must have been provided */
 
@@ -114,6 +113,9 @@
 #      undef CONFIG_INIT_NEXPORTS
 #      define CONFIG_INIT_SYMTAB NULL
 #      define CONFIG_INIT_NEXPORTS 0
+#    else
+extern const struct symtab_s CONFIG_INIT_SYMTAB[];
+extern const int             CONFIG_INIT_NEXPORTS;
 #    endif
 #  endif
 #endif
@@ -283,6 +285,16 @@ static inline void os_do_appstart(void)
   board_initialize();
 #endif
 
+#ifdef CONFIG_INIT_MOUNT
+  /* Mount the file system containing the init program. */
+
+  ret = mount(CONFIG_INIT_MOUNT_SOURCE, CONFIG_INIT_MOUNT_TARGET,
+              CONFIG_INIT_MOUNT_FSTYPE, CONFIG_INIT_MOUNT_FLAGS,
+              CONFIG_INIT_MOUNT_DATA);
+  DEBUGASSERT(ret >= 0);
+  UNUSED(ret);
+#endif
+
   /* Start the application initialization program from a program in a
    * mounted file system.  Presumably the file system was mounted as part
    * of the board_initialize() operation.
@@ -292,7 +304,8 @@ static inline void os_do_appstart(void)
 
   ret = exec(CONFIG_USER_INITPATH, NULL, CONFIG_INIT_SYMTAB,
              CONFIG_INIT_NEXPORTS);
-  ASSERT(ret >= 0);
+  DEBUGASSERT(ret >= 0);
+  UNUSED(ret);
 }
 
 #elif defined(CONFIG_INIT_NONE)

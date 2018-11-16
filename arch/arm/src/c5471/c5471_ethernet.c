@@ -301,7 +301,7 @@
 
 /* A single packet buffer is used */
 
-static uint8_t g_pktbuf[MAX_NET_DEV_MTU + CONFIG_NET_GUARDSIZE];
+static uint8_t g_pktbuf[MAX_NETDEV_PKTSIZE + CONFIG_NET_GUARDSIZE];
 
 /* The c5471_driver_s encapsulates all state information for a single c5471
  * hardware interface
@@ -420,7 +420,7 @@ static int c5471_ifdown(struct net_driver_s *dev);
 static void c5471_txavail_work(FAR void *arg);
 static int c5471_txavail(struct net_driver_s *dev);
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int c5471_addmac(struct net_driver_s *dev, FAR const uint8_t *mac);
 static int c5471_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
@@ -1046,19 +1046,22 @@ static int c5471_txpoll(struct net_driver_s *dev)
         }
 #endif /* CONFIG_NET_IPv6 */
 
-      /* Send the packet */
-
-      c5471_transmit(priv);
-
-      /* Check if the ESM has let go of the RX descriptor giving us access
-       * rights to submit another Ethernet frame.
-       */
-
-      if ((EIM_TXDESC_OWN_HOST & getreg32(priv->c_rxcpudesc)) != 0)
+      if (!devif_loopback(&priv->c_dev))
         {
-          /* No, then return non-zero to terminate the poll */
+          /* Send the packet */
 
-          return 1;
+          c5471_transmit(priv);
+
+          /* Check if the ESM has let go of the RX descriptor giving us access
+           * rights to submit another Ethernet frame.
+           */
+
+          if ((EIM_TXDESC_OWN_HOST & getreg32(priv->c_rxcpudesc)) != 0)
+            {
+              /* No, then return non-zero to terminate the poll */
+
+              return 1;
+            }
         }
     }
 
@@ -1224,7 +1227,7 @@ static void c5471_receive(struct c5471_driver_s *priv)
 
       /* Check if the received packet will fit within the network packet buffer */
 
-      if (packetlen < (CONFIG_NET_ETH_MTU + 4))
+      if (packetlen < (CONFIG_NET_ETH_PKTSIZE + 4))
         {
           /* Get the packet memory from words #2 and #3 of descriptor */
 
@@ -1285,7 +1288,7 @@ static void c5471_receive(struct c5471_driver_s *priv)
    * to the network for processing.
    */
 
-  if (packetlen > 0 && packetlen < CONFIG_NET_ETH_MTU)
+  if (packetlen > 0 && packetlen < CONFIG_NET_ETH_PKTSIZE)
     {
       /* Set amount of data in priv->c_dev.d_len. */
 
@@ -2028,7 +2031,7 @@ static int c5471_txavail(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int c5471_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct c5471_driver_s *priv = (FAR struct c5471_driver_s *)dev->d_private;
@@ -2058,7 +2061,7 @@ static int c5471_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int c5471_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct c5471_driver_s *priv = (FAR struct c5471_driver_s *)dev->d_private;
@@ -2441,7 +2444,7 @@ void up_netinitialize(void)
   g_c5471[0].c_dev.d_ifup    = c5471_ifup;      /* I/F down callback */
   g_c5471[0].c_dev.d_ifdown  = c5471_ifdown;    /* I/F up (new IP address) callback */
   g_c5471[0].c_dev.d_txavail = c5471_txavail;   /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   g_c5471[0].c_dev.d_addmac  = c5471_addmac;    /* Add multicast MAC address */
   g_c5471[0].c_dev.d_rmmac   = c5471_rmmac;     /* Remove multicast MAC address */
 #endif

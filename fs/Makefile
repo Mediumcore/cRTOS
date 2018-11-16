@@ -63,6 +63,7 @@ ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
 ifneq ($(CONFIG_DISABLE_MOUNTPOINT),y)
 
 include mount/Make.defs
+include partition/Make.defs
 include fat/Make.defs
 include romfs/Make.defs
 include cromfs/Make.defs
@@ -72,6 +73,7 @@ include nfs/Make.defs
 include smartfs/Make.defs
 include binfs/Make.defs
 include procfs/Make.defs
+include spiffs/Make.defs
 include unionfs/Make.defs
 include userfs/Make.defs
 include hostfs/Make.defs

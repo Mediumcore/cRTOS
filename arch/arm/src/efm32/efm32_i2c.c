@@ -205,7 +205,7 @@ struct efm32_trace_s
   uint32_t i2c_reg_state;     /* I2C register I2Cx_STATES */
   uint32_t i2c_reg_if;        /* I2C register I2Cx_IF */
   uint32_t count;             /* Interrupt count when status change */
-  systime_t time;             /* First of event or first status */
+  clock_t time;               /* First of event or first status */
   int dcnt;                   /* Interrupt count when status change */
 };
 
@@ -254,7 +254,7 @@ struct efm32_i2c_priv_s
 
 #ifdef CONFIG_I2C_TRACE
   int tndx;                   /* Trace array index */
-  systime_t start_time;       /* Time when the trace was started */
+  clock_t start_time;         /* Time when the trace was started */
 
   /* The actual trace data */
 
@@ -610,9 +610,9 @@ static inline int efm32_i2c_sem_waitdone(FAR struct efm32_i2c_priv_s *priv)
 #else
 static inline int efm32_i2c_sem_waitdone(FAR struct efm32_i2c_priv_s *priv)
 {
-  systime_t timeout;
-  systime_t start;
-  systime_t elapsed;
+  clock_t timeout;
+  clock_t start;
+  clock_t elapsed;
 
   /* Get the timeout value */
 
@@ -1155,7 +1155,7 @@ static int efm32_i2c_isr_process(struct efm32_i2c_priv_s *priv)
 
               /* Send byte continue with/without restart ? */
 
-              if (!(priv->flags & I2C_M_NORESTART))
+              if (!(priv->flags & I2C_M_NOSTART))
                 {
                   priv->i2c_state = I2CSTATE_RSTARTADDRSEND;
                   continue;
@@ -1604,11 +1604,11 @@ int efm32_i2c_reset(FAR struct i2c_master_s *dev)
   uint32_t sda_gpio;
   int ret = ERROR;
 
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   /* Our caller must own a ref */
 
-  ASSERT(priv->refs > 0);
+  DEBUGASSERT(priv->refs > 0);
 
   /* Lock out other clients */
 
@@ -1765,7 +1765,7 @@ int efm32_i2cbus_uninitialize(FAR struct i2c_master_s *dev)
   FAR struct efm32_i2c_priv_s *priv = (struct efm32_i2c_priv_s *)dev;
   irqstate_t flags;
 
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   /* Decrement reference count and check for underflow */
 

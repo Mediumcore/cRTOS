@@ -223,7 +223,7 @@ static void nrf24l01_worker(FAR void *arg);
 #endif
 
 #ifdef CONFIG_DEBUG_WIRELESS
-static void binarycvt(char *deststr, const uint8_t *srcbin, size_t srclen)
+static void binarycvt(char *deststr, const uint8_t *srcbin, size_t srclen);
 #endif
 
 /* POSIX API */
@@ -756,10 +756,6 @@ static void nrf24l01_worker(FAR void *arg)
            /* The actual work is done in the send function */
 
            nxsem_post(&dev->sem_tx);
-         }
-       else
-         {
-           wlerr("invalid length in rx: %d\n", (int)pktlen);
          }
     }
 
@@ -1462,7 +1458,7 @@ int nrf24l01_register(FAR struct spi_dev_s *spi,
   uint8_t *rx_fifo;
 #endif
 
-  ASSERT((spi != NULL) & (cfg != NULL));
+  DEBUGASSERT((spi != NULL) & (cfg != NULL));
 
   if ((dev = kmm_malloc(sizeof(struct nrf24l01_dev_s))) == NULL)
     {

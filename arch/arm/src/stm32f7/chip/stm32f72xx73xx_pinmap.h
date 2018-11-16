@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/src/stm32f7/chip/stm32f72xx73xx_pinmap.h
  *
- *   Copyright (C) 2014-2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2014-2015, 2017-2018 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
  *            David Sidrane <david_s5@nscdg.com>
  *            Bob Feretich <bob.feretich@rafresearch.com>
@@ -58,7 +58,7 @@
  * Alternative pin selections are provided with a numeric suffix like _1, _2, etc.
  * Drivers, however, will use the pin selection without the numeric suffix.
  * Additional definitions are required in the board.h file.  For example, if
- * CAN1_RX connects vis PA11 on some board, then the following definitions should
+ * CAN1_RX connects via PA11 on some board, then the following definitions should
  * appear inthe board.h header file for that board:
  *
  * #define GPIO_CAN1_RX GPIO_CAN1_RX_1
@@ -488,8 +488,7 @@
 #define GPIO_OTGHSFS_DM       (GPIO_ALT|GPIO_FLOAT|GPIO_AF12|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTB|GPIO_PIN14)
 #define GPIO_OTGHSFS_DP       (GPIO_ALT|GPIO_FLOAT|GPIO_AF12|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTB|GPIO_PIN15)
 #define GPIO_OTGHSFS_ID       (GPIO_ALT|GPIO_PULLUP|GPIO_AF12|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTB|GPIO_PIN12)
-
-#define GPIO_OTGHS_SOF        (GPIO_ALT|GPIO_FLOAT|GPIO_AF12|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTA|GPIO_PIN4)
+#define GPIO_OTGHSFS_SOF      (GPIO_ALT|GPIO_FLOAT|GPIO_AF12|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTA|GPIO_PIN4)
 
 #define GPIO_OTGHS_ULPI_CK    (GPIO_ALT|GPIO_AF10|GPIO_PORTA|GPIO_PIN5)
 #define GPIO_OTGHS_ULPI_D0    (GPIO_ALT|GPIO_AF10|GPIO_PORTA|GPIO_PIN3)
@@ -578,7 +577,7 @@
 
 /* SD/MMC */
 
-#define GPIO_SDMMC1_CK        (GPIO_ALT|GPIO_AF12|GPIO_PORTC|GPIO_PIN12)
+#define GPIO_SDMMC1_CK        (GPIO_ALT|GPIO_AF12|GPIO_SPEED_50MHz|GPIO_PORTC|GPIO_PIN12)
 #define GPIO_SDMMC1_CMD       (GPIO_ALT|GPIO_AF12|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTD|GPIO_PIN2)
 #define GPIO_SDMMC1_D0        (GPIO_ALT|GPIO_AF12|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN8)
 #define GPIO_SDMMC1_D1        (GPIO_ALT|GPIO_AF12|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN9)
@@ -589,7 +588,7 @@
 #define GPIO_SDMMC1_D6        (GPIO_ALT|GPIO_AF12|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN6)
 #define GPIO_SDMMC1_D7        (GPIO_ALT|GPIO_AF12|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN7)
 
-#define GPIO_SDMMC2_CK        (GPIO_ALT|GPIO_AF11|GPIO_PORTD|GPIO_PIN6)
+#define GPIO_SDMMC2_CK        (GPIO_ALT|GPIO_AF11|GPIO_SPEED_50MHz|GPIO_PORTD|GPIO_PIN6)
 #define GPIO_SDMMC2_CMD       (GPIO_ALT|GPIO_AF11|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTD|GPIO_PIN7)
 #define GPIO_SDMMC2_D0_1      (GPIO_ALT|GPIO_AF10|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTB|GPIO_PIN14)
 #define GPIO_SDMMC2_D0_2      (GPIO_ALT|GPIO_AF11|GPIO_PULLUP|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PORTG|GPIO_PIN9)

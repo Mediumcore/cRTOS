@@ -43,8 +43,10 @@
 
 #include <nuttx/config.h>
 
+#include <sys/types.h>
 #include <stdint.h>
 #include <time.h>
+
 #include <nuttx/compiler.h>
 
 /****************************************************************************
@@ -200,7 +202,7 @@
 #define TICK2SEC(tick)        (((tick)+(TICK_PER_SEC/2))/TICK_PER_SEC)   /* Rounds */
 
 #if defined(CONFIG_DEBUG_FEATURES) && defined(CONFIG_SYSTEM_TIME64) && \
-    defined(CONFIG_CLOCK_MONOTONIC)
+    defined(CONFIG_CLOCK_MONOTONIC) && !defined(CONFIG_SCHED_TICKLESS)
 /* Initial system timer ticks value close to maximum 32-bit value, to test
  * 64-bit system-timer after going over 32-bit value. This is to make errors
  * of casting 64-bit system-timer to 32-bit variables more visible.
@@ -215,6 +217,7 @@
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+
 /* This structure is used to report CPU usage for a particular thread */
 
 #ifdef CONFIG_SCHED_CPULOAD
@@ -225,20 +228,15 @@ struct cpuload_s
 };
 #endif
 
-/* This type is the natural with of the system timer */
+/* This non-standard type used to hold relative clock ticks that may take
+ * negative values.  Because of its non-portable nature the type sclock_t
+ * should be used only within the OS proper and not by portable applications.
+ */
 
 #ifdef CONFIG_SYSTEM_TIME64
-typedef uint64_t systime_t;
+typedef int64_t sclock_t;
 #else
-typedef uint32_t systime_t;
-#endif
-
-/* This type used to hold relative ticks that may have negative value */
-
-#ifdef CONFIG_SYSTEM_TIME64
-typedef int64_t ssystime_t;
-#else
-typedef int32_t ssystime_t;
+typedef int32_t sclock_t;
 #endif
 
 /****************************************************************************
@@ -261,7 +259,7 @@ extern "C"
  */
 
 #ifdef __HAVE_KERNEL_GLOBALS
-EXTERN volatile systime_t g_system_timer;
+EXTERN volatile clock_t g_system_timer;
 
 #ifndef CONFIG_SYSTEM_TIME64
 #  define clock_systimer() g_system_timer
@@ -271,6 +269,13 @@ EXTERN volatile systime_t g_system_timer;
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+void clock_timespec_add(FAR const struct timespec *ts1,
+                        FAR const struct timespec *ts2,
+                        FAR struct timespec *ts3);
+void clock_timespec_subtract(FAR const struct timespec *ts1,
+                             FAR const struct timespec *ts2,
+                             FAR struct timespec *ts3);
 
 /****************************************************************************
  * Name:  clock_synchronize
@@ -330,8 +335,7 @@ void clock_synchronize(void);
  *
  ****************************************************************************/
 
-#if defined(CONFIG_RTC) && !defined(CONFIG_SCHED_TICKLESS) && \
-    !defined(CONFIG_CLOCK_TIMEKEEPING)
+#if defined(CONFIG_RTC) && !defined(CONFIG_SCHED_TICKLESS)
 void clock_resynchronize(FAR struct timespec *rtc_diff);
 #endif
 
@@ -361,7 +365,7 @@ void clock_resynchronize(FAR struct timespec *rtc_diff);
  ****************************************************************************/
 
 #if !defined(__HAVE_KERNEL_GLOBALS) || defined(CONFIG_SYSTEM_TIME64)
-systime_t clock_systimer(void);
+clock_t clock_systimer(void);
 #endif
 
 /****************************************************************************
@@ -426,6 +430,28 @@ int clock_cpuload(int pid, FAR struct cpuload_s *cpuload);
 #ifdef CONFIG_CPULOAD_ONESHOT
 struct oneshot_lowerhalf_s;
 void sched_oneshot_extclk(FAR struct oneshot_lowerhalf_s *lower);
+#endif
+
+/****************************************************************************
+ * Name:  sched_period_extclk
+ *
+ * Description:
+ *   Configure to use a period timer as described in
+ *   include/nuttx/timers/timer.h to provide external clocking to assess
+ *   the CPU load.
+ *
+ * Input Parameters:
+ *   lower - An instance of the period timer interface as defined in
+ *           include/nuttx/timers/timer.h
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_CPULOAD_PERIOD
+struct timer_lowerhalf_s;
+void sched_period_extclk(FAR struct timer_lowerhalf_s *lower);
 #endif
 
 #undef EXTERN

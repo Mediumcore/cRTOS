@@ -105,7 +105,7 @@ use either the VCOM or an external RS-232 driver.  Here are some options.
 
     EDBG VCOM Interface
     ---------------- --------- --------------------------
-    EDBG Singal      SAME70
+    EDBG Signal      SAME70
     ---------------- --------- --------------------------
     EDBG_CDC_UART_RX TXD1 PB4
     EDBG_CDC_UART_TX RXD1 PA21
@@ -390,8 +390,7 @@ Selecting the GMAC peripheral
   Networking Support
     CONFIG_NET=y                         : Enable Neworking
     CONFIG_NET_SOCKOPTS=y                : Enable socket operations
-    CONFIG_NET_ETH_MTU=562               : Maximum packet size (MTU) 1518 is more standard
-    CONFIG_NET_ETH_TCP_RECVWNDO=562      : Should be the same as CONFIG_NET_ETH_MTU
+    CONFIG_NET_ETH_PKTSIZE=562           : Maximum packet size 1518 is more standard
     CONFIG_NET_ARP=y                     : ARP support should be enabled
     CONFIG_NET_ARP_SEND=y                : Use ARP to get peer address before sending
     CONFIG_NET_TCP=y                     : Enable TCP/IP networking
@@ -1417,7 +1416,7 @@ Configuration sub-directories
          CONFIG_NSH_TELNETD_DAEMONSTACKSIZE=2048
          CONFIG_NSH_TELNETD_CLIENTSTACKSIZE=2048
 
-    3. NSH built-in applications are supported.  There are, however, not
+    3. NSH built-in applications are supported.  There are, however, no
        enabled built-in applications.
 
        Binary Formats:

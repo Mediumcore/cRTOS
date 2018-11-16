@@ -395,9 +395,9 @@ LCD1602
 =======
 
   The on-board LCD is a 2x16 segment LCD and appears to be compatible with
-  the LCD1602 and is like an LCD1602 LCD here.
+  the LCD1602 and is treated like an LCD1602 LCD here.
 
-  LCD pin mapping (see configs/pcblogic-pic32mx/README.txt)
+  LCD pin mapping
 
     --------------------- ---------- ----------------------------------
     PIC32                  Sure JP1   Sure Signal Description
@@ -493,13 +493,6 @@ PIC32MX Configuration Options
     CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
 
     CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
-
-    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-       cause a 100 second delay during boot-up.  This 100 second delay
-       serves no purpose other than it allows you to calibratre
-       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-       the delay actually is 100 seconds.
 
     PIC32MX Configuration
 

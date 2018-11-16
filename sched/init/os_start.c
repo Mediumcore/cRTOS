@@ -55,6 +55,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/sched_note.h>
 #include <nuttx/syslog/syslog.h>
+#include <nuttx/binfmt/binfmt.h>
 #include <nuttx/init.h>
 
 #include "sched/sched.h"
@@ -153,32 +154,38 @@ volatile dq_queue_t g_pendingtasks;
 
 volatile dq_queue_t g_waitingforsemaphore;
 
+#ifndef CONFIG_DISABLE_SIGNALS
 /* This is the list of all tasks that are blocked waiting for a signal */
 
-#ifndef CONFIG_DISABLE_SIGNALS
 volatile dq_queue_t g_waitingforsignal;
 #endif
 
+#ifndef CONFIG_DISABLE_MQUEUE
 /* This is the list of all tasks that are blocked waiting for a message
  * queue to become non-empty.
  */
 
-#ifndef CONFIG_DISABLE_MQUEUE
 volatile dq_queue_t g_waitingformqnotempty;
 #endif
 
+#ifndef CONFIG_DISABLE_MQUEUE
 /* This is the list of all tasks that are blocked waiting for a message
  * queue to become non-full.
  */
 
-#ifndef CONFIG_DISABLE_MQUEUE
 volatile dq_queue_t g_waitingformqnotfull;
 #endif
 
+#ifdef CONFIG_PAGING
 /* This is the list of all tasks that are blocking waiting for a page fill */
 
-#ifdef CONFIG_PAGING
 volatile dq_queue_t g_waitingforfill;
+#endif
+
+#ifdef CONFIG_SIG_SIGSTOP_ACTION
+/* This is the list of all tasks that have been stopped via SIGSTOP or SIGSTP */
+
+volatile dq_queue_t g_stoppedtasks;
 #endif
 
 /* This the list of all tasks that have been initialized, but not yet
@@ -187,14 +194,14 @@ volatile dq_queue_t g_waitingforfill;
 
 volatile dq_queue_t g_inactivetasks;
 
+#if (defined(CONFIG_BUILD_PROTECTED) || defined(CONFIG_BUILD_KERNEL)) && \
+     defined(CONFIG_MM_KERNEL_HEAP)
 /* These are lists of delayed memory deallocations that need to be handled
  * within the IDLE loop or worker thread.  These deallocations get queued
  * by sched_kufree and sched_kfree() if the OS needs to deallocate memory
  * while it is within an interrupt handler.
  */
 
-#if (defined(CONFIG_BUILD_PROTECTED) || defined(CONFIG_BUILD_KERNEL)) && \
-     defined(CONFIG_MM_KERNEL_HEAP)
 volatile sq_queue_t g_delayed_kfree;
 #endif
 
@@ -299,6 +306,13 @@ const struct tasklist_s g_tasklisttable[NUM_TASK_STATES] =
     TLIST_ATTR_PRIORITIZED
   }
 #endif
+#ifdef CONFIG_SIG_SIGSTOP_ACTION
+  ,
+  {                                              /* TSTATE_TASK_STOPPED */
+    &g_stoppedtasks,
+    0                                            /* See tcb->prev_state */
+  },
+#endif
 };
 
 /* This is the current initialization state.  The level of initialization
@@ -396,6 +410,9 @@ void os_start(void)
 #endif
 #ifdef CONFIG_PAGING
   dq_init(&g_waitingforfill);
+#endif
+#ifdef CONFIG_SIG_SIGSTOP_ACTION
+  dq_init(&g_stoppedtasks);
 #endif
   dq_init(&g_inactivetasks);
 #if (defined(CONFIG_BUILD_PROTECTED) || defined(CONFIG_BUILD_KERNEL)) && \
@@ -674,15 +691,9 @@ void os_start(void)
 #endif
 
 #ifdef CONFIG_NET
-  /* Initialize the networking system.  Network initialization is
-   * performed in two steps:  (1) net_setup() initializes static
-   * configuration of the network support.  This must be done prior
-   * to registering network drivers by up_initialize().  This step
-   * cannot require upon any hardware-depending features such as
-   * timers or interrupts.
-   */
+  /* Initialize the networking system */
 
-  net_setup();
+  net_initialize();
 #endif
 
   /* The processor specific details of running the operating system
@@ -697,14 +708,6 @@ void os_start(void)
 
   g_os_initstate = OSINIT_HARDWARE;
 
-#ifdef CONFIG_NET
-  /* Complete initialization the networking system now that interrupts
-   * and timers have been configured by up_initialize().
-   */
-
-  net_initialize();
-#endif
-
 #ifdef CONFIG_MM_SHM
   /* Initialize shared memory support */
 
@@ -716,6 +719,12 @@ void os_start(void)
    */
 
   lib_initialize();
+
+#ifndef CONFIG_BINFMT_DISABLE
+  /* Initialize the binfmt system */
+
+  binfmt_initialize();
+#endif
 
   /* IDLE Group Initialization **********************************************/
   /* Announce that the CPU0 IDLE task has started */

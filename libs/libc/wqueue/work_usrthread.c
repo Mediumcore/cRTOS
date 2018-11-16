@@ -1,7 +1,7 @@
 /****************************************************************************
  * libs/libc/wqueue/work_usrthread.c
  *
- *   Copyright (C) 2009-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <signal.h>
 #include <sched.h>
 #include <errno.h>
 #include <assert.h>
@@ -67,6 +68,12 @@
 #  define WORK_CLOCK CLOCK_MONOTONIC
 #else
 #  define WORK_CLOCK CLOCK_REALTIME
+#endif
+
+#ifdef CONFIG_SYSTEM_TIME64
+#  define WORK_DELAY_MAX UINT64_MAX
+#else
+#  define WORK_DELAY_MAX UINT32_MAX
 #endif
 
 #ifndef MIN
@@ -117,20 +124,22 @@ pthread_mutex_t g_usrmutex;
 void work_process(FAR struct usr_wqueue_s *wqueue)
 {
   volatile FAR struct work_s *work;
+  sigset_t sigset;
+  sigset_t oldset;
   worker_t  worker;
   FAR void *arg;
-  systime_t elapsed;
-  systime_t remaining;
-  systime_t stick;
-  systime_t ctick;
-  systime_t next;
+  clock_t elapsed;
+  clock_t remaining;
+  clock_t stick;
+  clock_t ctick;
+  clock_t next;
   int ret;
 
   /* Then process queued work.  Lock the work queue while we process items
    * in the work list.
    */
 
-  next = wqueue->delay;
+  next = WORK_DELAY_MAX;
   ret = work_lock();
   if (ret < 0)
     {
@@ -139,9 +148,14 @@ void work_process(FAR struct usr_wqueue_s *wqueue)
       return;
     }
 
+  /* Set up the signal mask */
+
+  sigemptyset(&sigset);
+  sigaddset(&sigset, SIGWORK);
+
   /* Get the time that we started this polling cycle in clock ticks. */
 
-  stick = clock_systimer();
+  stick = clock();
 
   /* And check each entry in the work queue.  Since we have locked the
    * work queue we know:  (1) we will not be suspended unless we do
@@ -157,7 +171,7 @@ void work_process(FAR struct usr_wqueue_s *wqueue)
        * zero.  Therefore a delay of zero will always execute immediately.
        */
 
-      ctick   = clock_systimer();
+      ctick   = clock();
       elapsed = ctick - work->qtime;
       if (elapsed >= work->delay)
         {
@@ -209,7 +223,7 @@ void work_process(FAR struct usr_wqueue_s *wqueue)
             }
           else
             {
-              /* Cancelled.. Just move to the next work in the list with
+              /* Canceled.. Just move to the next work in the list with
                * the work queue still locked.
                */
 
@@ -249,29 +263,39 @@ void work_process(FAR struct usr_wqueue_s *wqueue)
         }
     }
 
-  /* Get the delay (in clock ticks) since we started the sampling */
+  /* Unlock the work queue before waiting.  In order to assure that we do
+   * not lose the SIGWORK signal before waiting, we block the SIGWORK
+   * signals before unlocking the work queue.  That will cause in SIGWORK
+   * signals directed to the worker thread to pend.
+   */
 
-  elapsed = clock_systimer() - stick;
-  if (elapsed < wqueue->delay && next > 0)
+  (void)sigprocmask(SIG_BLOCK, &sigset, &oldset);
+  work_unlock();
+
+  if (next == WORK_DELAY_MAX)
     {
-      /* How must time would we need to delay to get to the end of the
-       * sampling period?  The amount of time we delay should be the smaller
-       * of the time to the end of the sampling period and the time to the
-       * next work expiry.
-       */
+      /* Wait indefinitely until signaled with SIGWORK */
 
-      remaining = wqueue->delay - elapsed;
-      next      = MIN(next, remaining);
+      sigwaitinfo(&sigset, NULL);
+    }
+  else
+    {
+      struct timespec rqtp;
+      time_t sec;
 
       /* Wait awhile to check the work list.  We will wait here until
        * either the time elapses or until we are awakened by a signal.
        * Interrupts will be re-enabled while we wait.
        */
 
-      usleep(next * USEC_PER_TICK);
+      sec          = next / 1000000;
+      rqtp.tv_sec  = sec;
+      rqtp.tv_nsec = (next - (sec * 1000000)) * 1000;
+
+      sigtimedwait(&sigset, NULL, &rqtp);
     }
 
-  work_unlock();
+  (void)sigprocmask(SIG_SETMASK, &oldset, NULL);
 }
 
 /****************************************************************************
@@ -339,9 +363,6 @@ static pthread_addr_t work_usrthread(pthread_addr_t arg)
 int work_usrstart(void)
 {
   /* Initialize work queue data structures */
-
-  g_usrwork.delay = CONFIG_LIB_USRWORKPERIOD / USEC_PER_TICK;
-  dq_init(&g_usrwork.q);
 
 #ifdef CONFIG_BUILD_PROTECTED
   {

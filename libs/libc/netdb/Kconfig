@@ -9,6 +9,15 @@ config LIBC_NETDB
 
 menu "NETDB Support"
 
+config LIBC_GAISTRERROR
+	bool "Enable gai_strerror"
+	default n
+	---help---
+		The gai_strerror() function shall return a text string describing an error
+		value for the getaddrinfo() and getnameinfo(). But it can also require a lot
+		of memory. If this option is not selected, gai_strerror() will still exist in
+		the build but it will not decode error values.
+
 menuconfig NETDB_HOSTFILE
 	bool "Network host file support"
 	default n
@@ -44,6 +53,13 @@ menuconfig NETDB_DNSCLIENT
 		resolution via gethostbyname().
 
 if NETDB_DNSCLIENT
+
+config NETDB_DNSCLIENT_RECV_TIMEOUT
+	int "DNS receive tiemout"
+	default 30
+	---help---
+		This the timeout value when DNS receive response after
+		dns_send_query, unit: seconds
 
 config NETDB_DNSCLIENT_ENTRIES
 	int "Number of DNS resolver entries"

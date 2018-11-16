@@ -50,15 +50,15 @@
 
 #include "devif/devif.h"
 #include "arp/arp.h"
-#include "neighbor/neighbor.h"
 #include "tcp/tcp.h"
 #include "udp/udp.h"
 #include "pkt/pkt.h"
 #include "bluetooth/bluetooth.h"
 #include "ieee802154/ieee802154.h"
 #include "icmp/icmp.h"
-#include "icmpv6/icmpv6.h"
 #include "igmp/igmp.h"
+#include "icmpv6/icmpv6.h"
+#include "mld/mld.h"
 #include "ipforward/ipforward.h"
 #include "sixlowpan/sixlowpan.h"
 
@@ -82,7 +82,7 @@ enum devif_packet_type
 
 /* Time of last poll */
 
-systime_t g_polltime;
+clock_t g_polltime;
 
 /****************************************************************************
  * Private Functions
@@ -167,7 +167,7 @@ static void devif_packet_conversion(FAR struct net_driver_s *dev,
 #ifdef CONFIG_NET_ICMPv6
           if (pkttype == DEVIF_ICMP6)
             {
-              /* This packet came from a response to TCP polling and is
+              /* This packet came from a response to ICMPv6 polling and is
                * directed to a radio using 6LoWPAN.  Verify that the outgoing
                * packet is IPv6 with TCP protocol.
                */
@@ -422,6 +422,36 @@ static inline int devif_poll_igmp(FAR struct net_driver_s *dev,
 #endif /* CONFIG_NET_IGMP */
 
 /****************************************************************************
+ * Name: devif_poll_mld
+ *
+ * Description:
+ *   Poll all MLD connections for available packets to send.
+ *
+ * Assumptions:
+ *   This function is called from the MAC device driver with the network
+ *   locked.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_MLD
+static inline int devif_poll_mld(FAR struct net_driver_s *dev,
+                                 devif_poll_callback_t callback)
+{
+  /* Perform the MLD TX poll */
+
+  mld_poll(dev);
+
+  /* Perform any necessary conversions on outgoing ICMPv6 packets */
+
+  devif_packet_conversion(dev, DEVIF_ICMP6);
+
+  /* Call back into the driver */
+
+  return callback(dev);
+}
+#endif /* CONFIG_NET_MLD */
+
+/****************************************************************************
  * Name: devif_poll_udp_connections
  *
  * Description:
@@ -626,6 +656,15 @@ int devif_poll(FAR struct net_driver_s *dev, devif_poll_callback_t callback)
 
   if (!bstop)
 #endif
+#ifdef CONFIG_NET_MLD
+    {
+      /* Check for pending MLD messages */
+
+      bstop = devif_poll_mld(dev, callback);
+    }
+
+  if (!bstop)
+#endif
 #ifdef NET_TCP_HAVE_STACK
     {
       /* Traverse all of the active TCP connections and perform the poll
@@ -708,8 +747,8 @@ int devif_poll(FAR struct net_driver_s *dev, devif_poll_callback_t callback)
 
 int devif_timer(FAR struct net_driver_s *dev, devif_poll_callback_t callback)
 {
-  systime_t now;
-  systime_t elapsed;
+  clock_t now;
+  clock_t elapsed;
   int bstop = false;
 
   /* Get the elapsed time since the last poll in units of half seconds
@@ -733,24 +772,18 @@ int devif_timer(FAR struct net_driver_s *dev, devif_poll_callback_t callback)
        * boundary to avoid error build-up).
        */
 
-      g_polltime += (TICK_PER_HSEC * (systime_t)hsec);
+      g_polltime += (TICK_PER_HSEC * (clock_t)hsec);
 
       /* Perform periodic activitives that depend on hsec > 0 */
 
-#if defined(CONFIG_NET_TCP_REASSEMBLY) && defined(CONFIG_NET_IPv4)
+#ifdef CONFIG_NET_IPv4_REASSEMBLY
       /* Increment the timer used by the IP reassembly logic */
 
       if (g_reassembly_timer != 0 &&
-          g_reassembly_timer < CONFIG_NET_TCP_REASS_MAXAGE)
+          g_reassembly_timer < CONFIG_NET_IPv4_REASS_MAXAGE)
         {
           g_reassembly_timer += hsec;
         }
-#endif
-
-#ifdef CONFIG_NET_IPv6
-      /* Perform aging on the entries in the Neighbor Table */
-
-       neighbor_periodic(hsec);
 #endif
 
 #ifdef NET_TCP_HAVE_STACK

@@ -10,7 +10,7 @@ NucleoL432KC:
 
   Microprocessor: 32-bit ARM Cortex M4 at 80MHz STM32L432KCU6
   Memory:         256 KB Flash and 64 KB SRAM
-  ADC:            2×12-bit, 2.4 MSPS A/D converter: up to 24 channels
+  ADC:            1×12-bit, 5 MSPS A/D converter: up to 10 channels
   DMA:            16-stream DMA controllers with FIFOs and burst support
   Timers:         Up to 11 timers: up to five 16-bit, one 32-bit, two low-power
                   16 bit timers, two watchdog timers, and a SysTick timer
@@ -20,7 +20,6 @@ NucleoL432KC:
   SPIs:           Up to 2 SPIs
   SAIs:           1 dual-channel audio interface
   CAN interface
-  SDIO interface
   QSPI interface
   USB:            USB 2.0 full-speed device/host/OTG controller with on-chip PHY
   CRC calculation unit
@@ -28,7 +27,7 @@ NucleoL432KC:
 
 Board features:
 
-  Peripherals:    1 led, 1 push button
+  Peripherals:    1 led
   Debug:          Serial wire debug and JTAG interfaces via on-board micro-usb stlink v2.1
   Expansion I/F   Arduino Nano Headers
 
@@ -53,6 +52,7 @@ Contents
     - USARTs and Serial Consoles
   - QFN32
   - mbed
+  - SPI Flash support
   - Configurations
 
 Nucleo-32 Boards
@@ -311,14 +311,9 @@ mbed
 Hardware
 ========
 
-  Buttons
-  -------
-  B1 USER: the user button is connected to the I/O PC13 (pin 2) of the STM32
-  microcontroller.
-
   LEDs
   ----
-  The Nucleo L432KC provides a single user LED, LD2.  LD2
+  The Nucleo L432KC provides a single user LED, LD3.  LD3
   is the green LED connected to Arduino signal D13 corresponding to MCU I/O
   PB3 (pin 26).
 
@@ -328,9 +323,9 @@ Hardware
   These LEDs are not used by the board port unless CONFIG_ARCH_LEDS is
   defined.  In that case, the usage by the board port is defined in
   include/board.h and src/sam_leds.c. The LEDs are used to encode OS-related
-  events as follows when the red LED (PE24) is available:
+  events as follows when the LED is available:
 
-    SYMBOL                Meaning                   LD2
+    SYMBOL                Meaning                   LD3
     -------------------  -----------------------  -----------
     LED_STARTED          NuttX has been started     OFF
     LED_HEAPALLOCATE     Heap has been allocated    OFF
@@ -342,8 +337,8 @@ Hardware
     LED_PANIC            The system has crashed     Blinking
     LED_IDLE             MCU is is sleep mode       Not used
 
-  Thus if LD2, NuttX has successfully booted and is, apparently, running
-  normally.  If LD2 is flashing at approximately 2Hz, then a fatal error
+  Thus if LD3, NuttX has successfully booted and is, apparently, running
+  normally.  If LD3 is flashing at approximately 2Hz, then a fatal error
   has been detected and the system has halted.
 
 Serial Consoles
@@ -446,6 +441,61 @@ Serial Consoles
   -------
   As shipped, SB62 and SB63 are open and SB13 and SB14 closed, so the
   virtual COM port is enabled.
+
+SPI Flash support:
+=====================
+
+  We can use an external SPI Serial Flash with nucleo-l432kc board. In this
+  case we tested with AT45DB081D (8Mbit = 1MiB).
+
+  You can connect the AT45DB081D memory in the nucleo-l432kc board this way:
+
+  --------------------------------
+  | Memory        nucleo-l432kc  |
+  |------------------------------|
+  | SI      --->  D11 (PB5)      |
+  | SCK     --->  D13 (PB3)      |
+  | /RESET  --->  3V3            |
+  | /CS     --->  D10 (PA11)     |
+  | /WP     --->  3V3            |
+  | VCC     --->  3V3            |
+  | GND     --->  GND            |
+  | SO      --->  D12 (PB4)      |
+  --------------------------------
+
+  You can start with default "nucleo-l432kc/nsh" configuration option and
+  enable/disable these options using "make menuconfig" :
+
+  System Type  --->
+      STM32L4 Peripheral Support  --->
+          [*] SPI1
+
+  Device Drivers  --->
+      -*- Memory Technology Device (MTD) Support  --->
+              -*-   SPI-based AT45DB flash
+              (1000000) AT45DB Frequency
+
+  File Systems  --->
+      [*] NXFFS file system
+
+
+  Then after compiling and flashing the file nuttx.bin you can test the flash
+  this way:
+
+  nsh> ls /mnt
+  /mnt:
+   at45db/
+
+  nsh> echo "Testing" > /mnt/at45db/file.txt
+
+  nsh> ls /mnt/at45db
+  /mnt/at45db:
+   file.txt
+
+  nsh> cat /mnt/at45db/file.txt
+  Testing
+
+  nsh>
 
 Configurations
 ==============

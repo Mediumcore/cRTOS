@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/task/task_start.c
  *
- *   Copyright (C) 2007-2010, 2013 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2010, 2013, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,21 +42,29 @@
 #include <stdlib.h>
 #include <sched.h>
 #include <debug.h>
+#include <string.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/sched.h>
 
+#include "group/group.h"
 #include "sched/sched.h"
+#include "signal/signal.h"
 #include "task/task.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* This is an artificial limit to detect error conditions where an argv[]
  * list is not properly terminated.
  */
 
 #define MAX_START_ARGS 256
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
 
 /****************************************************************************
  * Public Functions
@@ -85,6 +93,12 @@ void task_start(void)
   int argc;
 
   DEBUGASSERT((tcb->cmn.flags & TCB_FLAG_TTYPE_MASK) != TCB_FLAG_TTYPE_PTHREAD);
+
+#ifdef CONFIG_SIG_DEFAULT
+  /* Set up default signal actions */
+
+  nxsig_default_initialize(&tcb->cmn);
+#endif
 
   /* Execute the start hook if one has been registered */
 

@@ -23,7 +23,7 @@ config NETDEV_TELNET
 	---help---
 		The Telnet driver generates a character driver instance to support a
 		Telnet session.  This driver is used by the Telnet daemon.  The
-		Telnet daeman will instantiate a new Telnet driver to support
+		Telnet daemon will instantiate a new Telnet driver to support
 		standard I/O on the new Telnet session.
 
 if NETDEV_TELNET
@@ -61,35 +61,6 @@ config NETDEV_STATISTICS
 	---help---
 		Enable to collect statistics from the network drivers (if supported
 		by the network driver).
-
-config NETDEV_LATEINIT
-	bool "Late driver initialization"
-	default n
-	---help---
-		Normally, networking initialization occur in the later phase of the
-		boot process in the function up_initialize() when it calls the
-		driver initialization function, up_netintialize().  This
-		initialization occurs after a sufficient about of the OS has been
-		initialized so that driver registration can be performed, but
-		before the completion of OS initialization and before the first
-		application is started.
-
-		In a few situations, however, you may want to suppress this early
-		network driver initialization.  As examples:
-
-			- If you are using SLIP or PPPD, then there will be no network
-			  driver to be initialized,
-			- Certain multi-network configurations where a simple call to
-			  up_netinitialize() may be insufficient, and
-			- Situations where there are other board-level hardware
-			  dependencies so that the hardware is not in an appropriate
-			  state for up_netinitialize() to be called.
-
-		Examples of this latter situation includes such things as network
-		drivers that required some setup via an I2C I/O expander, or network
-		drivers that depend on USB, SPI, I2C, PCI, serial, or other
-		interfaces that may not be ready when up_netiniailize() is normally
-		called.
 
 config NET_DUMPPACKET
 	bool "Enable packet dumping"
@@ -149,7 +120,7 @@ choice
 	default DM9X_MODE_AUTO
 
 config DM9X_MODE_AUTO
-	bool "Autonegotion"
+	bool "Autonegotiation"
 
 config DM9X_MODE_10MHD
 	bool "10BaseT half duplex"
@@ -166,7 +137,7 @@ config DM9X_MODE_100MFD
 endchoice # DM90x0 mode
 
 config DM9X_NINTERFACES
-	int "Nubmer of DM90x0 interfaces"
+	int "Number of DM90x0 interfaces"
 	default 1
 	depends on EXPERIMENTAL
 
@@ -314,7 +285,7 @@ config ENCX24J600_NRXDESCR
 		Defines how many descriptors are preallocated for the
 		transmission and reception queues.
 		The ENC has a relative large packet buffer of 24kB which can
-		be used to buffer multiple packets silmutaneously
+		be used to buffer multiple packets simutaneously
 
 choice
 	prompt "Work queue"
@@ -431,6 +402,38 @@ config FTMAC100_LPWORK
 endchoice # Work queue
 
 endif # NET_FTMAC100
+
+menuconfig NET_LAN91C111
+	bool "Microchip LAN91C111 Support"
+	select ARCH_HAVE_NETDEV_STATISTICS
+	---help---
+		References:
+		LAN91C111 Data Sheet, 10/100 Non-PCI Ethernet Single Chip MAC + PHY
+		DS00002276A, 2016 Microchip Technology Inc.
+
+if NET_LAN91C111
+
+choice
+	prompt "Work queue"
+	default LAN91C111_LPWORK if SCHED_LPWORK
+	default LAN91C111_HPWORK if !SCHED_LPWORK && SCHED_HPWORK
+	depends on SCHED_WORKQUEUE
+	---help---
+		Work queue support is required to use the Ethernet driver. If the
+		low priority work queue is available, then it should be used by the
+		driver.
+
+config LAN91C111_HPWORK
+	bool "High priority"
+	depends on SCHED_HPWORK
+
+config LAN91C111_LPWORK
+	bool "Low priority"
+	depends on SCHED_LPWORK
+
+endchoice # Work queue
+
+endif # NET_LAN91C111
 
 if ARCH_HAVE_PHY
 

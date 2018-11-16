@@ -561,6 +561,12 @@ ipforward
   Additional required settings will also be selected when you manually
   select the above via 'make menuconfig'.
 
+loadable
+
+  This configuration provides an example of loadable apps.  It cannot used
+  with any Windows configuration, however, because Windows does not use
+  the ELF format.
+
 minibasic
 
   This configuration was used to test the Mini Basic port at
@@ -685,7 +691,7 @@ nx
 
      This version has NO DISPLAY and is only useful for debugging NX
      internals in environments where X11 is not supported.  There is
-     and additonal configuration that may be added to include an X11-
+     and additional configuration that may be added to include an X11-
      based simulated framebuffer driver:
 
        CONFIG_SIM_X11FB    - Use X11 window for framebuffer
@@ -779,8 +785,8 @@ nx11
 
 nxffs
 
-  This is the apps/examples/nxffs test using a MTD RAM driver to
-  simulate the FLASH part.
+  This is a test of the NXFFS file system using the apps/examples/nxffs
+  test with an MTD RAM driver to simulate the FLASH part.
 
 nxlines
 
@@ -791,15 +797,11 @@ nxwm
   This is a special configuration setup for the NxWM window manager
   UnitTest.  The NxWM window manager can be found here:
 
-    nuttx-code/NxWidgets/nxwm
+    apps/graphics/NxWidgets/nxwm
 
   The NxWM unit test can be found at:
 
-    nuttx-code/NxWidgets/UnitTests/nxwm
-
-  Documentation for installing the NxWM unit test can be found here:
-
-    nuttx-code/NxWidgets/UnitTests/READEM.txt
+    apps/graphics/NxWidgets/UnitTests/nxwm
 
   NOTES
 
@@ -889,6 +891,11 @@ sixlowpan
   returned packet.
 
   See also the 'pktradio' configuration.
+
+spiffs
+
+  This is a test of the SPIFFS file system using the apps/examples/fstest
+  test with an MTD RAM driver to simulate the FLASH part.
 
 touchscreen
 

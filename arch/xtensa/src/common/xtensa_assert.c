@@ -64,6 +64,10 @@
 #  undef CONFIG_ARCH_USBDUMP
 #endif
 
+#ifndef CONFIG_BOARD_RESET_ON_ASSERT
+#  define CONFIG_BOARD_RESET_ON_ASSERT 0
+#endif
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -116,6 +120,10 @@ static void xtensa_assert(int errorcode)
   board_crashdump(up_getsp(), this_task(), filename, lineno);
 #endif
 
+  /* Flush any buffered SYSLOG data (from the above) */
+
+  (void)syslog_flush();
+
   /* Are we in an interrupt handler or the idle task? */
 
   if (CURRENT_REGS || this_task()->pid == 0)
@@ -125,6 +133,9 @@ static void xtensa_assert(int errorcode)
        (void)up_irq_save();
         for (; ; )
           {
+#if CONFIG_BOARD_RESET_ON_ASSERT >= 1
+            board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
+#endif
 #ifdef CONFIG_ARCH_LEDS
             board_autoled_on(LED_PANIC);
             up_mdelay(250);
@@ -137,6 +148,9 @@ static void xtensa_assert(int errorcode)
     {
       /* Assertions in other contexts only cause the thread to exit */
 
+#if CONFIG_BOARD_RESET_ON_ASSERT >= 2
+      board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
+#endif
       exit(errorcode);
     }
 }
@@ -156,6 +170,10 @@ void up_assert(const uint8_t *filename, int lineno)
 #endif
 
   board_autoled_on(LED_ASSERTION);
+
+  /* Flush any buffered SYSLOG data (from prior to the assertion) */
+
+  (void)syslog_flush();
 
 #if CONFIG_TASK_NAME_SIZE > 0
   _alert("Assertion failed at file:%s line: %d task: %s\n",
@@ -199,6 +217,10 @@ void xtensa_panic(int xptcode, uint32_t *regs)
   /* We get here when a un-dispatch-able, irrecoverable exception occurs */
 
   board_autoled_on(LED_ASSERTION);
+
+  /* Flush any buffered SYSLOG data (from prior to the panic) */
+
+  (void)syslog_flush();
 
 #if CONFIG_TASK_NAME_SIZE > 0
   _alert("Unhandled Exception %d task: %s\n", xptcode, rtcb->name);
@@ -299,6 +321,10 @@ void xtensa_user(int exccause, uint32_t *regs)
   /* We get here when a un-dispatch-able, irrecoverable exception occurs */
 
   board_autoled_on(LED_ASSERTION);
+
+  /* Flush any buffered SYSLOG data (from prior to the error) */
+
+  (void)syslog_flush();
 
 #if CONFIG_TASK_NAME_SIZE > 0
   _alert("User Exception: EXCCAUSE=%04x task: %s\n", exccause, rtcb->name);

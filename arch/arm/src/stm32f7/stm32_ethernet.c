@@ -201,7 +201,7 @@
  * will use the 16-byte alignment in all cases.
  */
 
-#define OPTIMAL_ETH_BUFSIZE ((CONFIG_NET_ETH_MTU + 4 + 15) & ~15)
+#define OPTIMAL_ETH_BUFSIZE ((CONFIG_NET_ETH_PKTSIZE + 4 + 15) & ~15)
 
 #ifdef CONFIG_STM32F7_ETH_BUFSIZE
 #  define ETH_BUFSIZE CONFIG_STM32F7_ETH_BUFSIZE
@@ -726,10 +726,10 @@ static int  stm32_ifdown(struct net_driver_s *dev);
 static void stm32_txavail_work(void *arg);
 static int  stm32_txavail(struct net_driver_s *dev);
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int  stm32_addmac(struct net_driver_s *dev, const uint8_t *mac);
 #endif
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int  stm32_rmmac(struct net_driver_s *dev, const uint8_t *mac);
 #endif
 #ifdef CONFIG_NETDEV_IOCTL
@@ -1159,7 +1159,7 @@ static int stm32_transmit(struct stm32_ethmac_s *priv)
 
       /* Set frame size */
 
-      DEBUGASSERT(priv->dev.d_len <= CONFIG_NET_ETH_MTU);
+      DEBUGASSERT(priv->dev.d_len <= CONFIG_NET_ETH_PKTSIZE);
       txdesc->tdes1 = priv->dev.d_len;
 
       /* Set the Buffer1 address pointer */
@@ -1305,44 +1305,47 @@ static int stm32_txpoll(struct net_driver_s *dev)
         }
 #endif /* CONFIG_NET_IPv6 */
 
-      /* Send the packet */
-
-      stm32_transmit(priv);
-      DEBUGASSERT(dev->d_len == 0 && dev->d_buf == NULL);
-
-      /* Check if the next TX descriptor is owned by the Ethernet DMA or CPU.  We
-       * cannot perform the TX poll if we are unable to accept another packet for
-       * transmission.
-       *
-       * In a race condition, ETH_TDES0_OWN may be cleared BUT still not available
-       * because stm32_freeframe() has not yet run.  If stm32_freeframe() has run,
-       * the buffer1 pointer (tdes2) will be nullified (and inflight should be <
-       * CONFIG_STM32F7_ETH_NTXDESC).
-       */
-
-      if ((priv->txhead->tdes0 & ETH_TDES0_OWN) != 0 ||
-           priv->txhead->tdes2 != 0)
+      if (!devif_loopback(&priv->dev))
         {
-          /* We have to terminate the poll if we have no more descriptors
-           * available for another transfer.
+          /* Send the packet */
+
+          stm32_transmit(priv);
+          DEBUGASSERT(dev->d_len == 0 && dev->d_buf == NULL);
+
+          /* Check if the next TX descriptor is owned by the Ethernet DMA or CPU.  We
+           * cannot perform the TX poll if we are unable to accept another packet for
+           * transmission.
+           *
+           * In a race condition, ETH_TDES0_OWN may be cleared BUT still not available
+           * because stm32_freeframe() has not yet run.  If stm32_freeframe() has run,
+           * the buffer1 pointer (tdes2) will be nullified (and inflight should be <
+           * CONFIG_STM32F7_ETH_NTXDESC).
            */
 
-          return -EBUSY;
-        }
+          if ((priv->txhead->tdes0 & ETH_TDES0_OWN) != 0 ||
+               priv->txhead->tdes2 != 0)
+            {
+              /* We have to terminate the poll if we have no more descriptors
+               * available for another transfer.
+               */
 
-      /* We have the descriptor, we can continue the poll. Allocate a new
-       * buffer for the poll.
-       */
+              return -EBUSY;
+            }
 
-      dev->d_buf = stm32_allocbuffer(priv);
+          /* We have the descriptor, we can continue the poll. Allocate a new
+           * buffer for the poll.
+           */
 
-      /* We can't continue the poll if we have no buffers */
+          dev->d_buf = stm32_allocbuffer(priv);
 
-      if (dev->d_buf == NULL)
-        {
-          /* Terminate the poll. */
+          /* We can't continue the poll if we have no buffers */
 
-          return -ENOMEM;
+          if (dev->d_buf == NULL)
+            {
+              /* Terminate the poll. */
+
+              return -ENOMEM;
+            }
         }
     }
 
@@ -1784,7 +1787,7 @@ static void stm32_receive(struct stm32_ethmac_s *priv)
        * (this should not happen)
        */
 
-      if (dev->d_len > CONFIG_NET_ETH_MTU)
+      if (dev->d_len > CONFIG_NET_ETH_PKTSIZE)
         {
           nwarn("WARNING: DROPPED Too big: %d\n", dev->d_len);
           continue;
@@ -2600,7 +2603,7 @@ static int stm32_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static uint32_t stm32_calcethcrc(const uint8_t *data, size_t length)
 {
   uint32_t crc = 0xffffffff;
@@ -2645,7 +2648,7 @@ static uint32_t stm32_calcethcrc(const uint8_t *data, size_t length)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int stm32_addmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   uint32_t crc;
@@ -2682,7 +2685,7 @@ static int stm32_addmac(struct net_driver_s *dev, const uint8_t *mac)
 
   return OK;
 }
-#endif /* CONFIG_NET_IGMP || CONFIG_NET_ICMPv6 */
+#endif /* CONFIG_NET_MCASTGROUP || CONFIG_NET_ICMPv6 */
 
 /****************************************************************************
  * Function: stm32_rmmac
@@ -2702,7 +2705,7 @@ static int stm32_addmac(struct net_driver_s *dev, const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int stm32_rmmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   uint32_t crc;
@@ -4093,7 +4096,7 @@ int stm32_ethinitialize(int intf)
   priv->dev.d_ifup    = stm32_ifup;     /* I/F up (new IP address) callback */
   priv->dev.d_ifdown  = stm32_ifdown;   /* I/F down callback */
   priv->dev.d_txavail = stm32_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->dev.d_addmac  = stm32_addmac;   /* Add multicast MAC address */
   priv->dev.d_rmmac   = stm32_rmmac;    /* Remove multicast MAC address */
 #endif

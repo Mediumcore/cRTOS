@@ -114,11 +114,11 @@ int nxsem_post(FAR sem_t *sem)
        * not possible to know which thread/holder should be released.
        *
        * For this reason, it is recommended that priority inheritance be
-       * disabled via nxsem_setprotocol(SEM_PRIO_NONE) when the semahore is
-       * initialixed if the semaphore is to used for signaling purposes.
+       * disabled via nxsem_setprotocol(SEM_PRIO_NONE) when the semaphore is
+       * initialized if the semaphore is to used for signaling purposes.
        */
 
-      ASSERT(sem->semcount < SEM_VALUE_MAX);
+      DEBUGASSERT(sem->semcount < SEM_VALUE_MAX);
       nxsem_releaseholder(sem);
       sem->semcount++;
 
@@ -165,12 +165,14 @@ int nxsem_post(FAR sem_t *sem)
 
               up_unblock_task(stcb);
             }
+#if 0 /* REVISIT:  This can fire on IOB throttle semaphore */
           else
             {
               /* This should not happen. */
 
               DEBUGPANIC();
             }
+#endif
         }
 
       /* Check if we need to drop the priority of any threads holding

@@ -17,7 +17,7 @@ README
     - NuttX Configuration Tool
     - Finding Selections in the Configuration Menus
     - Reveal Hidden Configuration Options
-    - Make Sure that You on on the Right Platform
+    - Make Sure that You are on the Right Platform
     - Comparing Two Configurations
     - Making defconfig Files
     - Incompatibilities with Older Configurations
@@ -173,6 +173,7 @@ Using MSYS
     pacman -S git
     pacman -S make
     pacman -S gcc
+    pacman -S gdb
 
   And possibly others depending upon your usage.  Then you will need to
   build and install kconfig-frontends per the instructions of the top-level
@@ -192,7 +193,7 @@ Using MSYS
 
   Unlike Cygwin, MSYS does not support symbolic links.  The 'ln -s' commnad
   will, in fact, copy a directory!  This means that you Make.defs file will
-  have to include  defintion like:
+  have to include definitions like:
 
     ifeq ($(CONFIG_WINDOWS_MSYS),y)
       DIRLINK = $(TOPDIR)/tools/copydir.sh
@@ -200,7 +201,9 @@ Using MSYS
     endif
 
   This will force the directory copies to work in a way that can be handled
-  by the NuttX build system.
+  by the NuttX build system.  NOTE:  The default link.sh script has been
+  updated so that is should now be MSYS2 compatible.  The above is preferred
+  but no longer necessary in the Make.defs file.
 
   To build the simulator under MSYS, you also need:
 
@@ -338,7 +341,7 @@ Ubuntu Bash under Windows 10
   for the needs of your project.
 
   You will also need to get the kconfig-frontends configuration as
-  described below under "NuttX Configuration tool".  In order to build the
+  described below under "NuttX Configuration Tool".  In order to build the
   kconfig-frontends configuration tool you will also need:  make, gperf,
   flex, bison, and libncurses-dev.
 
@@ -1554,7 +1557,7 @@ Strange Path Problems
 
   When you install some toolchains (such as Yargarto or CodeSourcery tools),
   they may modify your PATH variable to include a path to their binaries.
-  At that location, they make have GNUWin32 versions of the tools.  So you
+  At that location, they may have GNUWin32 versions of the tools.  So you
   might actually be using a version of make that does not understand Cygwin
   paths.
 
@@ -1704,7 +1707,8 @@ nuttx/
  |   |
  |   |- arm/
  |   |   `- src
- |   |       `- lpc214x/README.txt
+ |   |       |- lpc214x/README.txt
+ |   |       `- stm32l4/README.txt
  |   |- renesas/
  |   |   |- include/
  |   |   |   `-README.txt
@@ -1787,6 +1791,8 @@ nuttx/
  |   |   `- README.txt
  |   |- freedom-kl26z/
  |   |   `- README.txt
+ |   |- gapuino/
+ |   |   `- README.txt
  |   |- hymini-stm32v/
  |   |   `- README.txt
  |   |- imxrt1050-evk
@@ -1824,6 +1830,8 @@ nuttx/
  |   |- mcb1700/
  |   |   `- README.txt
  |   |- mcu123-lpc214x/
+ |   |   `- README.txt
+ |   |- metro-m4/
  |   |   `- README.txt
  |   |- micropendous3/
  |   |   `- README.txt
@@ -1890,8 +1898,6 @@ nuttx/
  |   |   `- README.txt
  |   |- p112/
  |   |   `- README.txt
- |   |- pcblogic-pic32mx/
- |   |   `- README.txt
  |   |- pcduino-a10/
  |   |   `- README.txt
  |   |- photon/
@@ -1949,8 +1955,6 @@ nuttx/
  |   |   |- RIDE/README.txt
  |   |   `- README.txt
  |   |- stm3220g-eval/
- |   |   |-ide/nsh/iar/README.txt
- |   |   |-ide/nsh/uvision/README.txt
  |   |   `- README.txt
  |   |- stm3240g-eval/
  |   |   `- README.txt
@@ -1966,9 +1970,11 @@ nuttx/
  |   |   `- README.txt
  |   |- stm32f429i-disco/
  |   |   |- fb/README.txt
- |   |   |- ide/ltcd/uvision/README.txt
  |   |   `- README.txt
  |   |- stm32f746g-disco/
+ |   |   _- fb/README.txt
+ |   |   _- nxdemo/README.txt
+ |   |   _- nxterm/README.txt
  |   |   `- README.txt
  |   |- stm32f769i-disco/
  |   |   `- README.txt
@@ -1976,6 +1982,8 @@ nuttx/
  |   |   `- README.txt
  |   |- stm32l476vg-disco/
  |   |   `- README.txt
+ |   |- stm32l4r9ai-disco/
+ |   |   `-README.txt
  |   |- stm32ldiscovery/
  |   |   `- README.txt
  |   |- stm32vldiscovery/
@@ -2051,6 +2059,8 @@ nuttx/
  |   |   `- README.txt
  |   |- procfs/
  |   |   `- README.txt
+ |   |- spiffs/
+ |   |   `- README.md
  |   `- unionfs/
  |       `- README.txt
  |- graphics/
@@ -2077,6 +2087,8 @@ nuttx/
  |   |- sixlowpan
  |   |   `- README.txt
  |   `- README.txt
+ |- pass1/
+ |   `- README.txt
  |- syscall/
  |   `- README.txt
  `- tools/
@@ -2097,21 +2109,21 @@ apps/
  |   |- tiff/README.txt
  |   `- traveler/tools/tcledit/README.txt
  |- interpreters/
- |   |- bas
+ |   |- bas/
  |   |  `- README.txt
- |   |- ficl
+ |   |- ficl/
  |   |  `- README.txt
  |   `- README.txt
  |- modbus/
  |   `- README.txt
  |- netutils/
- |   |- discover
+ |   |- discover/
  |   |  `- README.txt
- |   |- ftpc
+ |   |- ftpc/
  |   |  `- README.txt
- |   |- json
+ |   |- json/
  |   |  `- README.txt
- |   |- telnetd
+ |   |- telnetd/
  |   |  `- README.txt
  |   `- README.txt
  |- nshlib/
@@ -2119,28 +2131,30 @@ apps/
  |- NxWidgets/
  |   `- README.txt
  |- system/
- |   |- cdcacm
+ |   |- cdcacm/
  |   |  `- README.txt
- |   |- i2c
+ |   |- i2c/
  |   |  `- README.txt
- |   |- inifile
+ |   |- inifile/
  |   |  `- README.txt
- |   |- install
+ |   |- install/
  |   |  `- README.txt
- |   |- nxplayer
+ |   |- nsh/
+ |   |  `- README.txt
+ |   |- nxplayer/
  |   |  `- README.txt
  |   |- symtab/
  |   |   `- README.txt
- |   |- usbmsc
+ |   |- usbmsc/
  |   |  `- README.txt
- |   `- zmodem
+ |   `- zmodem/
  |      `- README.txt
  `- wireless
-     |- bluetooth
-     |  `- btsak
+     |- bluetooth/
+     |  `- btsak/
      |     `- README.txt
      `- ieee802154
-        `- i8sak
+        `- i8sak/
            `- README.txt
 
 Additional README.txt files in the other, related repositories:

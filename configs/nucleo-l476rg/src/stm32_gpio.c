@@ -162,7 +162,7 @@ static int stm32gpio_interrupt(int irq, void *context, void *arg)
   DEBUGASSERT(stm32gpint != NULL && stm32gpint->callback != NULL);
   gpioinfo("Interrupt! callback=%p\n", stm32gpint->callback);
 
-  stm32gpint->callback(&stm32gpint->stm32gpio.gpio);
+  stm32gpint->callback(&stm32gpint->stm32gpio.gpio, tm32gpint->stm32gpio.id);
   return OK;
 }
 
@@ -330,7 +330,7 @@ int stm32l4_gpio_initialize(void)
       pincount++;
     }
 #endif
-  
+
   return 0;
 }
 #endif /* CONFIG_DEV_GPIO && !CONFIG_GPIO_LOWER_HALF */

@@ -235,7 +235,7 @@ int sixlowpan_nexthopaddr(FAR struct radio_driver_s *radio,
  *
  *    128  112  96   80    64   48   32   16
  *    ---- ---- ---- ----  ---- ---- ---- ----
- *    ff02 xxxx xxxx xxxx  xxxx xxxx xxxx xxxx Multicast
+ *    ffxx xxxx xxxx xxxx  xxxx xxxx xxxx xxxx Multicast address (RFC 3513)
  *    ff02 0000 0000 0000  0000 0000 0000 0001 All nodes multicast group
  *    xxxx 0000 0000 0000  0000 00ff fe00 xx00 1-byte short address IEEE 48-bit MAC
  *    xxxx 0000 0000 0000  0000 00ff fe00 xxxx 2-byte short address IEEE 48-bit MAC
@@ -272,41 +272,44 @@ int sixlowpan_destaddrfromip(FAR struct radio_driver_s *radio,
 
 #else /* CONFIG_NET_STARPOINT */
 
-   /* Check for a multicast address */
+  /* Check for a multicast address */
 
-   if (ipaddr[0] == HTONS(0xff02))
-     {
-        DEBUGASSERT(radio->r_properties != NULL);
-        ret = radio->r_properties(radio, &properties);
-        if (ret < 0)
-          {
-            return ret;
-          }
+  if (net_is_addr_mcast(ipaddr))
+    {
+      DEBUGASSERT(radio->r_properties != NULL);
+      ret = radio->r_properties(radio, &properties);
+      if (ret < 0)
+        {
+          return ret;
+        }
 
-        /* Check for the broadcast IP address
-         *
-         * IPv6 does not implement the method of broadcast, and therefore
-         * does not define broadcast addresses. Instead, IPv6 uses multicast
-         * addressing to the all-nodes multicast group: ff02:0:0:0:0:0:0:1.
-         *
-         * However, the use of the all-nodes group is not common, and most
-         * IPv6 protocols use a dedicated link-local multicast group to avoid
-         * disturbing every interface in the network.
-         */
+      /* Check for the broadcast IP address
+       *
+       * IPv6 does not implement the method of broadcast, and therefore
+       * does not define broadcast addresses. Instead, IPv6 uses multicast
+       * addressing to the all-nodes multicast group: ff02:0:0:0:0:0:0:1.
+       *
+       * However, the use of the all-nodes group is not common, and most
+       * IPv6 protocols use a dedicated link-local multicast group to avoid
+       * disturbing every interface in the network.
+       */
 
-        if (net_ipv6addr_cmp(ipaddr, g_ipv6_allnodes))
-          {
-            memcpy(destaddr, &properties.sp_bcast,
-                   sizeof(struct netdev_varaddr_s));
-          }
-        else
-          {
-            memcpy(destaddr, &properties.sp_mcast,
-                   sizeof(struct netdev_varaddr_s));
-          }
+      if (net_ipv6addr_cmp(ipaddr, g_ipv6_allnodes))
+        {
+          memcpy(destaddr, &properties.sp_bcast,
+                 sizeof(struct netdev_varaddr_s));
+        }
 
-          return OK;
-     }
+      /* Some other RFC 3513 multicast address */
+
+      else
+        {
+          memcpy(destaddr, &properties.sp_mcast,
+                 sizeof(struct netdev_varaddr_s));
+        }
+
+      return OK;
+    }
 
   /* Otherwise, the destination MAC address is encoded in the IP address */
 

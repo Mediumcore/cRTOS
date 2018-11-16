@@ -125,7 +125,7 @@ include tools/Directories.mk
 #
 # Extra objects used in the final link.
 #
-# Pass 1 1ncremental (relative) link objects should be put into the
+# Pass 1 Incremental (relative) link objects should be put into the
 # processor-specific source directory (where other link objects will
 # be created).  If the pass1 object is an archive, it could go anywhere.
 
@@ -166,10 +166,10 @@ MKEXPORT_ARGS = -w$(WINTOOL) -t "$(TOPDIR)"
 
 ifeq ($(CONFIG_BUILD_PROTECTED),y)
 MKEXPORT_ARGS += -u
-else
-ifeq ($(CONFIG_BUILD_KERNEL),y)
+else ifeq ($(CONFIG_BUILD_KERNEL),y)
 MKEXPORT_ARGS += -u
-endif
+else ifeq ($(CONFIG_BUILD_LOADABLE),y)
+MKEXPORT_ARGS += -u
 endif
 
 ifeq ($(V),2)
@@ -586,10 +586,10 @@ clean: subdir_clean
 	$(call DELFILE, nuttx.*)
 	$(call DELFILE, *.map)
 	$(call DELFILE, _SAVED_APPS_config)
-	$(call DELFILE, nuttx-export*)
+	$(call DELFILE, nuttx-export*.zip)
+	$(call DELDIR, nuttx-export*)
 	$(call DELFILE, nuttx_user*)
-	$(call DELFILE, .cproject)
-	$(call DELFILE, .project)
+	$(call DELDIR, staging)
 	$(call CLEAN)
 
 subdir_distclean:
@@ -607,7 +607,6 @@ endif
 	$(call DELFILE, .config)
 	$(call DELFILE, .config.old)
 	$(call DELFILE, .gdbinit)
-	$(call DELDIR, staging)
 
 # Application housekeeping targets.  The APPDIR variable refers to the user
 # application directory.  A sample apps/ directory is included with NuttX,

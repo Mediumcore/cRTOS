@@ -107,7 +107,7 @@ struct send_s
   uint32_t                snd_isn;     /* Initial sequence number */
   uint32_t                snd_acked;   /* The number of bytes acked */
 #ifdef CONFIG_NET_SOCKOPTS
-  systime_t               snd_time;    /* Last send time for determining timeout */
+  clock_t                 snd_time;    /* Last send time for determining timeout */
 #endif
 #if defined(CONFIG_NET_TCP_SPLIT)
   bool                    snd_odd;     /* True: Odd packet in pair transaction */
@@ -257,9 +257,8 @@ static inline bool psock_send_addrchck(FAR struct tcp_conn_s *conn)
 #ifdef CONFIG_NET_ROUTE
       in_addr_t router;
 #endif
-
 #if !defined(CONFIG_NET_ARP_IPIN) && !defined(CONFIG_NET_ARP_SEND)
-      if (arp_find(conn->u.ipv4.raddr) != NULL)
+      if (arp_find(conn->u.ipv4.raddr, NULL) >= 0)
         {
           /* Return true if the address was found in the ARP table */
 
@@ -302,9 +301,9 @@ static inline bool psock_send_addrchck(FAR struct tcp_conn_s *conn)
 #endif
 
 #if !defined(CONFIG_NET_ICMPv6_NEIGHBOR)
-      if (neighbor_findentry(conn->u.ipv6.raddr) != NULL)
+      if (neighbor_lookup(conn->u.ipv6.raddr, NULL) >= 0)
         {
-          /* Return true if the address was found in the ARP table */
+          /* Return true if the address was found in the neighbor table */
 
           return true;
         }
@@ -827,7 +826,6 @@ ssize_t psock_tcp_send(FAR struct socket *psock,
     }
 #endif /* CONFIG_NET_ARP_SEND */
 
-
 #ifdef CONFIG_NET_ICMPv6_NEIGHBOR
 #ifdef CONFIG_NET_ARP_SEND
   else
@@ -965,7 +963,7 @@ errout:
  *   psock    An instance of the internal socket structure.
  *
  * Returned Value:
- *   OK (Function not implemented).
+ *   -ENOSYS (Function not implemented, always have to wait to send).
  *
  * Assumptions:
  *   None
@@ -974,9 +972,7 @@ errout:
 
 int psock_tcp_cansend(FAR struct socket *psock)
 {
-  /* TODO: return OK unless someone is waiting for a packet to send */
-
-  return OK;
+  return -ENOSYS;
 }
 
 #endif /* CONFIG_NET && CONFIG_NET_TCP && !CONFIG_NET_TCP_WRITE_BUFFERS */

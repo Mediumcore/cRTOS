@@ -133,7 +133,7 @@ FAR struct bcmf_dev_s *g_sdio_priv;
 
 static struct bcmf_sdio_frame g_pktframes[BCMF_PKT_POOL_SIZE];
 
-// TODO free_queue should be static
+/* TODO free_queue should be static */
 
 /****************************************************************************
  * Private Functions
@@ -521,7 +521,7 @@ static int bcmf_sdio_sr_init(FAR struct bcmf_sdio_dev_s *sbus)
       /* Enable KeepSdioOn (KSO) bit for normal operation */
 
       bcmf_read_reg(sbus, 1, SBSDIO_FUNC1_SLEEPCSR, &data);
-      if((data & SBSDIO_FUNC1_SLEEPCSR_KSO_MASK) == 0)
+      if ((data & SBSDIO_FUNC1_SLEEPCSR_KSO_MASK) == 0)
         {
           data |= SBSDIO_FUNC1_SLEEPCSR_KSO_MASK;
           bcmf_write_reg(sbus, 1, SBSDIO_FUNC1_SLEEPCSR, data);
@@ -594,7 +594,7 @@ int bcmf_transfer_bytes(FAR struct bcmf_sdio_dev_s *sbus, bool write,
         /* Use block mode */
 
         blocklen = 64;
-        nblocks = (len+63) / 64;
+        nblocks = (len + 63) / 64;
       }
     else
       {
@@ -660,7 +660,7 @@ int bcmf_bus_sdio_initialize(FAR struct bcmf_dev_s *priv,
   sbus->bus.rxframe        = bcmf_sdpcm_get_rx_frame;
   sbus->bus.allocate_frame = bcmf_sdpcm_alloc_frame;
   sbus->bus.free_frame     = bcmf_sdpcm_free_frame;
-  sbus->bus.stop           = NULL; // TODO
+  sbus->bus.stop           = NULL; /* TODO */
 
   /* Init transmit frames queue */
 
@@ -674,7 +674,7 @@ int bcmf_bus_sdio_initialize(FAR struct bcmf_dev_s *priv,
   sq_init(&sbus->free_queue);
 
   /* Setup free buffer list */
-  // FIXME this should be static to driver
+  /* FIXME this should be static to driver */
 
   for (ret = 0; ret < BCMF_PKT_POOL_SIZE; ret++)
     {
@@ -921,10 +921,17 @@ int bcmf_sdio_thread(int argc, char **argv)
           continue;
         }
 
+      /* Re-configure the board GPIO interrupt pin */
+
+      bcmf_board_setup_oob_irq(sbus->minor, bcmf_oob_irq, (void *)sbus);
+
       /* If we're done for now, turn off clock request. */
 
-      // TODO add wakelock
-      // bcmf_sdio_bus_sleep(sbus, true);
+#if 0
+      /* TODO add wakelock */
+
+      bcmf_sdio_bus_sleep(sbus, true);
+#endif
     }
 
   wlinfo("Exit\n");
@@ -942,10 +949,12 @@ struct bcmf_sdio_frame *bcmf_sdio_allocate_frame(FAR struct bcmf_dev_s *priv,
     {
       if (nxsem_wait(&sbus->queue_mutex) < 0)
         {
-          PANIC();
+          DEBUGPANIC();
         }
 
-      // if (!tx || sbus->tx_queue_count < BCMF_PKT_POOL_SIZE-1)
+#if 0
+      if (!tx || sbus->tx_queue_count < BCMF_PKT_POOL_SIZE-1)
+#endif
         {
           if ((entry = bcmf_dqueue_pop_tail(&sbus->free_queue)) != NULL)
             {
@@ -963,7 +972,7 @@ struct bcmf_sdio_frame *bcmf_sdio_allocate_frame(FAR struct bcmf_dev_s *priv,
 
       if (block)
         {
-          // TODO use signaling semaphore
+          /* TODO use signaling semaphore */
 
           wlinfo("alloc failed %d\n", tx);
           up_mdelay(100);
@@ -976,7 +985,7 @@ struct bcmf_sdio_frame *bcmf_sdio_allocate_frame(FAR struct bcmf_dev_s *priv,
 
   sframe = container_of(entry, struct bcmf_sdio_frame, list_entry);
 
-  sframe->header.len  = HEADER_SIZE + MAX_NET_DEV_MTU;
+  sframe->header.len  = HEADER_SIZE + MAX_NETDEV_PKTSIZE;
   sframe->header.base = sframe->data;
   sframe->header.data = sframe->data;
   sframe->tx          = tx;
@@ -990,7 +999,7 @@ void bcmf_sdio_free_frame(FAR struct bcmf_dev_s *priv,
 
   if (nxsem_wait(&sbus->queue_mutex) < 0)
     {
-      PANIC();
+      DEBUGPANIC();
     }
 
   bcmf_dqueue_push(&sbus->free_queue, &sframe->list_entry);

@@ -107,10 +107,27 @@ int sim_bringup(void)
 #endif
   int ret;
 
+#ifdef CONFIG_FS_PROCFS
+  /* Mount the procfs file system */
+
+  ret = mount(NULL, SIM_PROCFS_MOUNTPOINT, "procfs", 0, NULL);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to mount procfs at %s: %d\n",
+             SIM_PROCFS_MOUNTPOINT, ret);
+    }
+#endif
+
 #ifdef CONFIG_LIB_ZONEINFO_ROMFS
   /* Mount the TZ database */
 
   (void)sim_zoneinfo(3);
+#endif
+
+#ifdef CONFIG_GRAPHICS_TRAVELER_ROMFSDEMO
+  /* Special initialization for the Traveler game simulation */
+
+  (void)trv_mount_world(0, CONFIG_GRAPHICS_TRAVELER_DEFPATH);
 #endif
 
 #ifdef CONFIG_EXAMPLES_GPIO
@@ -122,7 +139,7 @@ int sim_bringup(void)
 #ifdef CONFIG_RAMMTD
   /* Create a RAM MTD device if configured */
 
-  ramstart = (FAR uint8_t *)kmm_malloc(32 * 1024);
+  ramstart = (FAR uint8_t *)kmm_malloc(128 * 1024);
   if (ramstart == NULL)
     {
       syslog(LOG_ERR, "ERROR: Allocation for RAM MTD failed\n");
@@ -131,7 +148,7 @@ int sim_bringup(void)
     {
       /* Initialized the RAM MTD */
 
-      FAR struct mtd_dev_s *mtd = rammtd_initialize(ramstart, 32 * 1024);
+      FAR struct mtd_dev_s *mtd = rammtd_initialize(ramstart, 128 * 1024);
       if (mtd == NULL)
         {
           syslog(LOG_ERR, "ERROR: rammtd_initialize failed\n");
@@ -153,6 +170,27 @@ int sim_bringup(void)
            */
 
           smart_initialize(0, mtd, NULL);
+
+#elif defined(CONFIG_FS_SPIFFS)
+          /* Register the MTD driver so that it can be accessed from the VFS */
+
+          ret = register_mtddriver("/dev/rammtd", mtd, 0755, NULL);
+          if (ret < 0)
+            {
+              syslog(LOG_ERR, "ERROR: Failed to register MTD driver: %d\n",
+                     ret);
+            }
+
+          /* Mount the SPIFFS file system */
+
+          ret = mount("/dev/rammtd", "/mnt/spiffs", "spiffs", 0, NULL);
+          if (ret < 0)
+            {
+              syslog(LOG_ERR,
+                     "ERROR: Failed to mount SPIFFS at /mnt/spiffs: %d\n",
+                     ret);
+            }
+
 #elif defined(CONFIG_FS_NXFFS)
           /* Initialize to provide NXFFS on the MTD interface */
 
@@ -208,23 +246,6 @@ int sim_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: sim_tsc_setup failed: %d\n", ret);
-    }
-#endif
-
-#ifdef CONFIG_GRAPHICS_TRAVELER_ROMFSDEMO
-  /* Special initialization for the Traveler game simulation */
-
-  (void)trv_mount_world(0, CONFIG_GRAPHICS_TRAVELER_DEFPATH);
-#endif
-
-#ifdef CONFIG_FS_PROCFS
-  /* Mount the procfs file system */
-
-  ret = mount(NULL, SIM_PROCFS_MOUNTPOINT, "procfs", 0, NULL);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to mount procfs at %s: %d\n",
-             SIM_PROCFS_MOUNTPOINT, ret);
     }
 #endif
 

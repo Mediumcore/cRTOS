@@ -74,7 +74,7 @@ struct icmpv6_recvfrom_s
   FAR struct devif_callback_s *recv_cb; /* Reference to callback instance */
   FAR struct socket *recv_sock; /* IPPROTO_ICMP6 socket structure */
   sem_t recv_sem;               /* Use to manage the wait for the response */
-  systime_t recv_time;          /* Start time for determining timeouts */
+  clock_t recv_time;            /* Start time for determining timeouts */
   struct in6_addr recv_from;    /* The peer we received the request from */
   FAR uint8_t *recv_buf;        /* Location to return the response */
   uint16_t recv_buflen;         /* Size of the response */
@@ -130,13 +130,14 @@ static inline int recvfrom_timeout(FAR struct icmpv6_recvfrom_s *pstate)
  * Name: recvfrom_eventhandler
  *
  * Description:
- *   This function is called from the interrupt level to perform the actual
+ *   This function is called with the network locked to perform the actual
  *   ECHO request and/or ECHO reply actions when polled by the lower, device
  *   interfacing layer.
  *
  * Input Parameters:
- *   dev        The structure of the network driver that caused the interrupt
- *   conn       The received packet, cast to void *
+ *   dev        The structure of the network driver that generated the
+ *              event
+ *   conn       The received packet, cast to (void *)
  *   pvpriv     An instance of struct icmpv6_recvfrom_s cast to void*
  *   flags      Set of events describing why the callback was invoked
  *
@@ -171,18 +172,18 @@ static uint16_t recvfrom_eventhandler(FAR struct net_driver_s *dev,
           goto end_wait;
         }
 
-       /* Is this a response on the same device that we sent the request out
-        * on?
-        */
+      /* Is this a response on the same device that we sent the request out
+       * on?
+       */
 
-       psock = pstate->recv_sock;
-       DEBUGASSERT(psock != NULL && psock->s_conn != NULL);
-       conn  = psock->s_conn;
-       if (dev != conn->dev)
-         {
-           ninfo("Wrong device\n");
-           return flags;
-         }
+      psock = pstate->recv_sock;
+      DEBUGASSERT(psock != NULL && psock->s_conn != NULL);
+      conn  = psock->s_conn;
+      if (dev != conn->dev)
+        {
+          ninfo("Wrong device\n");
+          return flags;
+        }
 
       /* Check if we have just received a ICMPv6 ECHO reply. */
 
@@ -190,7 +191,9 @@ static uint16_t recvfrom_eventhandler(FAR struct net_driver_s *dev,
         {
           unsigned int recvsize;
 
-          /* Check if it is for us */
+          /* Check if it is for us.
+           * REVISIT:  What if there are IPv6 extension headers present?
+           */
 
           icmpv6 = ICMPv6_BUF;
           if (conn->id != icmpv6->id)
@@ -212,7 +215,9 @@ static uint16_t recvfrom_eventhandler(FAR struct net_driver_s *dev,
               recvsize = pstate->recv_buflen;
             }
 
-          /* Copy the ICMPv6 ECHO reply to the user provided buffer */
+          /* Copy the ICMPv6 ECHO reply to the user provided buffer
+           * REVISIT:  What if there are IPv6 extension headers present?
+           */
 
           memcpy(pstate->recv_buf, ICMPv6_BUF, recvsize);
 
@@ -277,7 +282,7 @@ end_wait:
  * Input Parameters:
  *   conn  - IPPROTO_ICMP6 socket connection structure containing the read-
  *           ahead data.
- *   dev      The structure of the network driver that caused the interrupt
+ *   dev      The structure of the network driver that generated the event.
  *   pstate   recvfrom state structure
  *
  * Returned Value:

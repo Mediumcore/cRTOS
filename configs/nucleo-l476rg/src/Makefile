@@ -61,12 +61,16 @@ endif
 
 # Ben vd Veen (DisruptiveNL) -- 31-03-2018
 ifeq ($(CONFIG_DEV_GPIO),y)
-  CSRCS += stm32_gpio.c
+CSRCS += stm32_gpio.c
 endif
 
 # Ben vd Veen (DisruptiveNL) -- 31-03-2018
 ifeq ($(CONFIG_CAN),y)
-  CSRCS += stm32_can.c
+CSRCS += stm32_can.c
+endif
+
+ifeq ($(CONFIG_MMCSD_SPI),y)
+CSRCS += stm32_spimmcsd.c
 endif
 
 ifeq ($(CONFIG_LCD_PCD8544),y)
@@ -75,6 +79,18 @@ endif
 
 ifeq ($(CONFIG_SENSORS_QENCODER),y)
 CSRCS += stm32_qencoder.c
+endif
+
+ifeq ($(CONFIG_SENSORS_HTS221),y)
+CSRCS += stm32_hts221.c
+endif
+
+ifeq ($(CONFIG_SENSORS_LSM6DSL),y)
+CSRCS += stm32_lsm6dsl.c
+endif
+
+ifeq ($(CONFIG_SENSORS_LSM303AGR),y)
+CSRCS += stm32_lsm303agr.c
 endif
 
 ifeq ($(CONFIG_PWM),y)

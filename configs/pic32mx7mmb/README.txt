@@ -412,13 +412,6 @@ PIC32MX Configuration Options
 
     CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
 
-    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-       cause a 100 second delay during boot-up.  This 100 second delay
-       serves no purpose other than it allows you to calibratre
-       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-       the delay actually is 100 seconds.
-
     PIC32MX Configuration
 
       CONFIG_PIC32MX_MVEC - Select muli- vs. single-vectored interrupts
@@ -562,19 +555,17 @@ PIC32MX specific PHY/Ethernet device driver settings
     CONFIG_ETH0_PHY_KS8721 - Selects the Micrel KS8721 PHY
     CONFIG_ETH0_PHY_DP83848C - Selects the National Semiconductor DP83848C PHY
     CONFIG_ETH0_PHY_LAN8720 - Selects the SMSC LAN8720 PHY
-    CONFIG_PHY_AUTONEG - Enable auto-negotion
-    CONFIG_PHY_SPEED100 - Select 100Mbit vs. 10Mbit speed.
-    CONFIG_PHY_FDUPLEX - Select full (vs. half) duplex
-    CONFIG_NET_NTXDESC - Configured number of Tx descriptors. Default: 2
-    CONFIG_NET_NRXDESC - Configured number of Rx descriptors. Default: 4
-    CONFIG_NET_WOL - Enable Wake-up on Lan (not fully implemented).
+    CONFIG_PIC32MX_PHY_AUTONEG - Enable auto-negotion
+    CONFIG_PIC32MX_PHY_SPEED100 - Select 100Mbit vs. 10Mbit speed.
+    CONFIG_PIC32MX_PHY_FDUPLEX - Select full (vs. half) duplex
+    CONFIG_PIC32MX_ETH_NTXDESC - Configured number of Tx descriptors. Default: 2
+    CONFIG_PIC32MX_ETH_NRXDESC - Configured number of Rx descriptors. Default: 4
     CONFIG_NET_DUMPPACKET - Dump all received and transmitted packets.
       Also needs CONFIG_DEBUG_FEATURES.
     CONFIG_NET_REGDEBUG - Enabled low level register debug.  Also needs
       CONFIG_DEBUG_FEATURES.
-    CONFIG_NET_HASH - Enable receipt of near-perfect match frames.
     CONFIG_PIC32MX_MULTICAST - Enable receipt of multicast (and unicast) frames.
-      Automatically set if CONFIG_NET_IGMP is selected.
+      Automatically set if CONFIG_NET_MCASTGROUP is selected.
 
   Related DEVCFG3 Configuration Settings:
     CONFIG_PIC32MX_FETHIO: Ethernet I/O Pin Selection bit:

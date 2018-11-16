@@ -341,13 +341,6 @@ TWR-K60N512-specific Configuration Options
 
     CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
 
-    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-       cause a 100 second delay during boot-up.  This 100 second delay
-       serves no purpose other than it allows you to calibratre
-       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-       the delay actually is 100 seconds.
-
   Individual subsystems can be enabled:
 
     CONFIG_KINETIS_TRACE    -- Enable trace clocking on power up.
@@ -437,9 +430,9 @@ TWR-K60N512-specific Configuration Options
   Kenetis ethernet controller settings
 
     CONFIG_ENET_NRXBUFFERS - Number of RX buffers.  The size of one
-        buffer is determined by CONFIG_NET_ETH_MTU.  Default: 6
+        buffer is determined by CONFIG_NET_ETH_PKTSIZE.  Default: 6
     CONFIG_ENET_NTXBUFFERS - Number of TX buffers.  The size of one
-        buffer is determined by CONFIG_NET_ETH_MTU.  Default: 2
+        buffer is determined by CONFIG_NET_ETH_PKTSIZE.  Default: 2
     CONFIG_ENET_USEMII - Use MII mode.  Default: RMII mode.
     CONFIG_ENET_PHYADDR - PHY address
 

@@ -415,7 +415,7 @@ static int mxt_putreg(FAR struct mxt_dev_s *priv, uint16_t regaddr,
 
       msg[1].frequency = priv->frequency;
       msg[1].addr      = priv->lower->address;
-      msg[1].flags     = I2C_M_NORESTART;
+      msg[1].flags     = I2C_M_NOSTART;
       msg[1].buffer    = (FAR uint8_t *)buffer;
       msg[1].length    = buflen;
 
@@ -988,7 +988,7 @@ static void mxt_worker(FAR void *arg)
   int retries;
   int ret;
 
-  ASSERT(priv != NULL);
+  DEBUGASSERT(priv != NULL);
 
   /* Get a pointer the callbacks for convenience (and so the code is not so
    * ugly).

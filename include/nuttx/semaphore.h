@@ -42,10 +42,10 @@
 
 #include <nuttx/config.h>
 
+#include <errno.h>
 #include <semaphore.h>
 
 #include <nuttx/clock.h>
-#include <nuttx/fs/fs.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -68,14 +68,13 @@
  * (libuc.a and libunx.a).  The that case, the correct interface must be
  * used for the build context.
  *
- * The interfaces sem_wait() and sem_timedwait() are cancellation points.
- *
- * REVISIT:  The fact that sem_wait() and sem_timedwait() are cancellation
- * points is an issue and may cause violations:  It use of these internally
- * will cause the calling function to become a cancellation points!
+ * REVISIT:  In the flat build, the same functions must be used both by
+ * the OS and by applications.  We have to use the normal user functions
+ * in this case or we will fail to set the errno or fail to create the
+ * cancellation point.
  */
 
-#if defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
+#if !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
 #  define _SEM_INIT(s,p,c)      nxsem_init(s,p,c)
 #  define _SEM_DESTROY(s)       nxsem_destroy(s)
 #  define _SEM_WAIT(s)          nxsem_wait(s)
@@ -321,7 +320,7 @@ int nxsem_timedwait(FAR sem_t *sem, FAR const struct timespec *abstime);
  *
  ****************************************************************************/
 
-int nxsem_tickwait(FAR sem_t *sem, systime_t start, uint32_t delay);
+int nxsem_tickwait(FAR sem_t *sem, clock_t start, uint32_t delay);
 
 /****************************************************************************
  * Name: nxsem_post
@@ -523,6 +522,37 @@ int nxsem_setprotocol(FAR sem_t *sem, int protocol);
  ****************************************************************************/
 
 int sem_setprotocol(FAR sem_t *sem, int protocol);
+
+/****************************************************************************
+ * Name: nxsem_wait_uninterruptible
+ *
+ * Description:
+ *   This function is wrapped version of nxsem_wait(), which is uninterruptible
+ *   and convenient for use.
+ *
+ * Parameters:
+ *   sem - Semaphore descriptor.
+ *
+ * Return Value:
+ *   Zero(OK) - On success
+ *   EINVAL - Invalid attempt to get the semaphore
+ *
+ ****************************************************************************/
+
+static inline int nxsem_wait_uninterruptible(FAR sem_t *sem)
+{
+  int ret;
+
+  do
+    {
+      /* Take the semaphore (perhaps waiting) */
+
+      ret = nxsem_wait(sem);
+    }
+  while (ret == -EINTR || ret == -ECANCELED);
+
+  return ret;
+}
 
 #undef EXTERN
 #ifdef __cplusplus

@@ -235,7 +235,7 @@ fi
 # For checking the apps dir path, we need a POSIX version of the relative path.
 
 posappdir=`echo "${appdir}" | sed -e 's/\\\\/\\//g'`
-winappdir=`echo "${appdir}" | sed -e 's/\\//\\\\/g'`
+winappdir=`echo "${appdir}" | sed -e 's/\\//\\\\\\\/g'`
 
 # If appsdir was provided (or discovered) then make sure that the apps/
 # directory exists
@@ -343,3 +343,4 @@ if [ ! -z `which gmake 2>/dev/null` ]; then
 fi
 
 ${MAKE_BIN} olddefconfig 1>/dev/null
+

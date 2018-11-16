@@ -49,6 +49,12 @@ config SENSORS_BMP180
 	---help---
 		Enable driver support for the Bosch BMP180 barometer sensor.
 
+config SENSORS_DHTXX
+	bool "DHTxx humidity/temperature Sensor support"
+	default n
+	---help---
+		Enable driver support for the DHTxx humidity/temperature sensor.
+
 config SENSORS_HCSR04
 	bool "HC-SR04 Distance Measurement Sensor"
 	default n
@@ -185,6 +191,32 @@ config SENSORS_LSM330SPI
 	---help---
 		Enable driver support for the STMicro LSM330 on SPI.
 
+config SENSORS_LSM303AGR
+	bool "STMicro LSM303AGR support"
+	default n
+	select I2C
+	---help---
+		Enable driver support for the STMicro LSM303AGR.
+
+config LSM303AGR_I2C_FREQUENCY
+	int "LSM303AGR I2C frequency"
+	default 400000
+	range 1 400000
+	depends on SN_LSM303AGR
+
+config SENSORS_LSM6DSL
+	bool "STMicro LSM6DSL support"
+	default n
+	select I2C
+	---help---
+		Enable driver support for the STMicro LSM6DSL.
+
+config LSM6DSL_I2C_FREQUENCY
+	int "LSM6DSL I2C frequency"
+	default 400000
+	range 1 400000
+	depends on SN_LSM6DSL
+
 config SENSORS_LSM9DS1
 	bool "STMicro LSM9DS1 support"
 	default n
@@ -244,6 +276,18 @@ config INA219_I2C_FREQUENCY
 	default 400000
 	depends on SENSORS_INA219
 
+config SENSORS_INA226
+	bool "INA226 current and voltage monitor"
+	default n
+	select I2C
+	---help---
+		Enable driver support for the Texas Instruments INA226 power monitor.
+
+config INA226_I2C_FREQUENCY
+	int "INA226 I2C frequency"
+	default 400000
+	depends on SENSORS_INA226
+
 config SENSORS_INA3221
 	bool "INA3221 current and voltage monitor"
 	default n
@@ -275,6 +319,22 @@ config SENSORS_MLX90393
 	select SPI
 	---help---
 		Enable driver support for the Melex MLX90393 3-Axis magnetometer.
+
+config SENSORS_MLX90614
+	bool "MLX90614 Infrared Thermometer"
+	default n
+	select I2C
+	---help---
+		Enable driver support for the Melexis MLX90614 Infrared Thermometer.
+
+if SENSORS_MLX90614
+config MLX90614_CRC
+	bool "Enable CRC Checking (verify if PEC field is valid)"
+	default n
+	---help---
+		Enable checking of CRC-8 (PEC field) checking to guarantee that
+		read data is valid.
+endif
 
 config SENSORS_MCP9844
 	bool "MCP9844 Temperature Sensor"
@@ -476,6 +536,14 @@ config SHT21_DEBUG
 		Enables debug features for the SHT21
 
 endif # SENSORS_SHT21
+
+config SENSORS_T67XX
+	bool "Telair T6713 carbon dioxide sensor"
+	default n
+	select I2C
+	---help---
+		Enable driver support for the Telair T6713 and T6703 carbon
+		dioxide sensors.
 
 config SENSORS_QENCODER
 	bool "Qencoder"

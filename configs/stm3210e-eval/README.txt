@@ -306,13 +306,6 @@ STM3210E-EVAL-specific Configuration Options
 
     CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
 
-    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-       cause a 100 second delay during boot-up.  This 100 second delay
-       serves no purpose other than it allows you to calibratre
-       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-       the delay actually is 100 seconds.
-
   Individual subsystems can be enabled:
     AHB
     ---
@@ -456,10 +449,14 @@ STM3210E-EVAL-specific Configuration Options
       Default: 4
     CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
       mode for testing. The STM32 CAN driver does support loopback mode.
-    CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
-    CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
-    CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
-    CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
+    CONFIG_STM32_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1
+      is defined.
+    CONFIG_STM32_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2
+      is defined.
+    CONFIG_STM32_CAN_TSEG1 - The number of CAN time quanta in segment 1.
+      Default: 6
+    CONFIG_STM32_CAN_TSEG2 - the number of CAN time quanta in segment 2.
+      Default: 7
     CONFIG_STM32_CAN_REGDEBUG - If CONFIG_DEBUG_FEATURES is set, this will generate an
       dump of all CAN registers.
 
@@ -592,16 +589,16 @@ Where <subdir> is one of the following:
        a. examples/can.  The CAN test example can be enabled by changing the
           following settings in nsh2/defconfig:
 
-          CONFIG_CAN=y             : Enable CAN "upper-half" driver support
-          CONFIG_STM32_CAN1=y      : Enable STM32 CAN1 "lower-half" driver support
+          CONFIG_CAN=y                   : Enable CAN "upper-half" driver support
+          CONFIG_STM32_CAN1=y            : Enable STM32 CAN1 "lower-half" driver support
 
           The default CAN settings may need to change in your board board
           configuration:
 
-          CONFIG_CAN_EXTID=y       : Support extended IDs
-          CONFIG_CAN1_BAUD=250000  : Bit rate: 250 KHz
-          CONFIG_CAN_TSEG1=12      : 80% sample point
-          CONFIG_CAN_TSEG2=3
+          CONFIG_CAN_EXTID=y             : Support extended IDs
+          CONFIG_STM32_CAN1_BAUD=250000  : Bit rate: 250 KHz
+          CONFIG_STM32_CAN_TSEG1=12      : 80% sample point
+          CONFIG_STM32_CAN_TSEG2=3
   nx:
   ---
     An example using the NuttX graphics system (NX).  This example

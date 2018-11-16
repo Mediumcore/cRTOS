@@ -104,7 +104,7 @@ static int max11802_sample(FAR struct max11802_dev_s *priv,
 static int max11802_waitsample(FAR struct max11802_dev_s *priv,
                                FAR struct max11802_sample_s *sample);
 static void max11802_worker(FAR void *arg);
-static int max11802_interrupt(int irq, FAR void *context);
+static int max11802_interrupt(int irq, FAR void *context, FAR void *arg);
 
 /* Character driver methods */
 
@@ -496,7 +496,7 @@ static void max11802_worker(FAR void *arg)
   int                           ret;
   int                           tags, tags2;
 
-  ASSERT(priv != NULL);
+  DEBUGASSERT(priv != NULL);
 
   /* Get a pointer the callbacks for convenience (and so the code is not so
    * ugly).
@@ -633,7 +633,7 @@ static void max11802_worker(FAR void *arg)
       /* Continue to sample the position while the pen is down */
 
       (void)wd_start(priv->wdog, MAX11802_WDOG_DELAY, max11802_wdog, 1,
-i                    (uint32_t)priv);
+                     (uint32_t)priv);
 
       /* Check if data is valid */
 
@@ -711,7 +711,7 @@ ignored:
  * Name: max11802_interrupt
  ****************************************************************************/
 
-static int max11802_interrupt(int irq, FAR void *context)
+static int max11802_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct max11802_dev_s    *priv;
   FAR struct max11802_config_s *config;
@@ -726,7 +726,7 @@ static int max11802_interrupt(int irq, FAR void *context)
        priv && priv->configs->irq != irq;
        priv = priv->flink);
 
-  ASSERT(priv != NULL);
+  DEBUGASSERT(priv != NULL);
 #endif
 
   /* Get a pointer the callbacks for convenience (and so the code is not so
@@ -1235,6 +1235,11 @@ int max11802_register(FAR struct spi_dev_s *spi,
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
 
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), true);
+  (void)SPI_SEND(priv->spi, MAX11802_CMD_SAMPLE_WR);
+  (void)SPI_SEND(priv->spi, MAX11802_SAMPLE);
+  SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
+
+  SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), true);
   (void)SPI_SEND(priv->spi, MAX11802_CMD_TIMING_WR);
   (void)SPI_SEND(priv->spi, MAX11802_TIMING);
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
@@ -1242,6 +1247,11 @@ int max11802_register(FAR struct spi_dev_s *spi,
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), true);
   (void)SPI_SEND(priv->spi, MAX11802_CMD_DELAY_WR);
   (void)SPI_SEND(priv->spi, MAX11802_DELAY);
+  SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
+
+  SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), true);
+  (void)SPI_SEND(priv->spi, MAX11802_CMD_PULL_WR);
+  (void)SPI_SEND(priv->spi, MAX11802_PULL);
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
 
   /* Test that the device access was successful. */

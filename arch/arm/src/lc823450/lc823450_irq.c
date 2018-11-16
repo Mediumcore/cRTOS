@@ -80,6 +80,10 @@
 #define NVIC_ENA_OFFSET    (0)
 #define NVIC_CLRENA_OFFSET (NVIC_IRQ0_31_CLEAR - NVIC_IRQ0_31_ENABLE)
 
+/* Size of the interrupt stack allocation */
+
+#define INTSTACK_ALLOC (CONFIG_SMP_NCPUS * INTSTACK_SIZE)
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -92,6 +96,24 @@
 volatile uint32_t *g_current_regs[CONFIG_SMP_NCPUS];
 #else
 volatile uint32_t *g_current_regs[1];
+#endif
+
+#if defined(CONFIG_SMP) && CONFIG_ARCH_INTERRUPTSTACK > 7
+/* In the SMP configuration, we will need two custom interrupt stacks.
+ * These definitions provide the aligned stack allocations.
+ */
+
+uint64_t g_instack_alloc[INTSTACK_ALLOC >> 3];
+
+/* These definitions provide the "top" of the push-down stacks. */
+
+const uint32_t g_cpu0_instack_base =
+  (uint32_t)g_instack_alloc + INTSTACK_SIZE;
+
+#if CONFIG_SMP_NCPUS > 1
+const uint32_t g_cpu1_instack_base =
+  (uint32_t)g_instack_alloc + 2 * INTSTACK_SIZE;
+#endif
 #endif
 
 /****************************************************************************
@@ -343,6 +365,7 @@ static void lc823450_extint_initialize(void)
 
   ret = irq_attach(LC823450_IRQ_EXTINT5, lc823450_extint_isr, NULL);
   DEBUGASSERT(ret == OK);
+  UNUSED(ret);
 
   up_enable_irq(LC823450_IRQ_EXTINT0);
   up_enable_irq(LC823450_IRQ_EXTINT1);
@@ -444,8 +467,8 @@ void up_irqinitialize(void)
 
   /* Disable all interrupts */
 
-  putreg32(0, NVIC_IRQ0_31_ENABLE);
-  putreg32(0, NVIC_IRQ32_63_ENABLE);
+  putreg32(0xffffffff, NVIC_IRQ0_31_CLEAR);
+  putreg32(0xffffffff, NVIC_IRQ32_63_CLEAR);
 
   /* Colorize the interrupt stack for debug purposes */
 
@@ -524,7 +547,7 @@ void up_irqinitialize(void)
    * Fault handler.
    */
 
-#ifdef CONFIG_ARMV7M_MPU
+#ifdef CONFIG_ARM_MPU
   irq_attach(LC823450_IRQ_MEMFAULT, up_memfault, NULL);
   up_enable_irq(LC823450_IRQ_MEMFAULT);
 #endif
@@ -533,9 +556,6 @@ void up_irqinitialize(void)
 
 #ifdef CONFIG_DEBUG
   irq_attach(LC823450_IRQ_NMI, lc823450_nmi, NULL);
-#ifndef CONFIG_ARMV7M_MPU
-  irq_attach(LC823450_IRQ_MEMFAULT, up_memfault, NULL);
-#endif
   irq_attach(LC823450_IRQ_BUSFAULT, lc823450_busfault, NULL);
   irq_attach(LC823450_IRQ_USAGEFAULT, lc823450_usagefault, NULL);
   irq_attach(LC823450_IRQ_PENDSV, lc823450_pendsv, NULL);
@@ -713,7 +733,7 @@ void up_ack_irq(int irq)
     {
       /* IRQ should be handled on CPU0 */
 
-      ASSERT(false);
+      DEBUGASSERT(false);
     }
 #endif
 

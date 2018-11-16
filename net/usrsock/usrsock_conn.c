@@ -121,9 +121,7 @@ FAR struct usrsock_conn_s *usrsock_alloc(void)
 {
   FAR struct usrsock_conn_s *conn;
 
-  /* The free list is only accessed from user, non-interrupt level and
-   * is protected by a semaphore (that behaves like a mutex).
-   */
+  /* The free list is protected by a semaphore (that behaves like a mutex). */
 
   _usrsock_semtake(&g_free_sem);
   conn = (FAR struct usrsock_conn_s *)dq_remfirst(&g_free_usrsock_connections);
@@ -158,9 +156,7 @@ FAR struct usrsock_conn_s *usrsock_alloc(void)
 
 void usrsock_free(FAR struct usrsock_conn_s *conn)
 {
-  /* The free list is only accessed from user, non-interrupt level and
-   * is protected by a semaphore (that behaves like a mutex).
-   */
+  /* The free list is protected by a semaphore (that behaves like a mutex). */
 
   DEBUGASSERT(conn->crefs == 0);
 
@@ -257,6 +253,8 @@ int usrsock_setup_request_callback(FAR struct usrsock_conn_s *conn,
   int ret = -EBUSY;
 
   (void)nxsem_init(&pstate->recvsem, 0, 0);
+  nxsem_setprotocol(&pstate->recvsem, SEM_PRIO_NONE);
+
   pstate->conn   = conn;
   pstate->result = -EAGAIN;
   pstate->completed = false;
@@ -303,8 +301,29 @@ void usrsock_teardown_request_callback(FAR struct usrsock_reqstate_s *pstate)
   /* Make sure that no further events are processed */
 
   devif_conn_callback_free(NULL, pstate->cb, &conn->list);
+  nxsem_destroy(&pstate->recvsem);
 
   pstate->cb = NULL;
+}
+
+/****************************************************************************
+ * Name: usrsock_setup_datain
+ ****************************************************************************/
+
+void usrsock_setup_datain(FAR struct usrsock_conn_s *conn,
+                          FAR struct iovec *iov, unsigned int iovcnt)
+{
+  unsigned int i;
+
+  conn->resp.datain.iov = iov;
+  conn->resp.datain.pos = 0;
+  conn->resp.datain.total = 0;
+  conn->resp.datain.iovcnt = iovcnt;
+
+  for (i = 0; i < iovcnt; i++)
+    {
+      conn->resp.datain.total += iov[i].iov_len;
+    }
 }
 
 /****************************************************************************

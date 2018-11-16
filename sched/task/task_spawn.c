@@ -70,7 +70,7 @@
  *     child task in the variable pointed to by a non-NULL 'pid' argument.|
  *
  *   path - The 'path' argument identifies the file to execute.  If
- *     CONFIG_BINFMT_EXEPATH is defined, this may be either a relative or
+ *     CONFIG_LIB_ENVPATH is defined, this may be either a relative or
  *     or an absolute path.  Otherwise, it must be an absolute path.
  *
  *   attr - If the value of the 'attr' parameter is NULL, the all default
@@ -390,13 +390,15 @@ int task_spawn(FAR pid_t *pid, FAR const char *name, main_t entry,
       return -ret;
     }
 
+#ifdef CONFIG_SCHED_WAITPID
   /* Disable pre-emption so that the proxy does not run until waitpid
    * is called.  This is probably unnecessary since the task_spawn_proxy has
    * the same priority as this thread; it should be schedule behind this
    * task in the ready-to-run list.
+   *
+   * REVISIT:  This will may not have the desired effect in SMP mode.
    */
 
-#ifdef CONFIG_SCHED_WAITPID
   sched_lock();
 #endif
 

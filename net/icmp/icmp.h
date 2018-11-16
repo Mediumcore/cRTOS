@@ -51,11 +51,13 @@
 #include <nuttx/net/ip.h>
 #include <nuttx/net/netdev.h>
 
-#ifdef CONFIG_NET_ICMP
+#if defined(CONFIG_NET_ICMP) && !defined(CONFIG_NET_ICMP_NO_STACK)
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+#define NET_ICMP_HAVE_STACK 1
 
 /* Allocate/free an ICMP data callback */
 
@@ -223,7 +225,8 @@ FAR struct icmp_conn_s *icmp_nextconn(FAR struct icmp_conn_s *conn);
  ****************************************************************************/
 
 #ifdef CONFIG_NET_ICMP_SOCKET
-FAR struct icmp_conn_s *icmp_findconn(FAR struct net_driver_s *dev, uint8_t id);
+FAR struct icmp_conn_s *icmp_findconn(FAR struct net_driver_s *dev,
+                                      uint16_t id);
 #endif
 
 /****************************************************************************
@@ -273,8 +276,9 @@ void icmp_poll(FAR struct net_driver_s *dev);
  ****************************************************************************/
 
 #ifdef CONFIG_NET_ICMP_SOCKET
-ssize_t icmp_sendto(FAR struct socket *psock, FAR const void *buf, size_t len,
-                    int flags, FAR const struct sockaddr *to, socklen_t tolen);
+ssize_t icmp_sendto(FAR struct socket *psock, FAR const void *buf,
+                    size_t len, int flags, FAR const struct sockaddr *to,
+                    socklen_t tolen);
 #endif
 
 /****************************************************************************
@@ -358,5 +362,5 @@ int icmp_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds);
 }
 #endif
 
-#endif /* CONFIG_NET_ICMP */
+#endif /* CONFIG_NET_ICMP && !CONFIG_NET_ICMP_NO_STACK */
 #endif /* __NET_ICMP_ICMP_H */

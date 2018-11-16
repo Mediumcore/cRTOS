@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/src/sama5/sam_adc.c
  *
- *   Copyright (C) 2013, 2014, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013, 2014, 2017-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
@@ -610,7 +610,7 @@ static void sam_adc_dmadone(void *arg)
   int i;
 
   ainfo("ready=%d enabled=%d\n", priv->enabled, priv->ready);
-  ASSERT(priv != NULL && !priv->ready);
+  DEBUGASSERT(priv != NULL && !priv->ready);
 
   /* If the DMA transfer is not enabled, just ignore the data (and do not start
    * the next DMA transfer).
@@ -853,7 +853,7 @@ static void sam_adc_endconversion(void *arg)
   uint32_t pending;
   int chan;
 
-  ASSERT(priv != NULL);
+  DEBUGASSERT(priv != NULL);
   ainfo("pending=%08x\n", priv->pending);
 
   /* Get the set of unmasked, pending ADC interrupts */
@@ -972,11 +972,11 @@ static int sam_adc_interrupt(int irq, void *context, FAR void *arg)
   /* Make sure that all interrupts were handled */
 
   DEBUGASSERT(pending == 0);
+  UNUSED(priv);  /* Not used in all configurations */
   return OK;
 }
 
 #ifdef SAMA5_ADC_HAVE_CHANNELS
-
 /****************************************************************************
  * ADC methods
  ****************************************************************************/

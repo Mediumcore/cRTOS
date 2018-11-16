@@ -1,7 +1,7 @@
 /****************************************************************************
  * binfmt/pcode.c
  *
- *   Copyright (C) 2014-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2014-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/poff.h>
-#include <nuttx/fd/fs.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/drivers/ramdisk.h>
 #include <nuttx/binfmt/binfmt.h>
 #include <nuttx/binfmt/pcode.h>
@@ -62,6 +62,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Check configuration.  This is not all of the configuration settings that
  * are required -- only the more obvious.
  */
@@ -199,7 +200,7 @@ static int pcode_run(FAR char *exepath, size_t varsize, size_t strsize)
 
   /* Execute the P-Code program until a stopping condition occurs */
 
-  for (;;)
+  for (; ; )
     {
       /* Execute the instruction; Check for exceptional conditions */
 
@@ -275,7 +276,7 @@ static int pcode_mount_testfs(void)
    * the ROMFS mountpoint.
    */
 
-#if defined(CONFIG_BINFMT_EXEPATH) && !defined(CONFIG_PATH_INITIAL)
+#if defined(CONFIG_LIB_ENVPATH) && !defined(CONFIG_PATH_INITIAL)
   (void)setenv("PATH", CONFIG_BINFMT_PCODE_TEST_MOUNTPOINT, 1);
 #endif
 
@@ -390,12 +391,11 @@ static int pcode_load(struct binary_s *binp)
 
   /* Open the binary file for reading (only) */
 
-  fd = open(binp->filename, O_RDONLY);
+  fd = nx_open(binp->filename, O_RDONLY);
   if (fd < 0)
     {
-      int errval = get_errno();
-      berr("ERROR: Failed to open binary %s: %d\n", binp->filename, errval);
-      return -errval;
+      berr("ERROR: Failed to open binary %s: %d\n", binp->filename, fd);
+      return fd;
     }
 
   /* Read the POFF file header */
@@ -522,9 +522,8 @@ static int pcode_unload(struct binary_s *binp)
  * Name: pcode_initialize
  *
  * Description:
- *   P-code support is built based on the configuration.  However, in order
- *   to use this binary format, this function must be called during system
- *   initialization in order to register the P-Code binary format.
+ *   In order to use the P-code binary format, this function must be called
+ *   during system initialization to register the P-Code binary format.
  *
  * Returned Value:
  *   This is a NuttX internal function so it follows the convention that

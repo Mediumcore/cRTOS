@@ -811,8 +811,7 @@ Networking
   Networking Support
     CONFIG_NET=y                         : Enable Neworking
     CONFIG_NET_SOCKOPTS=y                : Enable socket operations
-    CONFIG_NET_ETH_MTU=562               : Maximum packet size (MTU) 1518 is more standard
-    CONFIG_NET_ETH_TCP_RECVWNDO=562      : Should be the same as CONFIG_NET_ETH_MTU
+    CONFIG_NET_ETH_PKTSIZE=562           : Maximum packet size 1518 is more standard
     CONFIG_NET_TCP=y                     : Enable TCP/IP networking
     CONFIG_NET_TCPBACKLOG=y              : Support TCP/IP backlog
     CONFIG_NET_TCP_READAHEAD_BUFSIZE=562 : Read-ahead buffer size
@@ -2851,13 +2850,6 @@ SAMA5D3-Xplained Configuration Options
   CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
 
   CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
-
-  CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-  cause a 100 second delay during boot-up.  This 100 second delay
-  serves no purpose other than it allows you to calibrate
-  CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-  the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-  the delay actually is 100 seconds.
 
   Individual subsystems can be enabled:
 

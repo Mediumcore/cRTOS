@@ -210,8 +210,11 @@ int bcmf_sdpcm_readframe(FAR struct bcmf_dev_s *priv)
       goto exit_abort;
     }
 
-  // wlinfo("Receive frame %p %d\n", sframe, len);
-  // bcmf_hexdump((uint8_t *)header, header->size, (unsigned int)header);
+#if 0
+  wlinfo("Receive frame %p %d\n", sframe, len);
+
+  bcmf_hexdump((uint8_t *)header, header->size, (unsigned int)header);
+#endif
 
   /* Process and validate header */
 
@@ -255,7 +258,7 @@ int bcmf_sdpcm_readframe(FAR struct bcmf_dev_s *priv)
 
         if (nxsem_wait(&sbus->queue_mutex) < 0)
           {
-            PANIC();
+            DEBUGPANIC();
           }
 
         bcmf_dqueue_push(&sbus->rx_queue, &sframe->list_entry);
@@ -301,7 +304,8 @@ int bcmf_sdpcm_sendframe(FAR struct bcmf_dev_s *priv)
 
   if (sbus->tx_seq == sbus->max_seq)
     {
-      // TODO handle this case
+      /* TODO handle this case */
+
       wlerr("No credit to send frame\n");
       return -EAGAIN;
     }
@@ -309,7 +313,7 @@ int bcmf_sdpcm_sendframe(FAR struct bcmf_dev_s *priv)
 
   if (nxsem_wait(&sbus->queue_mutex) < 0)
     {
-      PANIC();
+      DEBUGPANIC();
     }
 
   entry = sbus->tx_queue.tail;
@@ -320,18 +324,22 @@ int bcmf_sdpcm_sendframe(FAR struct bcmf_dev_s *priv)
 
   header->sequence = sbus->tx_seq++;
 
-  // wlinfo("Send frame %p\n", sframe);
-  // bcmf_hexdump(sframe->header.base, sframe->header.len,
-  //              (unsigned long)sframe->header.base);
+#if 0
+  wlinfo("Send frame %p\n", sframe);
+
+  bcmf_hexdump(sframe->header.base, sframe->header.len,
+               (unsigned long)sframe->header.base);
+#endif
 
   ret = bcmf_transfer_bytes(sbus, true, 2, 0, sframe->header.base,
                             sframe->header.len);
   if (ret != OK)
     {
+      /* TODO handle retry count and remove frame from queue + abort TX */
+
       wlinfo("fail send frame %d\n", ret);
       ret = -EIO;
       goto exit_abort;
-      // TODO handle retry count and remove frame from queue + abort TX
     }
 
   /* Frame sent, remove it from queue */
@@ -354,7 +362,10 @@ int bcmf_sdpcm_sendframe(FAR struct bcmf_dev_s *priv)
   return OK;
 
 exit_abort:
-  // bcmf_sdpcm_txfail(sbus, false);
+#if 0
+  bcmf_sdpcm_txfail(sbus, false);
+#endif
+
   nxsem_post(&sbus->queue_mutex);
   return ret;
 }
@@ -386,7 +397,7 @@ int bcmf_sdpcm_queue_frame(FAR struct bcmf_dev_s *priv,
 
   if (nxsem_wait(&sbus->queue_mutex) < 0)
     {
-      PANIC();
+      DEBUGPANIC();
     }
 
   bcmf_dqueue_push(&sbus->tx_queue, &sframe->list_entry);
@@ -412,8 +423,7 @@ struct bcmf_frame_s *bcmf_sdpcm_alloc_frame(FAR struct bcmf_dev_s *priv,
       header_len += 2; /* Data frames need alignment padding */
     }
 
-  if (len + header_len > MAX_NET_DEV_MTU + HEADER_SIZE ||
-      len > len + header_len)
+  if (len + header_len > MAX_NETDEV_PKTSIZE + HEADER_SIZE)
     {
       wlerr("Invalid size %d\n", len);
       return NULL;
@@ -428,7 +438,7 @@ struct bcmf_frame_s *bcmf_sdpcm_alloc_frame(FAR struct bcmf_dev_s *priv,
       return NULL;
     }
 
-  sframe->header.len = header_len + len;
+  sframe->header.len   = header_len + len;
   sframe->header.data += header_len;
   return &sframe->header;
 }
@@ -448,7 +458,7 @@ struct bcmf_frame_s *bcmf_sdpcm_get_rx_frame(FAR struct bcmf_dev_s *priv)
 
   if (nxsem_wait(&sbus->queue_mutex) < 0)
     {
-      PANIC();
+      DEBUGPANIC();
     }
 
   entry = bcmf_dqueue_pop_tail(&sbus->rx_queue);

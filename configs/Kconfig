@@ -61,7 +61,7 @@ config ARCH_BOARD_C5471EVM
 		This port is complete and verified.
 
 config ARCH_BOARD_CLICKER2_STM32
-	bool "Mikrow Clicker2 STM32"
+	bool "Mikroe Clicker2 STM32"
 	depends on ARCH_CHIP_STM32F407VG
 	select ARCH_HAVE_LEDS
 	select ARCH_HAVE_BUTTONS
@@ -272,6 +272,13 @@ config ARCH_BOARD_FREEDOM_KL26Z
 		This is the configuration for the NXP/FreeScale Freedom KL26Z board.  This
 		board has the K26Z128VLH4 chip with a built-in SDA debugger.
 
+config ARCH_BOARD_GAPUINO
+	bool "GWT gapuino board"
+	depends on ARCH_CHIP_GAP8
+	select UART_SERIALDRIVER
+	---help---
+		Nuttx port for gapuino, a GAP8 evaluation board.
+
 config ARCH_BOARD_HYMINI_STM32V
 	bool "HY-Mini STM32v board"
 	depends on ARCH_CHIP_STM32F103VC
@@ -289,8 +296,18 @@ config ARCH_BOARD_IMXRT1050_EVK
 	select ARCH_HAVE_BUTTONS
 	select ARCH_HAVE_IRQBUTTONS
 	---help---
-		This is the board configuratino for the port of NuttX to the NXP i.MXRT
+		This is the board configuration for the port of NuttX to the NXP i.MXRT
 		evaluation kit, MIMXRT1050-EVKB.  This board features the MIMXRT1052DVL6A MCU.
+
+config ARCH_BOARD_IMXRT1060_EVK
+	bool "NXP i.MX RT 1060 EVK"
+	depends on ARCH_CHIP_MIMXRT1062DVL6A
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+	select ARCH_HAVE_IRQBUTTONS
+	---help---
+		This is the board configuration for the port of NuttX to the NXP i.MXRT
+		evaluation kit, MIMXRT1060-EVK.  This board features the MIMXRT1062DVL6A MCU.
 
 config ARCH_BOARD_LC823450_XGEVK
 	bool "ON Semiconductor LC823450-XGEVK development board"
@@ -454,6 +471,16 @@ config ARCH_BOARD_MCU123_LPC214X
 		lpc214x development board. This OS is also built with the arm-nuttx-elf
 		toolchain*.  The port supports serial, timer0, spi, and usb.
 
+config ARCH_BOARD_METRO_M4
+	bool "Adafruit M4 Metro"
+	depends on ARCH_CHIP_SAMD51J19
+	select ARCH_HAVE_LEDS
+	---help---
+	---help---
+		This configuration is the port of NuttX to the Adafruit Metro M4.
+		The Metro M4 uses a Arduino form factor and and pinout.  It's powered
+		with an ATSAMD51J19
+
 config ARCH_BOARD_MICROPENDOUS3
 	bool "Opendous Micropendous 3 board"
 	depends on ARCH_CHIP_AT90USB646 || ARCH_CHIP_AT90USB647 || ARCH_CHIP_AT90USB1286 || ARCH_CHIP_AT90USB1287
@@ -461,6 +488,13 @@ config ARCH_BOARD_MICROPENDOUS3
 		This is a port to the Opendous Micropendous 3 board. This board may
 		be populated with either an AVR AT90USB646, 647, 1286, or 1287 MCU.
 		Support is configured for the AT90USB647.
+
+config ARCH_BOARD_MISOC
+	bool "Qemu LM32 demo"
+	depends on ARCH_CHIP_LM32
+	---help---
+		This configuration is port to NuttX running on a Qemu LM32 system.
+		You can find the Qemu setup at https://bitbucket.org/key2/qemu
 
 config ARCH_BOARD_MOTEINO_MEGA
 	bool "LowPowerLab MoteinoMEGA"
@@ -662,7 +696,7 @@ config ARCH_BOARD_OLIMEXINO_STM32
 		This port uses the Olimexino STM32 board and a GNU arm-nuttx-elf
 		toolchain under Linux or Cygwin. See the http://www.olimex.com for
 		further information. This board features the STMicro STM32F103RBT6 MCU.
-		Contribued by David Sidrane.
+		Contributed by David Sidrane.
 
 config ARCH_BOARD_OPEN1788
 	bool "Wave Share Open1788"
@@ -708,17 +742,6 @@ config ARCH_BOARD_P112
 		Gulczynski makes additional P112 derivative hobbyist home brew computers.
 		Hal Bower was very active in the mid 1990's on the P112 project and ported
 		the "Banked/Portable BIOS".
-
-config ARCH_BOARD_PCBLOGICPIC32MX
-	bool "PIC32MX board from PCB Logic Design Co"
-	depends on ARCH_CHIP_PIC32MX460F512L
-	---help---
-		This is the port of NuttX to the PIC32MX board from PCB Logic Design Co.
-		This board features the MicroChip PIC32MX460F512L.
-		The board is a very simple -- little more than a carrier for the PIC32
-		MCU plus voltage regulation, debug interface, and an OTG connector.
-		STATUS:  Code complete but testing has been stalled due to tool related problems
-		(PICkit 2 does not work with the PIC32).
 
 config ARCH_BOARD_PCDUINO_A10
 	bool "pcDuino A10"
@@ -851,6 +874,15 @@ config ARCH_BOARD_NUCLEO_F091RC
 	---help---
 		STMicro Nucleo F091RC board based on the STMicro STM32F091RCT6 MCU.
 
+config ARCH_BOARD_NUCLEO_F302R8
+	bool "STM32F303 Nucleo F302R8"
+	depends on ARCH_CHIP_STM32F302R8
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+	select ARCH_HAVE_IRQBUTTONS
+	---help---
+		STMicro Nucleo F302R8 board based on the STMicro STM32F302R8T6 MCU.
+
 config ARCH_BOARD_NUCLEO_F303RE
 	bool "STM32F303 Nucleo F303RE"
 	depends on ARCH_CHIP_STM32F303RE
@@ -859,6 +891,15 @@ config ARCH_BOARD_NUCLEO_F303RE
 	select ARCH_HAVE_IRQBUTTONS
 	---help---
 		STMicro Nucleo F303RE board based on the STMicro STM32F303RET6 MCU.
+
+config ARCH_BOARD_NUCLEO_F303ZE
+	bool "STM32F303 Nucleo F303ZE"
+	depends on ARCH_CHIP_STM32F303ZE
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+	select ARCH_HAVE_IRQBUTTONS
+	---help---
+		STMicro Nucleo F303ZE board based on the STMicro STM32F303ZET6 MCU.
 
 config ARCH_BOARD_NUCLEO_F334R8
 	bool "STM32F334 Nucleo F334R8"
@@ -898,6 +939,15 @@ config ARCH_BOARD_NUCLEO_F411RE
 	---help---
 		This is a minimal configuration that supports low-level test of the
 		Nucleo F411RE in the NuttX source tree.
+
+config ARCH_BOARD_NUCLEO_H743ZI
+	bool "STM32H743 Nucleo H743ZI"
+	depends on ARCH_CHIP_STM32H743ZI
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+# TODO:	select ARCH_HAVE_IRQBUTTONS
+	---help---
+		STMicro Nucleo H743ZI board based on the STMicro STM32H743ZI MCU.
 
 config ARCH_BOARD_NUCLEO_L432KC
 	bool "STM32L432 Nucleo-32 L432KC"
@@ -1322,6 +1372,17 @@ config ARCH_BOARD_STM32L476VG_DISCO
 		MCU. The STM32L476VG  is a Cortex-M4 optimised for low-power operation
 		at up to 80MHz operation with 1024Kb Flash memory and 96+32Kb SRAM.
 
+config ARCH_BOARD_STM32L4R9AI_DISCO
+	bool "STMicro STM32L4R9AI -Discovery board"
+	depends on ARCH_CHIP_STM32L4R9AI
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+	select ARCH_HAVE_IRQBUTTONS
+	---help---
+		STMicro STM32L4R9AI_DISCO development board featuring the STM32L4R9AI
+		MCU. The STM32L4R9AI is a Cortex-M4 optimised for low-power operation
+		at up to 120MHz operation with 2048Kb Flash memory and 192+64+384Kb SRAM.
+
 config ARCH_BOARD_STM32L476_MDK
 	bool "Motorola Mods Development Kit (MDK)"
 	depends on ARCH_CHIP_STM32L476RG
@@ -1514,7 +1575,7 @@ config ARCH_BOARD_Z16F2800100ZCOG
 	depends on ARCH_CHIP_Z16F2811
 	select ARCH_HAVE_LEDS
 	---help---
-		z16f Microcontroller.  This port use the ZiLIG z16f2800100zcog
+		z16f Microcontroller.  This port uses the ZiLOG z16f2800100zcog
 		development kit and the Zilog ZDS-II Windows command line tools.  The
 		development environment is Cygwin under WinXP.
 
@@ -1665,8 +1726,10 @@ config ARCH_BOARD
 	default "freedom-k66f"             if ARCH_BOARD_FREEDOM_K66F
 	default "freedom-kl25z"            if ARCH_BOARD_FREEDOM_KL25Z
 	default "freedom-kl26z"            if ARCH_BOARD_FREEDOM_KL26Z
+	default "gapuino"                  if ARCH_BOARD_GAPUINO
 	default "hymini-stm32v"            if ARCH_BOARD_HYMINI_STM32V
 	default "imxrt1050-evk"            if ARCH_BOARD_IMXRT1050_EVK
+	default "imxrt1060-evk"            if ARCH_BOARD_IMXRT1060_EVK
 	default "kwikstik-k40"             if ARCH_BOARD_KWIKSTIK_K40
 	default "launchxl-tms57004"        if ARCH_BOARD_LAUNCHXL_TMS57004
 	default "lc823450-xgevk"           if ARCH_BOARD_LC823450_XGEVK
@@ -1686,8 +1749,10 @@ config ARCH_BOARD
 	default "mbed"                     if ARCH_BOARD_MBED
 	default "mcb1700"                  if ARCH_BOARD_MCB1700
 	default "mcu123-lpc214x"           if ARCH_BOARD_MCU123_LPC214X
+	default "metro-m4"                 if ARCH_BOARD_METRO_M4
 	default "micropendous3"            if ARCH_BOARD_MICROPENDOUS3
 	default "mirtoo"                   if ARCH_BOARD_MIRTOO
+	default "misoc"                    if ARCH_BOARD_MISOC
 	default "moteino-mega"             if ARCH_BOARD_MOTEINO_MEGA
 	default "ne64badge"                if ARCH_BOARD_NE64BADGE
 	default "nrf52-pca10040"           if ARCH_BOARD_NRF52_PCA10040
@@ -1695,10 +1760,13 @@ config ARCH_BOARD
 	default "nucleo-144"               if ARCH_BOARD_NUCLEO_144
 	default "nucleo-f072rb"            if ARCH_BOARD_NUCLEO_F072RB
 	default "nucleo-f091rc"            if ARCH_BOARD_NUCLEO_F091RC
+	default "nucleo-f302r8"            if ARCH_BOARD_NUCLEO_F302R8
 	default "nucleo-f303re"            if ARCH_BOARD_NUCLEO_F303RE
+	default "nucleo-f303ze"            if ARCH_BOARD_NUCLEO_F303ZE
 	default "nucleo-f334r8"            if ARCH_BOARD_NUCLEO_F334R8
 	default "nucleo-f4x1re"            if ARCH_BOARD_NUCLEO_F401RE || ARCH_BOARD_NUCLEO_F411RE
 	default "nucleo-f410rb"            if ARCH_BOARD_NUCLEO_F410RB
+	default "nucleo-h743zi"            if ARCH_BOARD_NUCLEO_H743ZI
 	default "nucleo-l432kc"            if ARCH_BOARD_NUCLEO_L432KC
 	default "nucleo-l452re"            if ARCH_BOARD_NUCLEO_L452RE
 	default "nucleo-l476rg"            if ARCH_BOARD_NUCLEO_L476RG
@@ -1720,7 +1788,6 @@ config ARCH_BOARD
 	default "open1788"                 if ARCH_BOARD_OPEN1788
 	default "or1k"                     if ARCH_BOARD_OR1K
 	default "p112"                     if ARCH_BOARD_P112
-	default "pcblogic-pic32mx"         if ARCH_BOARD_PCBLOGICPIC32MX
 	default "pcduino-a10"              if ARCH_BOARD_PCDUINO_A10
 	default "pic32mx-starterkit"       if ARCH_BOARD_PIC32MX_STARTERKIT
 	default "pic32mx7mmb"              if ARCH_BOARD_PIC32MX7MMB
@@ -1766,6 +1833,7 @@ config ARCH_BOARD
 	default "b-l475e-iot01a"           if ARCH_BOARD_B_L475E_IOT01A
 	default "stm32l476vg-disco"        if ARCH_BOARD_STM32L476VG_DISCO
 	default "stm32l476-mdk"            if ARCH_BOARD_STM32L476_MDK
+	default "stm32l4r9ai-disco"        if ARCH_BOARD_STM32L4R9AI_DISCO
 	default "stm32ldiscovery"          if ARCH_BOARD_STM32L_DISCOVERY
 	default "stm32vldiscovery"         if ARCH_BOARD_STM32VL_DISCOVERY
 	default "mikroe-stm32f4"           if ARCH_BOARD_MIKROE_STM32F4
@@ -1908,11 +1976,17 @@ endif
 if ARCH_BOARD_FREEDOM_KL26Z
 source "configs/freedom-kl26z/Kconfig"
 endif
+if ARCH_BOARD_GAPUINO
+source "configs/gapuino/Kconfig"
+endif
 if ARCH_BOARD_HYMINI_STM32V
 source "configs/hymini-stm32v/Kconfig"
 endif
 if ARCH_BOARD_IMXRT1050_EVK
 source "configs/imxrt1050-evk/Kconfig"
+endif
+if ARCH_BOARD_IMXRT1060_EVK
+source "configs/imxrt1060-evk/Kconfig"
 endif
 if ARCH_BOARD_KWIKSTIK_K40
 source "configs/kwikstik-k40/Kconfig"
@@ -1968,6 +2042,9 @@ endif
 if ARCH_BOARD_MCU123_LPC214X
 source "configs/mcu123-lpc214x/Kconfig"
 endif
+if ARCH_BOARD_METRO_M4
+source "configs/metro-m4/Kconfig"
+endif
 if ARCH_BOARD_MICROPENDOUS3
 source "configs/micropendous3/Kconfig"
 endif
@@ -1976,6 +2053,9 @@ source "configs/mikroe-stm32f4/Kconfig"
 endif
 if ARCH_BOARD_MIRTOO
 source "configs/mirtoo/Kconfig"
+endif
+if ARCH_BOARD_MISOC
+source "configs/misoc/Kconfig"
 endif
 if ARCH_BOARD_MOTEINO_MEGA
 source "configs/moteino-mega/Kconfig"
@@ -2004,6 +2084,9 @@ endif
 if ARCH_BOARD_NUCLEO_F303RE
 source "configs/nucleo-f303re/Kconfig"
 endif
+if ARCH_BOARD_NUCLEO_F303ZE
+source "configs/nucleo-f303ze/Kconfig"
+endif
 if ARCH_BOARD_NUCLEO_F334R8
 source "configs/nucleo-f334r8/Kconfig"
 endif
@@ -2012,6 +2095,9 @@ source "configs/nucleo-f4x1re/Kconfig"
 endif
 if ARCH_BOARD_NUCLEO_F410RB
 source "configs/nucleo-f410rb/Kconfig"
+endif
+if ARCH_BOARD_NUCLEO_H743ZI
+source "configs/nucleo-h743zi/Kconfig"
 endif
 if ARCH_BOARD_NUCLEO_L432KC
 source "configs/nucleo-l432kc/Kconfig"
@@ -2069,9 +2155,6 @@ source "configs/open1788/Kconfig"
 endif
 if ARCH_BOARD_OR1K
 source "configs/or1k/Kconfig"
-endif
-if ARCH_BOARD_PCBLOGICPIC32MX
-source "configs/pcblogic-pic32mx/Kconfig"
 endif
 if ARCH_BOARD_PCDUINO_A10
 source "configs/pcduino-a10/Kconfig"
@@ -2295,14 +2378,6 @@ config BOARD_CRASHDUMP
 		"machine state" in a place where on the next reset can write it
 		to more sophisticated storage in a sane operating environment.
 
-config BOARD_RESET_ON_CRASH
-	bool "Enable Board Reset after the crashdump is saved"
-	default n
-	depends on BOARD_CRASHDUMP
-	---help---
-		If selected the board_crashdump should reset the machine after
-		saveing the state of the machine
-
 config BOARD_ENTROPY_POOL
 	bool "Enable Board level storing of entropy pool structure"
 	default n
@@ -2333,6 +2408,14 @@ config LIB_BOARDCTL
 
 if LIB_BOARDCTL
 
+config BOARDCTL_FINALINIT
+	bool "Enable board app final init"
+	default n
+	---help---
+		Enables support for the BOARDIOC_FINALINIT boardctl() command.
+		Architecture specific logic must provide board_app_finalinitialize()
+		interface.
+
 config BOARDCTL_POWEROFF
 	bool "Enable power off interfaces"
 	default n
@@ -2350,6 +2433,27 @@ config BOARDCTL_RESET
 		Enables support for the BOARDIOC_RESET boardctl() command.
 		Architecture specific logic must provide the board_reset()
 		interface.
+
+config BOARD_RESET_ON_ASSERT
+	int "Enable Board Reset after assert"
+	default 0
+	depends on BOARDCTL_RESET
+	---help---
+		== 0 up_assert never reset the machine
+		>= 1 up_assert from interrupt handler or IDLE thread will reset the
+		     machine
+		>= 2 up_assert from user or kernel thread will reset the machine.
+		     The default behavior is just to kill the asserting thread.
+
+config BOARD_ASSERT_RESET_VALUE
+	int "Board reset argument"
+	default 0
+	depends on BOARDCTL_RESET
+	---help---
+		Parameter that will be passed to board_reset() by when an
+		assertion occurs.  This may be used by board_reset()
+		implementations to handle the reset differently for the
+		case of a crash.
 
 config BOARDCTL_UNIQUEID
 	bool "Return board unique ID"

@@ -177,7 +177,7 @@ static void pthread_start(void)
 
   DEBUGASSERT(group && pjoin);
 
-  /* Sucessfully spawned, add the pjoin to our data set. */
+  /* Successfully spawned, add the pjoin to our data set. */
 
   (void)pthread_sem_take(&group->tg_joinsem, false);
   pthread_addjoininfo(group, pjoin);
@@ -302,10 +302,21 @@ int pthread_create(FAR pthread_t *thread, FAR const pthread_attr_t *attr,
       goto errout_with_tcb;
     }
 
-  /* Allocate the stack for the TCB */
+  if (attr->stackaddr)
+    {
+      /* Use pre-allocated stack */
 
-  ret = up_create_stack((FAR struct tcb_s *)ptcb, attr->stacksize,
-                        TCB_FLAG_TTYPE_PTHREAD);
+      ret = up_use_stack((FAR struct tcb_s *)ptcb, attr->stackaddr,
+                         attr->stacksize);
+    }
+  else
+    {
+      /* Allocate the stack for the TCB */
+
+      ret = up_create_stack((FAR struct tcb_s *)ptcb, attr->stacksize,
+                            TCB_FLAG_TTYPE_PTHREAD);
+    }
+
   if (ret != OK)
     {
       errcode = ENOMEM;
@@ -360,8 +371,8 @@ int pthread_create(FAR pthread_t *thread, FAR const pthread_attr_t *attr,
   if (policy == SCHED_SPORADIC)
     {
       FAR struct sporadic_s *sporadic;
-      ssystime_t repl_ticks;
-      ssystime_t budget_ticks;
+      sclock_t repl_ticks;
+      sclock_t budget_ticks;
 
       /* Convert timespec values to system clock ticks */
 

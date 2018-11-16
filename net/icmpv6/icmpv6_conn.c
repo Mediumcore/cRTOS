@@ -48,7 +48,6 @@
 #include <nuttx/net/netconfig.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/netdev.h>
-#include <nuttx/net/arp.h>
 
 #include "devif/devif.h"
 #include "icmpv6/icmpv6.h"
@@ -118,9 +117,7 @@ FAR struct icmpv6_conn_s *icmpv6_alloc(void)
   FAR struct icmpv6_conn_s *conn = NULL;
   int ret;
 
-  /* The free list is only accessed from user, non-interrupt level and
-   * is protected by a semaphore (that behaves like a mutex).
-   */
+  /* The free list is protected by a semaphore (that behaves like a mutex). */
 
   ret = net_lockedwait(&g_free_sem);
   if (ret >= 0)
@@ -156,9 +153,7 @@ void icmpv6_free(FAR struct icmpv6_conn_s *conn)
 {
   int ret;
 
-  /* The free list is only accessed from user, non-interrupt level and
-   * is protected by a semaphore (that behaves like a mutex).
-   */
+  /* The free list is protected by a semaphore (that behaves like a mutex). */
 
   DEBUGASSERT(conn->crefs == 0);
 
@@ -175,27 +170,14 @@ void icmpv6_free(FAR struct icmpv6_conn_s *conn)
 
   UNUSED(ret);
 
-  /* Is this the last reference on the connection?  It might not be if the
-   * socket was cloned.
-   */
+  /* Remove the connection from the active list */
 
-  if (conn->crefs > 1)
-    {
-      /* No.. just decrement the reference count */
+  dq_rem(&conn->node, &g_active_icmpv6_connections);
 
-      conn->crefs--;
-    }
-  else
-    {
-      /* Remove the connection from the active list */
+  /* Free the connection */
 
-      dq_rem(&conn->node, &g_active_icmpv6_connections);
-
-      /* Free the connection */
-
-      dq_addlast(&conn->node, &g_free_icmpv6_connections);
-      nxsem_post(&g_free_sem);
-    }
+  dq_addlast(&conn->node, &g_free_icmpv6_connections);
+  nxsem_post(&g_free_sem);
 }
 
 /****************************************************************************
@@ -269,7 +251,8 @@ FAR struct icmpv6_conn_s *icmpv6_nextconn(FAR struct icmpv6_conn_s *conn)
  *
  ****************************************************************************/
 
-FAR struct icmpv6_conn_s *icmpv6_findconn(FAR struct net_driver_s *dev, uint8_t id)
+FAR struct icmpv6_conn_s *icmpv6_findconn(FAR struct net_driver_s *dev,
+                                          uint16_t id)
 {
   FAR struct icmpv6_conn_s *conn;
 

@@ -124,22 +124,22 @@
 
 /* If IGMP is enabled, then accept multi-cast frames. */
 
-#if defined(CONFIG_NET_IGMP) && !defined(CONFIG_PIC32MX_MULTICAST)
+#if defined(CONFIG_NET_MCASTGROUP) && !defined(CONFIG_PIC32MX_MULTICAST)
 #  define CONFIG_PIC32MX_MULTICAST 1
 #endif
 
 /* Use defaults if the number of discriptors is not provided */
 
-#ifndef CONFIG_NET_NTXDESC
-#  define CONFIG_NET_NTXDESC 2
+#ifndef CONFIG_PIC32MX_ETH_NTXDESC
+#  define CONFIG_PIC32MX_ETH_NTXDESC 2
 #endif
 
-#if CONFIG_NET_NTXDESC > 255
+#if CONFIG_PIC32MX_ETH_NTXDESC > 255
 #  error "The number of TX descriptors exceeds the range of a uint8_t index"
 #endif
 
-#ifndef CONFIG_NET_NRXDESC
-#  define CONFIG_NET_NRXDESC 4
+#ifndef CONFIG_PIC32MX_ETH_NRXDESC
+#  define CONFIG_PIC32MX_ETH_NRXDESC 4
 #endif
 
 /* Make sure that the size of each buffer is a multiple of 4 bytes.  This
@@ -148,11 +148,11 @@
  * type).
  */
 
-#define PIC32MX_ALIGNED_BUFSIZE ((CONFIG_NET_ETH_MTU + 3) & ~3)
+#define PIC32MX_ALIGNED_BUFSIZE ((CONFIG_NET_ETH_PKTSIZE + 3) & ~3)
 
 /* The number of buffers will, then, be one for each descriptor plus one extra */
 
-#define PIC32MX_NBUFFERS (CONFIG_NET_NRXDESC + CONFIG_NET_NTXDESC + 1)
+#define PIC32MX_NBUFFERS (CONFIG_PIC32MX_ETH_NRXDESC + CONFIG_PIC32MX_ETH_NTXDESC + 1)
 
 /* Debug Configuration *****************************************************/
 /* CONFIG_NET_DUMPPACKET will dump the contents of each packet to the
@@ -261,14 +261,14 @@
 #define PIC32MX_100BASET_HD    (PIC32MX_SPEED_100 | PIC32MX_DUPLEX_HALF)
 #define PIC32MX_100BASET_FD    (PIC32MX_SPEED_100 | PIC32MX_DUPLEX_FULL)
 
-#ifdef CONFIG_PHY_SPEED100
-#  ifdef CONFIG_PHY_FDUPLEX
+#ifdef CONFIG_PIC32MX_PHY_SPEED100
+#  ifdef CONFIG_PIC32MX_PHY_FDUPLEX
 #    define PIC32MX_MODE_DEFLT PIC32MX_100BASET_FD
 #  else
 #    define PIC32MX_MODE_DEFLT PIC32MX_100BASET_HD
 #  endif
 #else
-#  ifdef CONFIG_PHY_FDUPLEX
+#  ifdef CONFIG_PIC32MX_PHY_FDUPLEX
 #    define PIC32MX_MODE_DEFLT PIC32MX_10BASET_FD
 #  else
 #    define PIC32MX_MODE_DEFLT PIC32MX_10BASET_HD
@@ -332,8 +332,8 @@ struct pic32mx_driver_s
 
   /* Descriptors and packet buffers */
 
-  struct pic32mx_rxdesc_s pd_rxdesc[CONFIG_NET_NRXDESC];
-  struct pic32mx_txdesc_s pd_txdesc[CONFIG_NET_NTXDESC];
+  struct pic32mx_rxdesc_s pd_rxdesc[CONFIG_PIC32MX_ETH_NRXDESC];
+  struct pic32mx_txdesc_s pd_txdesc[CONFIG_PIC32MX_ETH_NTXDESC];
   uint8_t pd_buffers[PIC32MX_NBUFFERS * PIC32MX_ALIGNED_BUFSIZE];
 };
 
@@ -414,7 +414,7 @@ static int pic32mx_ifdown(struct net_driver_s *dev);
 static void pic32mx_txavail_work(void *arg);
 static int pic32mx_txavail(struct net_driver_s *dev);
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int pic32mx_addmac(struct net_driver_s *dev, const uint8_t *mac);
 static int pic32mx_rmmac(struct net_driver_s *dev, const uint8_t *mac);
 #endif
@@ -433,7 +433,7 @@ static void pic32mx_phywrite(uint8_t phyaddr, uint8_t regaddr,
                              uint16_t phydata);
 static uint16_t pic32mx_phyread(uint8_t phyaddr, uint8_t regaddr);
 static inline int pic32mx_phyreset(uint8_t phyaddr);
-#  ifdef CONFIG_PHY_AUTONEG
+#  ifdef CONFIG_PIC32MX_PHY_AUTONEG
 static inline int pic32mx_phyautoneg(uint8_t phyaddr);
 #  endif
 static int pic32mx_phymode(uint8_t phyaddr, uint8_t mode);
@@ -725,7 +725,7 @@ static inline void pic32mx_txdescinit(struct pic32mx_driver_s *priv)
    * descriptor as owned by softare andnot linked.
    */
 
-  for (i = 0; i < CONFIG_NET_NTXDESC; i++)
+  for (i = 0; i < CONFIG_PIC32MX_ETH_NTXDESC; i++)
     {
       /* Point to the next entry */
 
@@ -745,7 +745,7 @@ static inline void pic32mx_txdescinit(struct pic32mx_driver_s *priv)
        * creating a ring.
        */
 
-      if (i == (CONFIG_NET_NRXDESC-1))
+      if (i == (CONFIG_PIC32MX_ETH_NRXDESC-1))
         {
           txdesc->nexted = PHYS_ADDR(priv->pd_txdesc);
         }
@@ -796,7 +796,7 @@ static inline void pic32mx_rxdescinit(struct pic32mx_driver_s *priv)
    * corresponding RX buffer.
    */
 
-  for (i = 0; i < CONFIG_NET_NRXDESC; i++)
+  for (i = 0; i < CONFIG_PIC32MX_ETH_NRXDESC; i++)
     {
       /* Point to the next entry */
 
@@ -816,7 +816,7 @@ static inline void pic32mx_rxdescinit(struct pic32mx_driver_s *priv)
        * creating a ring.
        */
 
-      if (i == (CONFIG_NET_NRXDESC-1))
+      if (i == (CONFIG_PIC32MX_ETH_NRXDESC-1))
         {
           rxdesc->nexted = PHYS_ADDR(priv->pd_rxdesc);
         }
@@ -908,7 +908,7 @@ static inline void pic32mx_txnext(struct pic32mx_driver_s *priv)
    * for the Tx ring, then reset to first descriptor.
    */
 
-  if (txnext >= CONFIG_NET_NTXDESC)
+  if (txnext >= CONFIG_PIC32MX_ETH_NTXDESC)
     {
       txnext = 0;
     }
@@ -972,7 +972,7 @@ static struct pic32mx_rxdesc_s *pic32mx_rxdesc(struct pic32mx_driver_s *priv)
    * RSV and PKT_CHECKSUM to get the message characteristics.
    */
 
-  for (i = 0; i < CONFIG_NET_NRXDESC; i++)
+  for (i = 0; i < CONFIG_PIC32MX_ETH_NRXDESC; i++)
     {
       /* Check if software owns this descriptor */
 
@@ -1021,7 +1021,7 @@ static int pic32mx_transmit(struct pic32mx_driver_s *priv)
    */
 
   DEBUGASSERT(priv->pd_dev.d_buf != NULL &&
-              priv->pd_dev.d_len < CONFIG_NET_ETH_MTU);
+              priv->pd_dev.d_len < CONFIG_NET_ETH_PKTSIZE);
 
   /* Increment statistics and dump the packet (if so configured) */
 
@@ -1149,31 +1149,34 @@ static int pic32mx_txpoll(struct net_driver_s *dev)
         }
 #endif /* CONFIG_NET_IPv6 */
 
-      /* Send this packet.  In this context, we know that there is space for
-       * at least one more packet in the descriptor list.
-       */
-
-      pic32mx_transmit(priv);
-
-      /* Check if the next TX descriptor is available. If not, return a
-       * non-zero value to terminate the poll.
-       */
-
-      if (pic32mx_txdesc(priv) == NULL)
+      if (!devif_loopback(&priv->pd_dev))
         {
-          /* There are no more TX descriptors/buffers available.. stop the poll */
+          /* Send this packet.  In this context, we know that there is space for
+           * at least one more packet in the descriptor list.
+           */
 
-          return -EAGAIN;
-        }
+          pic32mx_transmit(priv);
 
-      /* Get the next Tx buffer needed in order to continue the poll */
+          /* Check if the next TX descriptor is available. If not, return a
+           * non-zero value to terminate the poll.
+           */
 
-      priv->pd_dev.d_buf = pic32mx_allocbuffer(priv);
-      if (priv->pd_dev.d_buf == NULL)
-        {
-          /* We have no more buffers available for the nex Tx.. stop the poll */
+          if (pic32mx_txdesc(priv) == NULL)
+            {
+              /* There are no more TX descriptors/buffers available.. stop the poll */
 
-          return -ENOMEM;
+              return -EAGAIN;
+            }
+
+          /* Get the next Tx buffer needed in order to continue the poll */
+
+          priv->pd_dev.d_buf = pic32mx_allocbuffer(priv);
+          if (priv->pd_dev.d_buf == NULL)
+            {
+              /* We have no more buffers available for the nex Tx.. stop the poll */
+
+              return -ENOMEM;
+            }
         }
     }
 
@@ -1393,7 +1396,7 @@ static void pic32mx_rxdone(struct pic32mx_driver_s *priv)
        * imply that the packet is too big.
        */
 
-      else if (priv->pd_dev.d_len > CONFIG_NET_ETH_MTU)
+      else if (priv->pd_dev.d_len > CONFIG_NET_ETH_PKTSIZE)
         {
           nerr("ERROR: Too big. packet length: %d rxdesc: %08x\n",
                priv->pd_dev.d_len, rxdesc->status);
@@ -1607,7 +1610,7 @@ static void pic32mx_txdone(struct pic32mx_driver_s *priv)
    * transmitted. Use TSV to check for the transmission result.
    */
 
-  for (i = 0; i < CONFIG_NET_NTXDESC; i++)
+  for (i = 0; i < CONFIG_PIC32MX_ETH_NTXDESC; i++)
     {
       txdesc = &priv->pd_txdesc[i];
 
@@ -2208,7 +2211,7 @@ static int pic32mx_ifup(struct net_driver_s *dev)
    * length restriction is desired, program this 16-bit field.
    */
 
-  pic32mx_putreg(CONFIG_NET_ETH_MTU, PIC32MX_EMAC1_MAXF);
+  pic32mx_putreg(CONFIG_NET_ETH_PKTSIZE, PIC32MX_EMAC1_MAXF);
 
   /*  Configure the MAC station address in the EMAC1SA0, EMAC1SA1 and
    * EMAC1SA2 registers (these registers are loaded at reset from the
@@ -2273,7 +2276,7 @@ static int pic32mx_ifup(struct net_driver_s *dev)
    * noticeable impact on the performance.
    */
 
-  pic32mx_putreg(ETH_CON2_RXBUFSZ(CONFIG_NET_ETH_MTU), PIC32MX_ETH_CON2);
+  pic32mx_putreg(ETH_CON2_RXBUFSZ(CONFIG_NET_ETH_PKTSIZE), PIC32MX_ETH_CON2);
 
   /* Reset state varialbes */
 
@@ -2321,11 +2324,11 @@ static int pic32mx_ifup(struct net_driver_s *dev)
    * priority
    */
 
-#if defined(CONFIG_NET_PRIORITY) && defined(CONFIG_ARCH_IRQPRIO)
+#if defined(CONFIG_PIC32MX_ETH_PRIORITY) && defined(CONFIG_ARCH_IRQPRIO)
 #if CONFIG_PIC32MX_NINTERFACES > 1
-  (void)up_prioritize_irq(priv->pd_irq, CONFIG_NET_PRIORITY);
+  (void)up_prioritize_irq(priv->pd_irq, CONFIG_PIC32MX_ETH_PRIORITY);
 #else
-  (void)up_prioritize_irq(PIC32MX_IRQ_ETH, CONFIG_NET_PRIORITY);
+  (void)up_prioritize_irq(PIC32MX_IRQ_ETH, CONFIG_PIC32MX_ETH_PRIORITY);
 #endif
 #endif
 
@@ -2494,7 +2497,7 @@ static int pic32mx_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int pic32mx_addmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   struct pic32mx_driver_s *priv = (struct pic32mx_driver_s *)dev->d_private;
@@ -2524,7 +2527,7 @@ static int pic32mx_addmac(struct net_driver_s *dev, const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int pic32mx_rmmac(struct net_driver_s *dev, const uint8_t *mac)
 {
   struct pic32mx_driver_s *priv = (struct pic32mx_driver_s *)dev->d_private;
@@ -2747,7 +2750,7 @@ static inline int pic32mx_phyreset(uint8_t phyaddr)
  *
  ****************************************************************************/
 
-#if defined(PIC32MX_HAVE_PHY) && defined(CONFIG_PHY_AUTONEG)
+#if defined(PIC32MX_HAVE_PHY) && defined(CONFIG_PIC32MX_PHY_AUTONEG)
 static inline int pic32mx_phyautoneg(uint8_t phyaddr)
 {
   int32_t timeout;
@@ -3003,7 +3006,7 @@ static inline int pic32mx_phyinit(struct pic32mx_driver_s *priv)
    * specific register).
    */
 
-#ifdef CONFIG_PHY_AUTONEG
+#ifdef CONFIG_PIC32MX_PHY_AUTONEG
   /* Setup the Auto-negotiation advertisement: 100 or 10, and HD or FD */
 
   pic32mx_phywrite(phyaddr, MII_ADVERTISE,
@@ -3335,7 +3338,7 @@ static inline int pic32mx_ethinitialize(int intf)
   priv->pd_dev.d_ifup    = pic32mx_ifup;    /* I/F down callback */
   priv->pd_dev.d_ifdown  = pic32mx_ifdown;  /* I/F up (new IP address) callback */
   priv->pd_dev.d_txavail = pic32mx_txavail; /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->pd_dev.d_addmac  = pic32mx_addmac;  /* Add multicast MAC address */
   priv->pd_dev.d_rmmac   = pic32mx_rmmac;   /* Remove multicast MAC address */
 #endif

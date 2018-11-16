@@ -114,7 +114,7 @@
 
 #define ETH_ZLEN 60
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 # define MACCR_ENABLE_ALL (FTMAC100_MACCR_XMT_EN  | \
                            FTMAC100_MACCR_RCV_EN  | \
                            FTMAC100_MACCR_XDMA_EN | \
@@ -188,7 +188,7 @@ struct ftmac100_driver_s
 
 /* A single packet buffer is used */
 
-static uint8_t g_pktbuf[MAX_NET_DEV_MTU + CONFIG_NET_GUARDSIZE];
+static uint8_t g_pktbuf[MAX_NETDEV_PKTSIZE + CONFIG_NET_GUARDSIZE];
 
 /* Driver state structure. */
 
@@ -229,9 +229,9 @@ static int ftmac100_ifdown(FAR struct net_driver_s *dev);
 static void ftmac100_txavail_work(FAR void *arg);
 static int ftmac100_txavail(FAR struct net_driver_s *dev);
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int ftmac100_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int ftmac100_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
 #ifdef CONFIG_NET_ICMPv6
@@ -388,13 +388,16 @@ static int ftmac100_txpoll(struct net_driver_s *dev)
         }
 #endif /* CONFIG_NET_IPv6 */
 
-      /* Send the packet */
+      if (!devif_loopback(&priv->ft_dev))
+        {
+          /* Send the packet */
 
-      ftmac100_transmit(priv);
+          ftmac100_transmit(priv);
 
-      /* Check if there is room in the device to hold another packet. If not,
-       * return a non-zero value to terminate the poll.
-       */
+          /* Check if there is room in the device to hold another packet. If not,
+           * return a non-zero value to terminate the poll.
+           */
+        }
     }
 
   /* If zero is returned, the polling will continue until all connections have
@@ -1348,7 +1351,7 @@ static int ftmac100_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
 static int ftmac100_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct ftmac100_driver_s *priv = (FAR struct ftmac100_driver_s *)dev->d_private;
@@ -1402,7 +1405,7 @@ static int ftmac100_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int ftmac100_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct ftmac100_driver_s *priv = (FAR struct ftmac100_driver_s *)dev->d_private;
@@ -1548,7 +1551,7 @@ int ftmac100_initialize(int intf)
   priv->ft_dev.d_ifup    = ftmac100_ifup;     /* I/F up (new IP address) callback */
   priv->ft_dev.d_ifdown  = ftmac100_ifdown;   /* I/F down callback */
   priv->ft_dev.d_txavail = ftmac100_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->ft_dev.d_addmac  = ftmac100_addmac;   /* Add multicast MAC address */
   priv->ft_dev.d_rmmac   = ftmac100_rmmac;    /* Remove multicast MAC address */
 #endif
