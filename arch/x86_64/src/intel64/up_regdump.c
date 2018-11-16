@@ -96,7 +96,7 @@ void up_registerdump(uint64_t *regs)
   }
   _alert("Frame Dump (64 bytes):\n");
   rbp = regs[REG_RBP];
-  for(i = 0; i < 8; i++){
+  for(i = 0; i < 16; i++){
     if(!rbp)
         break;
     _alert("  %016llx\t%016llx\n", *((uint64_t*)(rbp)), *((uint64_t*)(rbp + 1 * 8)));
