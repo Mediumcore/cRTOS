@@ -55,8 +55,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define PAGE_SLOT_SIZE 0x1000000
-
 /* x86_64 MSRs */
 
 #define MSR_FS_BASE 0xc0000100 /* 64bit FS base */

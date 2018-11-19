@@ -9,7 +9,9 @@
 #include <nuttx/sched.h>
 #include <nuttx/arch.h>
 #include <arch/irq.h>
+#include <arch/io.h>
 
+#include "tux.h"
 #include "sched/sched.h"
 
 /****************************************************************************
@@ -36,20 +38,20 @@ typedef struct
  * Private Functions
  ****************************************************************************/
 
-void* page_map[8];
+void* page_map[32];
 
-void* find_free_page(struct task_tcb_s * tcb){
+void* find_free_slot(void) {
     uint64_t i;
     // each slot is 16MB .text .data, stack is allocated using kernel heap
     // slot 0 is used by non affected nuttx threads
     // We have total 512MB of memory available to be used
     for(i = 1; i < 32; i++){
         if(page_map[i] == NULL){
-            page_map[i] = (void*)(uint64_t)tcb->cmn.pid;
-            return (void*)(i * PAGE_SLOT_SIZE); // 16MB blocks
+            page_map[i] = (void*)(i * PAGE_SLOT_SIZE); // 16MB blocks
+            return page_map[i]; // 16MB blocks
         }
     }
-    return (void*)-1;
+    return NULL;
 }
 
 int execvs_setupargs(struct task_tcb_s* tcb,
@@ -133,9 +135,9 @@ int execvs_setupargs(struct task_tcb_s* tcb,
 }
 
 int execvs(void* base, int bsize,
-        void* entry,
-        int argc, char* argv[],
-        int envc, char* envv[])
+           void* entry,
+           int argc, char* argv[],
+           int envc, char* envv[])
 {
     struct task_tcb_s *tcb;
     uint64_t new_page_start_address;
@@ -159,12 +161,12 @@ int execvs(void* base, int bsize,
                  /*up_addrenv_heapsize(&binp->addrenv));*/
 
     //Stack start at the end of address space
-    stack = (uint64_t)kmm_zalloc(0x800000);
+    /*stack = (uint64_t)kmm_zalloc(0x800000);*/
 
     /* Initialize the task */
     /* The addresses are the virtual address of new task */
     ret = task_init((FAR struct tcb_s *)tcb, argv[0], 200,
-                  (uint32_t*)stack, 0x800000, entry, NULL);
+                    (uint32_t*)base + 0xe00000, 0x200000, entry, NULL);
     if (ret < 0)
     {
         ret = -get_errno();
@@ -182,28 +184,28 @@ int execvs(void* base, int bsize,
 
     // Allocate the newly created task to a new address space
     /* Find new pages for the task, every task is assumed to be 64MB, 32 pages */
-    new_page_start_address = (uint64_t)find_free_page(tcb);
-    if (new_page_start_address == -1)
-    {
-        sinfo("page exhausted\n");
-        ret = -ENOMEM;
-        goto errout_with_tcbinit;
-    }
+    /*new_page_start_address = (uint64_t)find_free_slot();*/
+    /*if (new_page_start_address == -1)*/
+    /*{*/
+        /*sinfo("page exhausted\n");*/
+        /*ret = -ENOMEM;*/
+        /*goto errout_with_tcbinit;*/
+    /*}*/
 
     // clear and copy the memory
-    memset((void*)new_page_start_address, 0, PAGE_SLOT_SIZE);
-    memcpy((void*)new_page_start_address + LINUX_ELF_OFFSET, base, bsize); //Load to the mighty 0x400000
+    /*memset((void*)new_page_start_address, 0, PAGE_SLOT_SIZE);*/
+    /*memcpy((void*)new_page_start_address + LINUX_ELF_OFFSET, base, bsize); //Load to the mighty 0x400000*/
 
     // setup the tcb page_table entries
     // load the pages for now, going to do some setup
-    for(int i = 0; i < 32; i++)
+    for(int i = 0; i < (PAGE_SLOT_SIZE - STACK_SLOT_SIZE) / HUGE_PAGE_SIZE; i++)
     {
-        tcb->cmn.xcp.page_table[i] = (new_page_start_address + 0x200000 * i) | 0x83;
+        tcb->cmn.xcp.page_table[i] = ((uint64_t)base + 0x200000 * i) | 0x83;
     }
 
     // set brk
     tcb->cmn.xcp.__min_brk = (void*)((uint64_t)LINUX_ELF_OFFSET + bsize + 0x1000);
-    if(tcb->cmn.xcp.__min_brk >= (void*)PAGE_SLOT_SIZE) tcb->cmn.xcp.__min_brk = (void*)(PAGE_SLOT_SIZE - 1);
+    if(tcb->cmn.xcp.__min_brk >= (void*)(PAGE_SLOT_SIZE - STACK_SLOT_SIZE)) tcb->cmn.xcp.__min_brk = (void*)(PAGE_SLOT_SIZE - STACK_SLOT_SIZE - 1);
     tcb->cmn.xcp.__brk = tcb->cmn.xcp.__min_brk;
     sinfo("Set min_brk at: %llx\n", tcb->cmn.xcp.__min_brk);
 

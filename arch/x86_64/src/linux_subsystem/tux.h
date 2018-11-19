@@ -6,6 +6,9 @@
 
 #include "up_internal.h"
 
+#define PAGE_SLOT_SIZE 0x1000000
+#define STACK_SLOT_SIZE 0x200000
+
 #define FUTEX_WAIT 0x0
 #define FUTEX_WAKE 0x1
 #define FUTEX_PRIVATE_FLAG 0x80
@@ -14,6 +17,8 @@ struct rlimit {
   int rlim_cur;  /* Soft limit */
   int rlim_max;  /* Hard limit (ceiling for rlim_cur) */
 };
+
+void*   find_free_slot(void);
 
 int     tux_nanosleep   (const struct timespec *rqtp, struct timespec *rmtp);
 
