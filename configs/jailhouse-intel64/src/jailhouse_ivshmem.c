@@ -357,5 +357,5 @@ void up_ivshmem(void)
     }
 
     /* Hard coded to put system_map into first ivshmem region */
-    memcpy(devs[0].shmem + 0x100000, g_system_map, 0x20000);
+    memcpy(devs[0].shmem, g_system_map, 0x20000);
 }
