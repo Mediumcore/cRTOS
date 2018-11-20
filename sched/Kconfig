@@ -93,27 +93,27 @@ config SCHED_TICKLESS_LIMIT_MAX_SLEEP
 
 endif
 
-config USEC_PER_TICK
-	int "System timer tick period (microseconds)"
+config NSEC_PER_TICK
+	int "System timer tick period (nanoseconds)"
 	default 10000 if !SCHED_TICKLESS
 	default 100 if SCHED_TICKLESS
 	---help---
 		In the "normal" configuration where system time is provided by a
 		periodic timer interrupt, the default system timer is expected to
-		run at 100Hz or USEC_PER_TICK=10000.  This setting must be defined
+		run at 100Hz or NSEC_PER_TICK=10000.  This setting must be defined
 		to inform of NuttX the interval that the processor hardware is
 		providing system timer interrupts to the OS.
 
 		If SCHED_TICKLESS is selected, then there are no system timer
-		interrupts.  In this case, USEC_PER_TICK does not control any timer
+		interrupts.  In this case, NSEC_PER_TICK does not control any timer
 		rates.  Rather, it only determines the resolution of time reported
 		by clock_systimer() and the resolution of times that can be set for
 		certain delays including watchdog timers and delayed work.  In this
-		case there is a trade-off:  It is better to have the USEC_PER_TICK as
+		case there is a trade-off:  It is better to have the NSEC_PER_TICK as
 		low as possible for higher timing resolution.  However, the time
 		is currently held in 'unsigned int' on some systems, this may be
 		16-bits but on most contemporary systems it will be 32-bits.  In
-		either case, smaller values of USEC_PER_TICK will reduce the range
+		either case, smaller values of NSEC_PER_TICK will reduce the range
 		of values that delays that can be represented.  So the trade-off is
 		between range and resolution (you could also modify the code to use
 		a 64-bit value if you really want both).

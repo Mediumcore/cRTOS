@@ -129,7 +129,7 @@ int clock_systimespec(FAR struct timespec *ts)
 
       return up_timer_gettime(ts);
 
-#elif defined(CONFIG_HAVE_LONG_LONG) && (CONFIG_USEC_PER_TICK % 1000) != 0
+#elif defined(CONFIG_HAVE_LONG_LONG) && (USEC_PER_TICK % 1000) != 0
       /* 64-bit microsecond calculations should improve our accuracy
        * when the clock period is in units of microseconds.
        */
@@ -143,12 +143,12 @@ int clock_systimespec(FAR struct timespec *ts)
        * timer.
        */
 
-      usecs = (uint64_t)TICK2USEC(clock_systimer());
-      secs  = usecs / USEC_PER_SEC;
+      nsecs = (uint64_t)TICK2NSEC(clock_systimer());
+      secs  = nsecs / NSEC_PER_SEC;
 
       /* Return the elapsed time in seconds and nanoseconds */
 
-      nsecs = (usecs - (secs * USEC_PER_SEC)) * NSEC_PER_USEC;
+      nsecs = (nsecs - (secs * NSEC_PER_SEC));
 
       ts->tv_sec  = (time_t)secs;
       ts->tv_nsec = (long)nsecs;

@@ -251,7 +251,7 @@ void work_process(FAR struct kwork_wqueue_s *wqueue, int wndx)
        */
 
       wqueue->worker[wndx].busy = false;
-      nxsig_usleep(next * USEC_PER_TICK);
+      nxsig_usleep(next / 1000 * NSEC_PER_TICK);
       wqueue->worker[wndx].busy = true;
     }
 

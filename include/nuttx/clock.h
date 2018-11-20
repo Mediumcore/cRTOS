@@ -154,10 +154,10 @@
  * to redefine all of the following.
  */
 
-#ifdef CONFIG_USEC_PER_TICK
-# define USEC_PER_TICK        (CONFIG_USEC_PER_TICK)
+#ifdef CONFIG_NSEC_PER_TICK
+# define NSEC_PER_TICK        (CONFIG_NSEC_PER_TICK)
 #else
-# define USEC_PER_TICK        (10000)
+# define NSEC_PER_TICK        (10000000)
 #endif
 
 /* MSEC_PER_TICK can be very inaccurate if CONFIG_USEC_PER_TICK is not an
@@ -165,23 +165,28 @@
  * preferred for that reason (at the risk of overflow)
  */
 
-#define TICK_PER_HOUR         (USEC_PER_HOUR / USEC_PER_TICK)            /* Truncates! */
-#define TICK_PER_MIN          (USEC_PER_MIN  / USEC_PER_TICK)            /* Truncates! */
-#define TICK_PER_SEC          (USEC_PER_SEC  / USEC_PER_TICK)            /* Truncates! */
-#define TICK_PER_MSEC         (USEC_PER_MSEC / USEC_PER_TICK)            /* Truncates! */
-#define TICK_PER_DSEC         (USEC_PER_DSEC / USEC_PER_TICK)            /* Truncates! */
-#define TICK_PER_HSEC         (USEC_PER_HSEC / USEC_PER_TICK)            /* Truncates! */
+#define TICK_PER_HOUR         (NSEC_PER_HOUR / NSEC_PER_TICK)            /* Truncates! */
+#define TICK_PER_MIN          (NSEC_PER_MIN  / NSEC_PER_TICK)            /* Truncates! */
+#define TICK_PER_SEC          (NSEC_PER_SEC  / NSEC_PER_TICK)            /* Truncates! */
+#define TICK_PER_MSEC         (NSEC_PER_MSEC / NSEC_PER_TICK)            /* Truncates! */
+#define TICK_PER_DSEC         (NSEC_PER_DSEC / NSEC_PER_TICK)            /* Truncates! */
+#define TICK_PER_HSEC         (NSEC_PER_HSEC / NSEC_PER_TICK)            /* Truncates! */
 
-#define MSEC_PER_TICK         (USEC_PER_TICK / USEC_PER_MSEC)            /* Truncates! */
-#define NSEC_PER_TICK         (USEC_PER_TICK * NSEC_PER_USEC)            /* Exact */
+#define MSEC_PER_TICK         (NSEC_PER_TICK / NSEC_PER_MSEC)            /* Truncates! */
+#define USEC_PER_TICK         (NSEC_PER_TICK / NSEC_PER_USEC)            /* Truncates! */
 
 #define NSEC2TICK(nsec)       (((nsec)+(NSEC_PER_TICK/2))/NSEC_PER_TICK) /* Rounds */
-#define USEC2TICK(usec)       (((usec)+(USEC_PER_TICK/2))/USEC_PER_TICK) /* Rounds */
 
-#if (MSEC_PER_TICK * USEC_PER_MSEC) == USEC_PER_TICK
+#if (USEC_PER_TICK * NSEC_PER_USEC) == NSEC_PER_TICK
+#  define USEC2TICK(usec)     (((usec)+(USEC_PER_TICK/2))/USEC_PER_TICK) /* Rounds */
+#else
+#  define USEC2TICK(usec)     NSEC2TICK((usec) * NSEC_PER_USEC)          /* Rounds */
+#endif
+
+#if (MSEC_PER_TICK * NSEC_PER_MSEC) == NSEC_PER_TICK
 #  define MSEC2TICK(msec)     (((msec)+(MSEC_PER_TICK/2))/MSEC_PER_TICK) /* Rounds */
 #else
-#  define MSEC2TICK(msec)     USEC2TICK((msec) * USEC_PER_MSEC)          /* Rounds */
+#  define MSEC2TICK(msec)     NSEC2TICK((msec) * NSEC_PER_MSEC)          /* Rounds */
 #endif
 
 #define DSEC2TICK(dsec)       MSEC2TICK((dsec) * MSEC_PER_DSEC)          /* Rounds */
@@ -189,12 +194,17 @@
 #define SEC2TICK(sec)         MSEC2TICK((sec)  * MSEC_PER_SEC)           /* Rounds */
 
 #define TICK2NSEC(tick)       ((tick) * NSEC_PER_TICK)                   /* Exact */
-#define TICK2USEC(tick)       ((tick) * USEC_PER_TICK)                   /* Exact */
 
-#if (MSEC_PER_TICK * USEC_PER_MSEC) == USEC_PER_TICK
+#if (USEC_PER_TICK * NSEC_PER_USEC) == NSEC_PER_TICK
+#  define TICK2USEC(tick)     ((tick)*USEC_PER_TICK)                     /* Exact */
+#else
+#  define TICK2USEC(tick)     (((tick)*NSEC_PER_TICK)/NSEC_PER_USEC)     /* Rounds */
+#endif
+
+#if (MSEC_PER_TICK * NSEC_PER_MSEC) == NSEC_PER_TICK
 #  define TICK2MSEC(tick)     ((tick)*MSEC_PER_TICK)                     /* Exact */
 #else
-#  define TICK2MSEC(tick)     (((tick)*USEC_PER_TICK)/USEC_PER_MSEC)     /* Rounds */
+#  define TICK2MSEC(tick)     (((tick)*NSEC_PER_TICK)/NSEC_PER_MSEC)     /* Rounds */
 #endif
 
 #define TICK2DSEC(tick)       (((tick)+(TICK_PER_DSEC/2))/TICK_PER_DSEC) /* Rounds */

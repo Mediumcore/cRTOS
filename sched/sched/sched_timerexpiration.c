@@ -419,12 +419,12 @@ static void sched_timer_start(unsigned int ticks)
        */
 
 #ifdef CONFIG_HAVE_LONG_LONG
-      usecs = TICK2USEC((uint64_t)ticks);
+      nsecs = TICK2NSEC((uint64_t)ticks);
 #else
-      usecs = TICK2USEC(ticks);
+      nsecs = TICK2NSEC(ticks);
 #endif
-      secs  = usecs / USEC_PER_SEC;
-      nsecs = (usecs - (secs * USEC_PER_SEC)) * NSEC_PER_USEC;
+      secs  = nsecs / NSEC_PER_SEC;
+      nsecs = (nsecs - (secs * NSEC_PER_SEC));
 
       ts.tv_sec  = (time_t)secs;
       ts.tv_nsec = (long)nsecs;
