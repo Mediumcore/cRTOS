@@ -84,7 +84,7 @@
 #define X2APIC_TMCCT		0x839
 #define X2APIC_TDCR		0x83e
 
-#define TMR_IRQ IRQ0
+#define TMR_IRQ IRQ14
 
 #define ROUND_INT_DIV(s, d) (s + (d >> 1)) / d
 
@@ -134,9 +134,9 @@ void x86_64_timer_initialize(void)
   g_last_stop_time = g_start_tsc = rdtsc();
 
 #ifndef CONFIG_SCHED_TICKLESS_ALARM
-  (void)irq_attach(IRQ0, (xcpt_t)up_timer_expire, NULL);
+  (void)irq_attach(TMR_IRQ, (xcpt_t)up_timer_expire, NULL);
 #else
-  (void)irq_attach(IRQ0, (xcpt_t)up_alarm_expire, NULL);
+  (void)irq_attach(TMR_IRQ, (xcpt_t)up_alarm_expire, NULL);
 #endif
 
   return;
