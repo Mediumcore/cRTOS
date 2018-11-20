@@ -331,8 +331,8 @@ void up_ivshmem(void)
         _info("mapped the bars got position %d\n", get_ivpos(d));
 
         //XXX: conflict with pre-existing x86 IRQ number?
-        (void)irq_attach(IRQ0 + ndevices, (xcpt_t)ivshmem_irq_handler, d);
-        pci_msix_set_vector(bdf, IRQ0 + ndevices, 0);
+        (void)irq_attach(IRQ2 + ndevices, (xcpt_t)ivshmem_irq_handler, d);
+        pci_msix_set_vector(bdf, IRQ2 + ndevices, 0);
 
         if(sem_init(&(d->ivshmem_input_sem), 0, 0)){
             _info("IVSHMEM semaphore init failed\n");
