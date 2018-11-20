@@ -204,9 +204,9 @@ static void up_ioapic_init(void)
 
   /* setup virtual wire mode */
   /* 8259 PIC is routed to ININT0 a.k.a pin0 of IOAPIC 0 */
-  /* Therefore, we hook that to IRQ15 */
-  up_ioapic_pin_set_vector(0, TRIGGER_LEVEL_ACTIVE_LOW, IRQ15);
-  (void)irq_attach(IRQ15, (xcpt_t)legacy_pic_irq_handler, NULL);
+  /* Therefore, we hook that to IRQ0, the lowest priority IRQ */
+  /*up_ioapic_pin_set_vector(0, TRIGGER_LEVEL_ACTIVE_LOW, IRQ15);*/
+  /*(void)irq_attach(IRQ15, (xcpt_t)legacy_pic_irq_handler, NULL);*/
 
   return;
 }
@@ -361,9 +361,9 @@ void up_irqinitialize(void)
 
 void up_disable_irq(int irq)
 {
-  if(irq == IRQ15){
-    up_ioapic_mask_pin(0);
-  }
+  /*if(irq == IRQ15){*/
+    /*up_ioapic_mask_pin(0);*/
+  /*}*/
 }
 
 /****************************************************************************
@@ -376,9 +376,9 @@ void up_disable_irq(int irq)
 
 void up_enable_irq(int irq)
 {
-  if(irq == IRQ15){
-    up_ioapic_unmask_pin(0);
-  }
+  /*if(irq == IRQ15){*/
+    /*up_ioapic_unmask_pin(0);*/
+  /*}*/
 }
 
 /****************************************************************************
