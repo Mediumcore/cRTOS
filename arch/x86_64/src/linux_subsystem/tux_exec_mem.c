@@ -48,6 +48,10 @@ void* find_free_slot(void) {
     return NULL;
 }
 
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
 int execvs_setupargs(struct task_tcb_s* tcb,
     int argc, char* argv[], int envc, char* envv[]){
     // Now we have to organize the stack as Linux exec will do
@@ -155,12 +159,12 @@ int execvs(void* base, int bsize,
                  /*up_addrenv_heapsize(&binp->addrenv));*/
 
     //Stack start at the end of address space
-    /*stack = (uint64_t)kmm_zalloc(0x800000);*/
+    stack = (uint64_t)kmm_zalloc(0x800000);
 
     /* Initialize the task */
     /* The addresses are the virtual address of new task */
     ret = task_init((FAR struct tcb_s *)tcb, argv[0], priority,
-                    (uint32_t*)base + 0xe00000, 0x200000, entry, NULL);
+                    (uint32_t*)stack, 0x800000, entry, NULL);
     if (ret < 0)
     {
         ret = -get_errno();
@@ -192,14 +196,14 @@ int execvs(void* base, int bsize,
 
     // setup the tcb page_table entries
     // load the pages for now, going to do some setup
-    for(int i = 0; i < (PAGE_SLOT_SIZE - STACK_SLOT_SIZE) / HUGE_PAGE_SIZE; i++)
+    for(int i = 0; i < (PAGE_SLOT_SIZE) / HUGE_PAGE_SIZE; i++)
     {
         tcb->cmn.xcp.page_table[i] = ((uint64_t)base + 0x200000 * i) | 0x83;
     }
 
     // set brk
     tcb->cmn.xcp.__min_brk = (void*)((uint64_t)LINUX_ELF_OFFSET + bsize + 0x1000);
-    if(tcb->cmn.xcp.__min_brk >= (void*)(PAGE_SLOT_SIZE - STACK_SLOT_SIZE)) tcb->cmn.xcp.__min_brk = (void*)(PAGE_SLOT_SIZE - STACK_SLOT_SIZE - 1);
+    if(tcb->cmn.xcp.__min_brk >= (void*)(PAGE_SLOT_SIZE)) tcb->cmn.xcp.__min_brk = (void*)(PAGE_SLOT_SIZE - 1);
     tcb->cmn.xcp.__brk = tcb->cmn.xcp.__min_brk;
     sinfo("Set min_brk at: %llx\n", tcb->cmn.xcp.__min_brk);
 

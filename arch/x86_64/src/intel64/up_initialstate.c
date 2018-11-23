@@ -99,11 +99,11 @@ void up_initial_state(struct tcb_s *tcb)
    */
 
   if (rtcb != NULL && !up_interrupt_context()){
-    for(int i = 0; i < 7; i ++){
+    for(int i = 0; i < 8; i ++){
       xcp->page_table[i] = rtcb->xcp.page_table[i];
     }
   }else{
-    for(int i = 0; i < 7; i ++){
+    for(int i = 0; i < 8; i ++){
       xcp->page_table[i] = (0x200000 * i) | 0x83;
     }
   }
