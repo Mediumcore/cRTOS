@@ -135,7 +135,7 @@ int execvs_setupargs(struct task_tcb_s* tcb,
 }
 
 int execvs(void* base, int bsize,
-           void* entry,
+           void* entry, int priority,
            int argc, char* argv[],
            int envc, char* envv[])
 {
@@ -165,7 +165,7 @@ int execvs(void* base, int bsize,
 
     /* Initialize the task */
     /* The addresses are the virtual address of new task */
-    ret = task_init((FAR struct tcb_s *)tcb, argv[0], 200,
+    ret = task_init((FAR struct tcb_s *)tcb, argv[0], priority,
                     (uint32_t*)base + 0xe00000, 0x200000, entry, NULL);
     if (ret < 0)
     {

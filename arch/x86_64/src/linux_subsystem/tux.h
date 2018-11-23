@@ -7,7 +7,6 @@
 #include "up_internal.h"
 
 #define PAGE_SLOT_SIZE 0x1000000
-#define STACK_SLOT_SIZE 0x200000
 
 #define FUTEX_WAIT 0x0
 #define FUTEX_WAKE 0x1
