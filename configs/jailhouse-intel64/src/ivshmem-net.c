@@ -109,7 +109,7 @@
 
 /* TX timeout = 1 minute */
 
-#define IVSHMEM_NET_TXTIMEOUT (60*CLK_TCK)
+#define IVSHMEM_NET_TXTIMEOUT (20ULL*CLK_TCK)
 
 /* This is a helper pointer for accessing the contents of the Ethernet header */
 
@@ -927,8 +927,8 @@ static void dump_ethernet_frame(void *data, int len){
       ninfo("Src  address: %d.%d.%d.%d\n", (ptrip[3]) & 0xff, (ptrip[3] >> 8) & 0xff, (ptrip[3] >> 16) & 0xff, (ptrip[3] >> 24) & 0xff);
       ninfo("Dest address: %d.%d.%d.%d\n", (ptrip[4]) & 0xff, (ptrip[4] >> 8) & 0xff, (ptrip[4] >> 16) & 0xff, (ptrip[4] >> 24) & 0xff);
 
-      ninfo("Src  port: %d\n", bswap16(ptrip[hdr_len] >> 16) & 0xffff);
-      ninfo("Dest port: %d\n", bswap16(ptrip[hdr_len]) & 0xffff);
+      ninfo("Src  port: %d\n", bswap16(ptrip[hdr_len]) & 0xffff);
+      ninfo("Dest port: %d\n", bswap16(ptrip[hdr_len] >> 16) & 0xffff);
     }
 
     return;
