@@ -5,7 +5,7 @@
 #include "up_internal.h"
 #include "sched/sched.h"
 
-int tux_set_tid_address(int* tidptr){
+int tux_set_tid_address(unsigned long nbr, int* tidptr){
   struct tcb_s *rtcb = this_task();
   irqstate_t flags;
 
@@ -29,6 +29,6 @@ void tux_set_tid_callback(int val, void* arg){
   {
     // According to man pages
     *(rtcb->xcp.clear_child_tid) = 0;
-    tux_futex(rtcb->xcp.clear_child_tid, FUTEX_WAKE, 1);
+    tux_futex(0, rtcb->xcp.clear_child_tid, FUTEX_WAKE, 1);
   }
 }

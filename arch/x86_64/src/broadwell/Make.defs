@@ -60,7 +60,7 @@ CHIP_CSRCS  = broadwell_handlers.c broadwell_idle.c broadwell_lowsetup.c broadwe
 CHIP_CSRCS += broadwell_serial.c
 
 # Required Linux subsystem
-LUX_CSRCS = linux_syscall.c tux_exec_mem.c
+LUX_CSRCS = linux_syscall.c tux_exec_mem.c tux_delegate.c
 LUX_CSRCS += tux_nanosleep.c tux_brk.c tux_futex.c tux_mm.c tux_prctl.c tux_rlimit.c tux_set_tid_address.c tux_clone.c
 
 # Configuration-dependent BROADWELL files

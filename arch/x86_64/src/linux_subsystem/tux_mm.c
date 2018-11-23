@@ -12,7 +12,7 @@
 #define MAP_ANONYMOUS 0x20
 #define MAP_NONRESERVE 0x4000
 
-void* tux_mmap(void* addr, size_t length, int prot, int flags){
+void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags){
   if((flags & MAP_ANONYMOUS) == 0) return (void*)-1;
   if((uint64_t)addr != 0) return (void*)-1;
 
@@ -31,7 +31,7 @@ void* tux_mmap(void* addr, size_t length, int prot, int flags){
   return mm;
 }
 
-int tux_munmap(void* addr, size_t length){
+int tux_munmap(unsigned long nbr, void* addr, size_t length){
   //XXX: What if the addr + length have multiple regions to unmap?
   kmm_free(addr);
   return 0;

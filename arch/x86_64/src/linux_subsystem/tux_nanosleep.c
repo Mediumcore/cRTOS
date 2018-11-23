@@ -7,7 +7,7 @@
 #include "up_internal.h"
 #include "sched/sched.h"
 
-int tux_nanosleep(const struct timespec *rqtp, struct timespec *rmtp){
+int tux_nanosleep(unsigned long nbr, const struct timespec *rqtp, struct timespec *rmtp){
   return nanosleep(rqtp, rmtp);
 }
 

@@ -22,7 +22,7 @@
 # define CLONE_CHILD_SETTID 0x01000000 /* Store TID in userlevel buffer in
 					  the child.  */
 
-int tux_clone(unsigned long flags, void *child_stack,
+int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
               void *ptid, void *ctid,
               unsigned long tls){
 
@@ -76,7 +76,7 @@ int tux_clone(unsigned long flags, void *child_stack,
   }
 
   if(flags & CLONE_CHILD_CLEARTID){
-    tux_set_tid_address((int*)(ctid));
+    tux_set_tid_address(0, (int*)(ctid));
   }
 
   /* manual set the stack pointer */

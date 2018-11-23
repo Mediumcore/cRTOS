@@ -18,25 +18,28 @@ struct rlimit {
 };
 
 void*   find_free_slot(void);
+uint64_t tux_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+                          uintptr_t parm6);
 
-int     tux_nanosleep   (const struct timespec *rqtp, struct timespec *rmtp);
+int     tux_nanosleep   (unsigned long nbr, const struct timespec *rqtp, struct timespec *rmtp);
 
-int     tux_clone       (unsigned long flags, void *child_stack,
+int     tux_clone       (unsigned long nbr, unsigned long flags, void *child_stack,
                          void *ptid, void *ctid, unsigned long tls);
 
-void*   tux_mmap        (void* addr, size_t length, int prot, int flags);
-int     tux_munmap      (void* addr, size_t length);
+void*   tux_mmap        (unsigned long nbr, void* addr, size_t length, int prot, int flags);
+int     tux_munmap      (unsigned long nbr, void* addr, size_t length);
 
-int     tux_getrlimit   (int resource, struct rlimit *rlim);
+int     tux_getrlimit   (unsigned long nbr, int resource, struct rlimit *rlim);
 
-int     tux_set_tid_address     (int* tidptr);
+int     tux_set_tid_address     (unsigned long nbr, int* tidptr);
 void    tux_set_tid_callback    (int val, void* arg);
 
-void*   tux_brk         (void* brk);
+void*   tux_brk         (unsigned long nbr, void* brk);
 
-int     tux_arch_prctl       (int code, unsigned long addr);
+int     tux_arch_prctl       (unsigned long nbr, int code, unsigned long addr);
 
-int     tux_futex       (uint32_t* uaddr, int opcode, uint32_t val);
+int     tux_futex       (unsigned long nbr, uint32_t* uaddr, int opcode, uint32_t val);
 
 static inline int tux_success_stub(void){
     return 0;

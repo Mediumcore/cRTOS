@@ -8,7 +8,7 @@
 #define ARCH_SET_FS 0x1002
 #define ARCH_GET_FS 0x1003
 
-int tux_arch_prctl(int code, unsigned long addr){
+int tux_arch_prctl(unsigned long nbr, int code, unsigned long addr){
   struct tcb_s *rtcb = this_task();
   int ret = 0;
 

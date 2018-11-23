@@ -75,9 +75,9 @@ uint64_t linux_interface(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
     _alert("Not implemented Linux syscall %d\n", nbr);
     PANIC();
   }else if(linux_syscall_table[nbr] >= SYS_maxsyscall){ // XXX: hacky way to check if the content is address
-    ret = ((uint64_t(*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)) \
+    ret = ((uint64_t(*)(unsigned long, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)) \
           (linux_syscall_table[nbr])) \
-          (parm1, parm2, parm3, parm4, parm5, parm6);
+          (nbr, parm1, parm2, parm3, parm4, parm5, parm6);
   }else{
     ret = ((uint64_t(*)(unsigned long, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)) \
           (g_stublookup[linux_syscall_table[nbr] - CONFIG_SYS_RESERVED])) \

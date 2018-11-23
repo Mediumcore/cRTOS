@@ -7,8 +7,8 @@
 #include "tux.h"
 
 uint64_t linux_syscall_table[500] = {
-    SYS_read,
-    SYS_write,
+    (uint64_t)tux_delegate, // SYS_read
+    (uint64_t)tux_delegate, // SYS_write
     SYS_open,
     SYS_close,
     SYS_stat,
