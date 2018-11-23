@@ -18,15 +18,15 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
 
   if(((flags & MAP_NONRESERVE) == 1) && prot == 0) return (void*)-1; // Why glibc require large amount of non accessible memory?
 
-  _info("TUX: mmap trying to allocate %d bytes\n", length);
+  svcinfo("TUX: mmap trying to allocate %d bytes\n", length);
 
   void* mm = kmm_zalloc(length);
   if(!mm){
-    _info("TUX: mmap failed to allocated %d bytes\n", length);
+    svcinfo("TUX: mmap failed to allocated %d bytes\n", length);
     return (void*)-1;
   }
 
-  _info("TUX: mmap allocated %d bytes\n", length);
+  svcinfo("TUX: mmap allocated %d bytes\n", length);
 
   return mm;
 }
