@@ -34,18 +34,12 @@ typedef struct
 } Elf64_auxv_t;
 #endif
 
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-void* page_map[32];
-
 void* find_free_slot(void) {
     uint64_t i;
-    // each slot is 16MB .text .data, stack is allocated using kernel heap
+    // each slot is 16MB .text .data, stack is allocated on special slots
     // slot 0 is used by non affected nuttx threads
-    // We have total 512MB of memory available to be used
-    for(i = 1; i < 32; i++){
+    // We have total 512MB/2 of memory available to be used
+    for(i = 1; i < 16; i++){
         if(page_map[i] == NULL){
             page_map[i] = (void*)(i * PAGE_SLOT_SIZE); // 16MB blocks
             return page_map[i]; // 16MB blocks

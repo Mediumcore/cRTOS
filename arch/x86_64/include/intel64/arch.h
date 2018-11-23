@@ -260,12 +260,15 @@ static inline uint32_t up_getgs()
 
 extern uint64_t pd[2048];
 
+void* page_map[16];
+
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
 int up_map_region(void* base, int size, int flags);
 
+void* find_free_slot(void);
 
 #ifdef __cplusplus
 #define EXTERN extern "C"
