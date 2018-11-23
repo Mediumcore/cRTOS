@@ -190,6 +190,9 @@ struct xcptcontext
   uint64_t saved_rflags;
 #endif
 
+  uint32_t is_linux;
+  int32_t linux_sock;
+
   void* __brk;
   void* __min_brk;
 

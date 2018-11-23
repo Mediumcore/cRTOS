@@ -135,7 +135,7 @@ int execvs_setupargs(struct task_tcb_s* tcb,
 int execvs(void* base, int bsize,
            void* entry, int priority,
            int argc, char* argv[],
-           int envc, char* envv[])
+           int envc, char* envv[], int sock)
 {
     struct task_tcb_s *tcb;
     uint64_t new_page_start_address;
@@ -214,6 +214,10 @@ int execvs(void* base, int bsize,
 
     /* Get the assigned pid before we start the task */
     pid = tcb->cmn.pid;
+
+    /* setup some linux handlers */
+    tcb->cmn.xcp.is_linux = 1;
+    tcb->cmn.xcp.linux_sock = sock;
 
     sinfo("activate: new task=%d\n", pid);
     /* Then activate the task at the provided priority */
