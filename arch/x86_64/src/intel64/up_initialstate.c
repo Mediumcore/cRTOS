@@ -102,7 +102,7 @@ void up_initial_state(struct tcb_s *tcb)
     for(int i = 0; i < 8; i ++){
       xcp->page_table[i] = rtcb->xcp.page_table[i];
     }
-    xcp->is_linux = rtcb->xcp.is_linux;
+    xcp->is_linux = (rtcb->xcp.is_linux ? 1 : 0);
     xcp->linux_sock = rtcb->xcp.linux_sock;
   }else{
     for(int i = 0; i < 8; i ++){

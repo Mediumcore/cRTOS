@@ -119,4 +119,8 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
   /* The size of the allocated stack is now zero */
 
   dtcb->adj_stack_size = 0;
+
+  if(dtcb->xcp.is_linux == 2) {
+    release_slot(dtcb->xcp.page_table[0]);
+  }
 }

@@ -35,17 +35,44 @@ typedef struct
 #endif
 
 void* find_free_slot(void) {
-    uint64_t i;
-    // each slot is 16MB .text .data, stack is allocated on special slots
-    // slot 0 is used by non affected nuttx threads
-    // We have total 512MB/2 of memory available to be used
-    for(i = 1; i < 16; i++){
-        if(page_map[i] == NULL){
-            page_map[i] = (void*)(i * PAGE_SLOT_SIZE); // 16MB blocks
-            return page_map[i]; // 16MB blocks
-        }
-    }
-    return NULL;
+  void* ret = NULL;
+  uint64_t i;
+
+  irqstate_t flags;
+
+  flags = enter_critical_section();
+
+  // each slot is 16MB .text .data, stack is allocated on special slots
+  // slot 0 is used by non affected nuttx threads
+  // We have total 512MB/2 of memory available to be used
+  for(i = 1; i < 16; i++){
+      if(page_map[i] == NULL){
+          page_map[i] = (void*)(i * PAGE_SLOT_SIZE); // 16MB blocks
+          ret = page_map[i]; // 16MB blocks
+          break;
+      }
+  }
+
+  leave_critical_section(flags);
+
+  return ret;
+}
+
+void release_slot(void* slot) {
+  uint64_t i;
+
+  irqstate_t flags;
+
+  flags = enter_critical_section();
+
+  for(i = 1; i < 16; i++){
+      if(page_map[i] == slot){
+          page_map[i] = NULL; // 16MB blocks
+          break;
+      }
+  }
+
+  leave_critical_section(flags);
 }
 
 /****************************************************************************
@@ -249,7 +276,7 @@ int execvs(void* base, int bsize,
     pid = tcb->cmn.pid;
 
     /* setup some linux handlers */
-    tcb->cmn.xcp.is_linux = 1;
+    tcb->cmn.xcp.is_linux = 2;
     tcb->cmn.xcp.linux_sock = sock;
 
     add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);

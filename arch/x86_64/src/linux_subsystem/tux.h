@@ -18,6 +18,7 @@ struct rlimit {
 };
 
 void*   find_free_slot(void);
+void    release_slot(void* slot);
 uint64_t tux_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6);
