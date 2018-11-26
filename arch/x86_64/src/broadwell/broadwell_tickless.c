@@ -428,6 +428,8 @@ int up_alarm_start(FAR const struct timespec *ts)
 
   up_tmr_sync_up();
 
+  up_unmask_tmr();
+
   ticks = up_ts2tick(ts) + g_start_tsc;
 
   write_msr(IA32_TSC_DEADLINE, ticks);
@@ -437,11 +439,11 @@ int up_alarm_start(FAR const struct timespec *ts)
   g_goal_time_ts.tv_sec = ts->tv_sec;
   g_goal_time_ts.tv_nsec = ts->tv_nsec;
 
-  /*_info("%lld\n", ((ticks - rdtsc()) / 2200000000));*/
-
-  up_unmask_tmr();
-
   up_tmr_sync_down();
+
+  tmrinfo("%d.%09d\n", ts->tv_sec, ts->tv_nsec);
+  tmrinfo("start\n");
+
   return OK;
 }
 
@@ -464,6 +466,7 @@ void up_alarm_expire(void)
   struct timespec now;
 
   up_mask_tmr();
+  tmrinfo("expire\n");
 
   g_timer_active = 0;
 
