@@ -110,6 +110,9 @@ syscall_entry:
     pushq   %rbx
     pushq   %rax
 
+    // Add 8byte, hole to align with 16-bytes boundary, to compile with x86_64 ABI
+    lea -8(%rsp), %rsp
+
     /* Arrange the arguments, syscall number is passed in on rax */
     /* 4th argument was passed using r10, change it to rcx */
     pushq   %rcx
@@ -127,7 +130,7 @@ syscall_entry:
     lea 16(%rsp), %rsp
 
     // recover the values saved
-    lea 8(%rsp), %rsp // RAX is the return value
+    lea 16(%rsp), %rsp // Hole and RAX, which is the return value
     popq   %rbx
     popq   %r10
     popq   %r12
