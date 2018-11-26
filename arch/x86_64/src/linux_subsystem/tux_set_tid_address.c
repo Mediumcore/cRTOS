@@ -5,8 +5,7 @@
 #include "up_internal.h"
 #include "sched/sched.h"
 
-int tux_set_tid_address(unsigned long nbr, int* tidptr){
-  struct tcb_s *rtcb = this_task();
+int _tux_set_tid_address(struct tcb_s *rtcb, int* tidptr){
   irqstate_t flags;
 
   flags = enter_critical_section();
@@ -15,11 +14,17 @@ int tux_set_tid_address(unsigned long nbr, int* tidptr){
   {
     // XXX: This will break if task group is enabled,
     // on_exit only in effect on group's last exit
-    on_exit(tux_set_tid_callback, NULL);
+    add_remote_on_exit(rtcb, tux_set_tid_callback, NULL);
   }
   rtcb->xcp.clear_child_tid = tidptr;
 
   leave_critical_section(flags);
+  return 0;
+}
+
+int tux_set_tid_address(unsigned long nbr, int* tidptr){
+  struct tcb_s *rtcb = this_task();
+  _tux_set_tid_address(rtcb, tidptr);
   return 0;
 }
 

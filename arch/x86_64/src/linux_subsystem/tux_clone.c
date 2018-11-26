@@ -76,7 +76,7 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
   }
 
   if(flags & CLONE_CHILD_CLEARTID){
-    tux_set_tid_address(0, (int*)(ctid));
+    _tux_set_tid_address((struct tcb_s*)tcb, (int*)(ctid));
   }
 
   /* manual set the stack pointer */

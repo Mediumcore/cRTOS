@@ -36,6 +36,7 @@ int     tux_munmap      (unsigned long nbr, void* addr, size_t length);
 
 int     tux_getrlimit   (unsigned long nbr, int resource, struct rlimit *rlim);
 
+int     _tux_set_tid_address    (struct tcb_s *rtcb, int* tidptr);
 int     tux_set_tid_address     (unsigned long nbr, int* tidptr);
 void    tux_set_tid_callback    (int val, void* arg);
 
