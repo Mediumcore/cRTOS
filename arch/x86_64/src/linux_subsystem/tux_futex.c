@@ -12,7 +12,7 @@ struct futex_q{
 
 struct futex_q futex_hash_table[FUTEX_HT_SIZE];
 
-int tux_futex(unsigned long nbr, uint32_t* uaddr, int opcode, uint32_t val){
+int tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val){
   uint32_t s_head = (uint64_t)uaddr % FUTEX_HT_SIZE;
   uint32_t hv = s_head;
   irqstate_t flags;

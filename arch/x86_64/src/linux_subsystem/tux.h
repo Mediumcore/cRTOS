@@ -39,7 +39,7 @@ void*   tux_brk         (unsigned long nbr, void* brk);
 
 int     tux_arch_prctl       (unsigned long nbr, int code, unsigned long addr);
 
-int     tux_futex       (unsigned long nbr, uint32_t* uaddr, int opcode, uint32_t val);
+int     tux_futex       (unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val);
 
 static inline int tux_success_stub(void){
     return 0;
