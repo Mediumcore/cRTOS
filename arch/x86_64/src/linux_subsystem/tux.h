@@ -22,6 +22,10 @@ uint64_t tux_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6);
 
+void add_remote_on_exit(struct tcb_s* tcb, void (*func)(int, void *), void *arg);
+
+
+
 int     tux_nanosleep   (unsigned long nbr, const struct timespec *rqtp, struct timespec *rmtp);
 
 int     tux_clone       (unsigned long nbr, unsigned long flags, void *child_stack,

@@ -52,6 +52,40 @@ void* find_free_slot(void) {
  * Private Functions
  ****************************************************************************/
 
+void add_remote_on_exit(struct tcb_s* tcb, void (*func)(int, void *), void *arg) {
+  FAR struct task_group_s *group = tcb->group;
+  int   index;
+
+  /* The following must be atomic */
+
+  if (func)
+    {
+      sched_lock();
+
+      /* Search for the first available slot.  on_exit() functions are registered
+       * from lower to higher arry indices; they must be called in the reverse
+       * order of registration when task exists, i.e., from higher to lower
+       * indices.
+       */
+
+      for (index = 0; index < CONFIG_SCHED_ONEXIT_MAX; index++)
+        {
+          if (!group->tg_onexitfunc[index])
+            {
+              group->tg_onexitfunc[index] = func;
+              group->tg_onexitarg[index]  = arg;
+              break;
+            }
+        }
+
+      sched_unlock();
+    }
+}
+
+void tux_on_exit(int val, void* arg){
+    tux_delegate(60, val, 0, 0, 0, 0, 0);
+}
+
 int execvs_setupargs(struct task_tcb_s* tcb,
     int argc, char* argv[], int envc, char* envv[]){
     // Now we have to organize the stack as Linux exec will do
@@ -138,9 +172,8 @@ int execvs(void* base, int bsize,
            int envc, char* envv[], int sock)
 {
     struct task_tcb_s *tcb;
-    uint64_t new_page_start_address;
     uint64_t stack;
-    pid_t pid;
+    int pid;
     int ret;
 
     // First try to create a new task
@@ -218,6 +251,8 @@ int execvs(void* base, int bsize,
     /* setup some linux handlers */
     tcb->cmn.xcp.is_linux = 1;
     tcb->cmn.xcp.linux_sock = sock;
+
+    add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
 
     sinfo("activate: new task=%d\n", pid);
     /* Then activate the task at the provided priority */
