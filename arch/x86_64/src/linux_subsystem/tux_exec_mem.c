@@ -63,10 +63,11 @@ void release_slot(void* slot) {
 
   irqstate_t flags;
 
+
   flags = enter_critical_section();
 
   for(i = 1; i < 16; i++){
-      if(page_map[i] == slot){
+      if(page_map[i] == (void*)((uint64_t)slot & ~(HUGE_PAGE_SIZE - 1))){
           page_map[i] = NULL; // 16MB blocks
           break;
       }
@@ -110,7 +111,21 @@ void add_remote_on_exit(struct tcb_s* tcb, void (*func)(int, void *), void *arg)
 }
 
 void tux_on_exit(int val, void* arg){
-    tux_delegate(60, val, 0, 0, 0, 0, 0);
+  struct tcb_s *rtcb = this_task();
+  uint64_t params[7];
+
+  if(rtcb->xcp.is_linux && rtcb->xcp.linux_sock)
+  {
+    params[0] = 60;
+    params[1] = val;
+
+    write(rtcb->xcp.linux_sock, params, sizeof(params));
+    close(rtcb->xcp.linux_sock);
+
+  } else {
+    _err("Non-linux process calling linux syscall or invalid sock fd %d, %d\n", rtcb->xcp.is_linux, rtcb->xcp.linux_sock);
+    PANIC();
+  }
 }
 
 int execvs_setupargs(struct task_tcb_s* tcb,
@@ -291,7 +306,7 @@ int execvs(void* base, int bsize,
         goto errout_with_tcbinit;
     }
 
-    exit(0);
+    /*exit(0);*/
 
     return OK; //Although we shall never return
 
