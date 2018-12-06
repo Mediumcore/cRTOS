@@ -63,7 +63,6 @@ void release_slot(void* slot) {
 
   irqstate_t flags;
 
-
   flags = enter_critical_section();
 
   for(i = 1; i < 16; i++){
@@ -120,7 +119,8 @@ void tux_on_exit(int val, void* arg){
     params[1] = val;
 
     write(rtcb->xcp.linux_sock, params, sizeof(params));
-    close(rtcb->xcp.linux_sock);
+    read(rtcb->xcp.linux_sock, params, sizeof(uint64_t));
+    shutdown(rtcb->xcp.linux_sock, SHUT_RDWR);
 
   } else {
     _err("Non-linux process calling linux syscall or invalid sock fd %d, %d\n", rtcb->xcp.is_linux, rtcb->xcp.linux_sock);
