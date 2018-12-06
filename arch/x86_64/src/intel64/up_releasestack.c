@@ -92,6 +92,8 @@
 
 void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
 {
+  int i;
+
   /* Is there a stack allocated? */
 
   if (dtcb->stack_alloc_ptr)
@@ -122,5 +124,12 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
 
   if(dtcb->xcp.is_linux == 2) {
     release_slot(dtcb->xcp.page_table[0]);
+  }
+
+  // XXX: this might work but if partial of the block is unmaped, we will start to leak vma
+  for(i = 0; i < 64; i++){
+    if(dtcb->xcp.vma[i][0] != 0) {
+      kmm_free((void*)dtcb->xcp.vma[i][0]);
+    }
   }
 }

@@ -202,6 +202,8 @@ struct xcptcontext
   int32_t* clear_child_tid;
 
   uint64_t page_table[32];
+
+  uint64_t vma[64][2];
   /* Register save area */
 
   uint64_t regs[XCPTCONTEXT_REGS] __attribute__((aligned (16)));
