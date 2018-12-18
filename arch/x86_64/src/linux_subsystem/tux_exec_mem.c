@@ -196,10 +196,10 @@ int execvs_setupargs(struct task_tcb_s* tcb,
 
     auxptr = (Elf64_auxv_t*)(sp + (argc + 1 + envc + 1) * sizeof(char*));
 
-    auxptr[0].a_type = 1; //AT_IGNORE
-    auxptr[0].a_un.a_val = 0x0;
+    auxptr[0].a_type = 6; //AT_PAGESZ
+    auxptr[0].a_un.a_val = 0x1000;
 
-    auxptr[1].a_type = 1; //AT_PHDR
+    auxptr[1].a_type = 1; //AT_IGNORE
     auxptr[1].a_un.a_val = 0x0;
 
     auxptr[2].a_type = 0; //AT_NULL
