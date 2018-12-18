@@ -22,7 +22,7 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
 
   if(((flags & MAP_NONRESERVE) == 1) && prot == 0) return (void*)-1; // Why glibc require large amount of non accessible memory?
 
-  svcinfo("TUX: mmap trying to allocate %d bytes\n", length);
+  svcinfo("TUX: mmap trying to allocate %lld bytes\n", length);
 
   //XXX: Possible race condition, lock scheduler perhaps?
 
@@ -30,7 +30,10 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
       if(tcb->xcp.vma[i][0] == 0) break;
   }
 
-  if(i == 64) return (void*)-1; // vma exhuasted
+  if(i == 64){
+    svcinfo("TUX: mmap failed to allocate vma exhausted\n");
+    return (void*)-1; // vma exhuasted
+  }
 
   void* mm = kmm_zalloc(length);
   if(!mm){
