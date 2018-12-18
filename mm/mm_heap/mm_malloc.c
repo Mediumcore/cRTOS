@@ -72,7 +72,7 @@
 FAR void *mm_malloc(FAR struct mm_heap_s *heap, size_t size)
 {
   FAR struct mm_freenode_s *node;
-  mmsize_t alignsize;
+  size_t alignsize;
   void *ret = NULL;
   int ndx;
 
@@ -116,8 +116,7 @@ FAR void *mm_malloc(FAR struct mm_heap_s *heap, size_t size)
 
   for (node = heap->mm_nodelist[ndx].flink;
        node && node->size < alignsize;
-       node = node->flink){
-  }
+       node = node->flink);
 
   /* If we found a node with non-zero size, then this is one to use. Since
    * the list is ordered, we know that is must be best fitting chunk
