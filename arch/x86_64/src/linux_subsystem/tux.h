@@ -13,8 +13,8 @@
 #define FUTEX_PRIVATE_FLAG 0x80
 
 struct rlimit {
-  int rlim_cur;  /* Soft limit */
-  int rlim_max;  /* Hard limit (ceiling for rlim_cur) */
+  unsigned long rlim_cur;  /* Soft limit */
+  unsigned long rlim_max;  /* Hard limit (ceiling for rlim_cur) */
 };
 
 void*   find_free_slot(void);
@@ -28,6 +28,7 @@ void add_remote_on_exit(struct tcb_s* tcb, void (*func)(int, void *), void *arg)
 
 
 int     tux_nanosleep   (unsigned long nbr, const struct timespec *rqtp, struct timespec *rmtp);
+int     tux_gettimeofday   (unsigned long nbr, struct timeval *tv, struct timeval *tz);
 
 int     tux_clone       (unsigned long nbr, unsigned long flags, void *child_stack,
                          void *ptid, void *ctid, unsigned long tls);
