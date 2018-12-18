@@ -83,6 +83,6 @@
 void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
 {
   board_autoled_on(LED_HEAPALLOCATE);
-  *heap_start = 0x10000000; // 256MB
-  *heap_size = 0x10000000; // 256MB
+  *heap_start = (void*)0x10000000; // 256MB
+  *heap_size = (size_t)0x10000000; // 256MB
 }
