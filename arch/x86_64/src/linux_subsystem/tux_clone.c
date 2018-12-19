@@ -26,8 +26,6 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
               void *ptid, void *ctid,
               unsigned long tls){
 
-  register volatile uint64_t ****rbp asm("rbp");
-
   int ret;
   struct task_tcb_s *tcb;
   struct tcb_s *rtcb = this_task();
@@ -84,7 +82,7 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
   tcb->cmn.xcp.regs[REG_RSP] = (uint64_t)child_stack;
 
   /* manual set the instruction pointer */
-  tcb->cmn.xcp.regs[REG_RIP] = (uint64_t)(*(***(rbp) + 1)); // Directly leaves the syscall
+  tcb->cmn.xcp.regs[REG_RIP] = (uint64_t)(__builtin_return_address(3)); // Directly leaves the syscall
 
   sinfo("Cloned a task with RIP=0x%llx, RSP=0x%llx\n",
         tcb->cmn.xcp.regs[REG_RIP],
