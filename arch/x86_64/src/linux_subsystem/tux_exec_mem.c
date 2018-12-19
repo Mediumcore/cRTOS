@@ -215,11 +215,10 @@ int execvs(void* base, int bsize,
 {
     struct task_tcb_s *tcb;
     uint64_t stack;
-    int pid;
     int ret;
 
     // First try to create a new task
-    printf("Entry: %016llx, base: %016llx\n", entry, base);
+    _info("Entry: %016llx, base: %016llx\n", entry, base);
 
     /* Allocate a TCB for the new task. */
 
@@ -287,16 +286,13 @@ int execvs(void* base, int bsize,
     tcb->cmn.xcp.regs[REG_RSP] += 8; // up_stack_frame left a hole on stack
     tcb->cmn.xcp.regs[REG_RIP] = (uint64_t)entry;
 
-    /* Get the assigned pid before we start the task */
-    pid = tcb->cmn.pid;
-
     /* setup some linux handlers */
     tcb->cmn.xcp.is_linux = 2;
     tcb->cmn.xcp.linux_sock = sock;
 
     add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
 
-    sinfo("activate: new task=%d\n", pid);
+    sinfo("activate: new task=%d\n", tcb->cmn.pid);
     /* Then activate the task at the provided priority */
     ret = task_activate((FAR struct tcb_s *)tcb);
     if (ret < 0)

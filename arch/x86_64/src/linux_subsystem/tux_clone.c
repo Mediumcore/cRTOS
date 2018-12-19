@@ -30,8 +30,6 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
   struct task_tcb_s *tcb;
   struct tcb_s *rtcb = this_task();
   void* stack;
-  uint64_t ret_ip;
-  uint64_t adj_stack_size;
 
   /* we only handle CLONE_THREAD */
   if(!(flags & CLONE_THREAD)) return -1;

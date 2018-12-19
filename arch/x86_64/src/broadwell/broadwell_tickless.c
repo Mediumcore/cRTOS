@@ -94,7 +94,6 @@
 
 unsigned long tsc_freq;
 
-static uint64_t g_goal_time;
 static struct timespec g_goal_time_ts;
 static uint64_t g_last_stop_time;
 static uint64_t g_start_tsc;
