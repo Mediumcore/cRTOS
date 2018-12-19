@@ -391,10 +391,8 @@ static unsigned int sched_timer_process(unsigned int ticks, bool noswitches)
 static void sched_timer_start(unsigned int ticks)
 {
 #ifdef CONFIG_HAVE_LONG_LONG
-  uint64_t usecs;
   uint64_t secs;
 #else
-  uint32_t usecs;
   uint32_t secs;
 #endif
   uint32_t nsecs;

@@ -180,12 +180,10 @@ int fputs(FAR const char *s, FAR FILE *stream)
 #endif
 
 int putc(char c, FAR FILE *s){
-    fputc((c),(s));
-    return;
+    return fputc((c),(s));
 }
 
 int putchar(char c){
-    fputc((c), stdout);
-    return;
+    return fputc((c), stdout);
 }
 
