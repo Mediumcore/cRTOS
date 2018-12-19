@@ -94,6 +94,7 @@ void up_registerdump(uint64_t *regs)
             *((uint8_t*)(regs[REG_RSP] + i * 8 + 7 - 64)),
             buf);
   }
+#ifdef CONFIG_DEBUG_NOOPT
   _alert("Frame Dump (64 bytes):\n");
   rbp = regs[REG_RBP];
   for(i = 0; i < 16; i++){
@@ -105,5 +106,6 @@ void up_registerdump(uint64_t *regs)
     else
         break;
   }
+#endif
   _alert("-----------------------------------------\n");
 }
