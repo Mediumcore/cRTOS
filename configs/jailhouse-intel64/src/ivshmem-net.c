@@ -868,6 +868,7 @@ static int ivshmnet_state_handler(int irq, uint32_t *regs, void *arg)
 #define bswap64 __builtin_bswap64
 
 static void dump_ethernet_frame(void *data, int len){
+#ifdef CONFIG_DEBUG_NET_INFO
     uint8_t* ptr8 = data;
     uint16_t* ptr16 = data;
     uint32_t* ptrip = (uint32_t*)(ptr8 + 14);
@@ -931,6 +932,7 @@ static void dump_ethernet_frame(void *data, int len){
     }
 
     return;
+#endif
 }
 
 /****************************************************************************

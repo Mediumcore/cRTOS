@@ -142,7 +142,7 @@ void x86_64_timer_initialize(void)
   return;
 }
 
-static inline uint64_t up_ts2tick(FAR struct timespec *ts)
+static inline uint64_t up_ts2tick(FAR const struct timespec *ts)
 {
   return ROUND_INT_DIV((uint64_t)ts->tv_nsec * tsc_freq, NS_PER_SEC) + (uint64_t)ts->tv_sec * tsc_freq;
 }
