@@ -915,7 +915,6 @@ static void dump_ethernet_frame(void *data, int len){
     }
     else if(etype == 0x800) //IPV4
     {
-      int hdr_len = (ptrip[0]) & 0xf;
       ninfo("------- Begin IP Frame -------\n");
       ninfo("Version: %d, Hdr len: 0x%lx\n", (ptrip[0] >> 4) & 0xf, hdr_len);
       ninfo("Diff Service: 0x%lx\n", (ptrip[0] >> 8) & 0xff);
