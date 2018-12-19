@@ -241,7 +241,7 @@ int wd_delete(WDOG_ID wdog);
  *
  ****************************************************************************/
 
-int wd_start(WDOG_ID wdog, int32_t delay, wdentry_t wdentry, int argc, ...);
+int wd_start(WDOG_ID wdog, int64_t delay, wdentry_t wdentry, int argc, ...);
 
 /****************************************************************************
  * Name: wd_cancel
