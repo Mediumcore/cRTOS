@@ -61,13 +61,14 @@
  * Private Functions
  ****************************************************************************/
 
-uint64_t linux_interface(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+uint64_t __attribute__ ((noinline))
+linux_interface(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6)
 {
   uint64_t ret;
 
-  svcinfo("Linux Subsystem call: %d, %d\n", nbr, linux_syscall_table[nbr]);
+  svcinfo("Linux Subsystem call: %d, %llx\n", nbr, linux_syscall_table[nbr]);
 
   /* Call syscall from table. */
   if(linux_syscall_table[nbr] == -1){
@@ -83,6 +84,8 @@ uint64_t linux_interface(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
           (g_stublookup[linux_syscall_table[nbr] - CONFIG_SYS_RESERVED])) \
           (linux_syscall_table[nbr] - CONFIG_SYS_RESERVED, parm1, parm2, parm3, parm4, parm5, parm6);
   }
+
+  svcinfo("ret = %llx\n", ret);
 
   return ret;
 }

@@ -43,7 +43,7 @@ ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
 endif
 
 ifneq ($(CONFIG_DEBUG_NOOPT),y)
-  ARCHOPTIMIZATION += -O2
+  ARCHOPTIMIZATION += -O2 -fno-optimize-sibling-calls -fno-omit-frame-pointer
 endif
 
 ifeq ($(WINTOOL),y)
@@ -61,7 +61,7 @@ else
   ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
   ARCHXXINCLUDES = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
   ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/jailhouse.ld
-  LODAER_ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/loader.ld
+  LOADER_ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/loader.ld
 endif
 
 ARCHCPUFLAGS = -fno-builtin -fno-stack-protector -mno-red-zone
