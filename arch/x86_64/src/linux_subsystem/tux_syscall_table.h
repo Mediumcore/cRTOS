@@ -280,7 +280,7 @@ uint64_t linux_syscall_table[500] = {
     -1, // SYS_pselect6,
     -1, // SYS_ppoll,
     -1, // SYS_unshare,
-    (uint64_t)tux_success_stub // SYS_set_robust_list,
+    (uint64_t)tux_success_stub, // SYS_set_robust_list,
     -1, // SYS_get_robust_list,
     -1, // SYS_splice,
     -1, // SYS_tee,
