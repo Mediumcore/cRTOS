@@ -6,6 +6,8 @@
 
 #include "up_internal.h"
 
+#include <sys/time.h>
+
 #define PAGE_SLOT_SIZE 0x1000000
 
 #define FUTEX_WAIT 0x0
@@ -28,7 +30,7 @@ void add_remote_on_exit(struct tcb_s* tcb, void (*func)(int, void *), void *arg)
 
 
 int     tux_nanosleep   (unsigned long nbr, const struct timespec *rqtp, struct timespec *rmtp);
-int     tux_gettimeofday   (unsigned long nbr, struct timeval *tv, struct timeval *tz);
+int     tux_gettimeofday   (unsigned long nbr, struct timeval *tv, struct timezone *tz);
 
 int     tux_clone       (unsigned long nbr, unsigned long flags, void *child_stack,
                          void *ptid, void *ctid, unsigned long tls);

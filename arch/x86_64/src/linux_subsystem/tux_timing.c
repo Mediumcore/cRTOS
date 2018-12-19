@@ -12,6 +12,6 @@ int tux_nanosleep(unsigned long nbr, const struct timespec *rqtp, struct timespe
   return nanosleep(rqtp, rmtp);
 }
 
-int tux_gettimeofday(unsigned long nbr, struct timeval *tv, struct timeval *tz){
+int tux_gettimeofday(unsigned long nbr, struct timeval *tv, struct timezone *tz){
   return gettimeofday(tv, tz);
 }
