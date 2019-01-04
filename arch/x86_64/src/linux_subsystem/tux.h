@@ -19,15 +19,46 @@ struct rlimit {
   unsigned long rlim_max;  /* Hard limit (ceiling for rlim_cur) */
 };
 
+typedef int (*syscall_t)(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+                          uintptr_t parm6);
+
 void*   find_free_slot(void);
 void    release_slot(void* slot);
-uint64_t tux_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+
+static inline int tux_success_stub(void){
+    return 0;
+}
+
+static inline int tux_fail_stub(void){
+    return -1;
+}
+
+static inline int tux_no_impl(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+                              uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+                              uintptr_t parm6){
+    _alert("Not implemented Linux syscall %d\n", nbr);
+    PANIC();
+    return -1;
+}
+
+int tux_local(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+                          uintptr_t parm6);
+
+int tux_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+                          uintptr_t parm6);
+
+int tux_file_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+                          uintptr_t parm6);
+
+int tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6);
 
 void add_remote_on_exit(struct tcb_s* tcb, void (*func)(int, void *), void *arg);
-
-
 
 int     tux_nanosleep   (unsigned long nbr, const struct timespec *rqtp, struct timespec *rmtp);
 int     tux_gettimeofday   (unsigned long nbr, struct timeval *tv, struct timezone *tz);
@@ -49,13 +80,5 @@ void*   tux_brk         (unsigned long nbr, void* brk);
 int     tux_arch_prctl       (unsigned long nbr, int code, unsigned long addr);
 
 int     tux_futex       (unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val);
-
-static inline int tux_success_stub(void){
-    return 0;
-}
-
-static inline int tux_fail_stub(void){
-    return -1;
-}
 
 #endif//__LINUX_SUBSYSTEM_TUX_H
