@@ -486,10 +486,10 @@ int poll(FAR struct pollfd *fds, nfds_t nfds, int timeout)
            * Round timeout up to next full tick.
            */
 
-#if (MSEC_PER_TICK * USEC_PER_MSEC) != USEC_PER_TICK && \
+#if (MSEC_PER_TICK * NSEC_PER_MSEC) != NSEC_PER_TICK && \
     defined(CONFIG_HAVE_LONG_LONG)
-          ticks = (((unsigned long long)timeout * USEC_PER_MSEC) + (USEC_PER_TICK - 1)) /
-                  USEC_PER_TICK;
+          ticks = (((unsigned long long)timeout * NSEC_PER_MSEC) + (NSEC_PER_TICK - 1)) /
+                  NSEC_PER_TICK;
 #else
           ticks = ((unsigned int)timeout + (MSEC_PER_TICK - 1)) / MSEC_PER_TICK;
 #endif
