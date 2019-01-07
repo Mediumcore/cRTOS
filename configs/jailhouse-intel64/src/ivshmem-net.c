@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/pcie/pcie.h>
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -57,7 +58,6 @@
 #include <nuttx/net/netdev.h>
 
 #include <arch/io.h>
-#include <arch/pci.h>
 
 #include "virtio_ring.h"
 #include "jailhouse_ivshmem.h"
@@ -322,82 +322,6 @@ static void ivshmnet_ipv6multicast(FAR struct ivshmnet_driver_s *priv);
 static int  ivshmnet_ioctl(FAR struct net_driver_s *dev, int cmd,
               unsigned long arg);
 #endif
-
-/*******************************
- *  ivshmem support functions  *
- *******************************/
-
-static uint64_t pci_cfg_read64(uint16_t bdf, unsigned int addr)
-{
-    uint64_t bar;
-
-    bar = ((uint64_t)pci_read_config(bdf, addr + 4, 4) << 32) |
-          pci_read_config(bdf, addr, 4);
-    return bar;
-}
-
-static void pci_cfg_write64(uint16_t bdf, unsigned int addr, uint64_t val)
-{
-    pci_write_config(bdf, addr + 4, (uint32_t)(val >> 32), 4);
-    pci_write_config(bdf, addr, (uint32_t)val, 4);
-}
-
-static uint64_t get_bar_sz(uint16_t bdf, uint8_t barn)
-{
-    uint64_t bar, tmp;
-    uint64_t barsz;
-
-    bar = pci_cfg_read64(bdf, PCI_CFG_BAR + (8 * barn));
-    pci_cfg_write64(bdf, PCI_CFG_BAR + (8 * barn), 0xffffffffffffffffULL);
-    tmp = pci_cfg_read64(bdf, PCI_CFG_BAR + (8 * barn));
-    barsz = ~(tmp & ~(0xf)) + 1;
-    pci_cfg_write64(bdf, PCI_CFG_BAR + (8 * barn), bar);
-
-    return barsz;
-}
-
-static void map_veth_shmem_and_bars(struct ivshmnet_driver_s *priv)
-{
-    int cap = pci_find_cap(priv->bdf, PCI_CAP_MSIX);
-    uint64_t shmlen[2];
-    uint64_t cap_pos;
-
-    if (cap < 0) {
-        _err("device is not MSI-X capable\n");
-        return;
-    }
-
-    for (int region = 0; region < 2; region++) {
-        cap_pos = IVSHMEM_CFG_SHMEM_ADDR + (region + 1) * 16;
-        priv->shm[region] = (void*)pci_cfg_read64(priv->bdf, cap_pos);
-
-        cap_pos = IVSHMEM_CFG_SHMEM_SIZE + (region + 1) * 16;
-        shmlen[region] = pci_cfg_read64(priv->bdf, cap_pos);
-
-        up_map_region(priv->shm[region], shmlen[region], 0x10);
-
-        _info("%s memory at %016llp, size %08llx\n",
-             region == IVSHM_NET_REGION_TX ? "TX" : "RX",
-             priv->shm[region], shmlen[region]);
-    }
-
-    priv->shmlen = shmlen[0] < shmlen[1] ? shmlen[0] : shmlen[1];
-
-    /* set the bar0 region beyond topmost memory space */
-    int himem = priv->shm[0] > priv->shm[1] ? 0 : 1;
-    priv->ivshm_regs = (struct ivshmem_regs *)((uint64_t)(priv->shm[himem] + shmlen[himem] + PAGE_SIZE - 1) & PAGE_MASK);
-    pci_cfg_write64(priv->bdf, PCI_CFG_BAR, (uint64_t)priv->ivshm_regs);
-    _info("bar0 is at %p\n", priv->ivshm_regs);
-
-    int bar2sz = get_bar_sz(priv->bdf, 2);
-    uint64_t* msix_table = (uint64_t *)((uint64_t)priv->ivshm_regs + PAGE_SIZE);
-    pci_cfg_write64(priv->bdf, PCI_CFG_BAR + 8, (uint64_t)msix_table);
-    _info("bar2 is at %p\n", msix_table);
-
-    up_map_region(priv->ivshm_regs, PAGE_SIZE + bar2sz, 0x10);
-
-    pci_write_config(priv->bdf, PCI_CFG_COMMAND, (PCI_CMD_MEM | PCI_CMD_MASTER), 2);
-}
 
 /*****************************************
  *  ivshmem-net vring support functions  *
@@ -1933,50 +1857,65 @@ static int ivshmnet_ioctl(FAR struct net_driver_s *dev, int cmd,
  *
  ****************************************************************************/
 
-int ivshmnet_initialize(int intf)
+int ivshmnet_probe(uint16_t bdf)
 {
+  static int inited = 0;
   FAR struct ivshmnet_driver_s *priv;
-  int bdf = 0;
+  uint64_t shmlen[2];
+  uint64_t cap_pos;
+
+  if (pci_find_cap(bdf, PCI_CAP_MSIX) < 0)
+    {
+      _err("device is not MSI-X capable\n");
+      return -EINVAL;
+    }
+
+  if(inited == 1) return -EINVAL;
+  inited = 1;
 
   /* Get the interface structure associated with this interface number. */
 
   DEBUGASSERT(intf < CONFIG_IVSHMEM_NET_NINTERFACES);
-  priv = &g_ivshmnet[intf];
+  priv = &g_ivshmnet[0];
 
   /* Initialize the driver structure */
   memset(priv, 0, sizeof(struct ivshmnet_driver_s));
 
-  /* Check if a Ethernet chip is recognized at its I/O base */
-  while ((-1 != (bdf = pci_find_device(VENDORID, DEVICEID, bdf)))) {
-    _info("Found %04x:%04x at %02x:%02x.%x\n",
-           pci_read_config(bdf, PCI_CFG_VENDOR_ID, 2),
-           pci_read_config(bdf, PCI_CFG_DEVICE_ID, 2),
-           bdf >> 8, (bdf >> 3) & 0x1f, bdf & 0x3);
+  priv->bdf = bdf;
 
-    int class_rev = pci_read_config(bdf, 0x8, 4);
 
-    if (class_rev != (PCI_DEV_CLASS_OTHER << 24 |
-        JAILHOUSE_SHMEM_PROTO_VETH << 16 | JAILHOUSE_IVSHMEM_REVERSION)) {
-      _info("class/revision %08x, not supported "
-            "skipping device\n", class_rev);
-      bdf++;
-      continue;
+  for (int region = 0; region < 2; region++)
+    {
+      cap_pos = IVSHMEM_CFG_SHMEM_ADDR + (region + 1) * 16;
+      priv->shm[region] = (void*)pci_cfg_read64(priv->bdf, cap_pos);
+
+      cap_pos = IVSHMEM_CFG_SHMEM_SIZE + (region + 1) * 16;
+      shmlen[region] = pci_cfg_read64(priv->bdf, cap_pos);
+
+      up_map_region(priv->shm[region], shmlen[region], 0x10);
+
+      _info("%s memory at %016llp, size %08llx\n",
+           region == IVSHM_NET_REGION_TX ? "TX" : "RX",
+           priv->shm[region], shmlen[region]);
     }
 
-    priv->bdf = bdf;
-    map_veth_shmem_and_bars(priv);
-    _info("mapped the bars got position %d\n", priv->ivshm_regs->id);
+  priv->shmlen = shmlen[0] < shmlen[1] ? shmlen[0] : shmlen[1];
 
-    //XXX: conflict with pre-existing x86 IRQ number?
-    (void)irq_attach(IRQ10, (xcpt_t)ivshmnet_state_handler, priv);
-    (void)irq_attach(IRQ11, (xcpt_t)ivshmnet_interrupt, priv);
-    pci_msix_set_vector(bdf, IRQ10, 0);
-    pci_msix_set_vector(bdf, IRQ11, 1);
+  /* set the bar0 region beyond topmost memory space */
 
-    priv->peer_id = !priv->ivshm_regs->id;
+  priv->ivshm_regs = (struct ivshmem_regs *)pci_ioremap64(bdf, 0, PAGE_SIZE);
 
-    bdf++;
-  }
+  pci_ioremap64(bdf, 2, PAGE_SIZE);
+
+  pci_write_config(priv->bdf, PCI_CFG_COMMAND, (PCI_CMD_MEM | PCI_CMD_MASTER), 2);
+
+  _info("mapped the bars got position %d\n", priv->ivshm_regs->id);
+
+  (void)irq_attach(IRQ10, (xcpt_t)ivshmnet_state_handler, priv);
+  (void)irq_attach(IRQ11, (xcpt_t)ivshmnet_interrupt, priv);
+  pci_msix_set_vector(bdf, IRQ10, 0);
+  pci_msix_set_vector(bdf, IRQ11, 1);
+  priv->peer_id = !priv->ivshm_regs->id;
 
   if (ivshm_net_calc_qsize(priv))
       return -EINVAL;
@@ -2018,5 +1957,19 @@ int ivshmnet_initialize(int intf)
   (void)netdev_register(&priv->sk_dev, NET_LL_ETHERNET);
   return OK;
 }
+
+struct pcie_dev_t pci_ivshmem_net = {
+    .vendor = VENDORID,
+    .device = DEVICEID,
+    .class_rev = (PCI_DEV_CLASS_OTHER << 24 |
+          JAILHOUSE_SHMEM_PROTO_VETH << 16 | JAILHOUSE_IVSHMEM_REVERSION),
+    .probe = ivshmnet_probe
+};
+
+void up_ivshmem_net(void)
+{
+  pci_register(&pci_ivshmem_net);
+}
+
 
 #endif /* CONFIG_NET_IVSHMEM_NET */

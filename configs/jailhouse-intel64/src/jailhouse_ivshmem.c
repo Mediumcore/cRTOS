@@ -10,7 +10,7 @@
 #include <sched.h>
 
 #include <arch/io.h>
-#include <arch/pci.h>
+#include <nuttx/pcie/pcie.h>
 
 #include "jailhouse_ivshmem.h"
 
@@ -59,63 +59,6 @@ static struct ivshmem_dev_data devs[MAX_NDEV];
 /*******************************
  *  ivshmem support functions  *
  *******************************/
-
-static uint64_t pci_cfg_read64(uint16_t bdf, unsigned int addr)
-{
-    uint64_t bar;
-
-    bar = ((uint64_t)pci_read_config(bdf, addr + 4, 4) << 32) |
-          pci_read_config(bdf, addr, 4);
-    return bar;
-}
-
-static void pci_cfg_write64(uint16_t bdf, unsigned int addr, uint64_t val)
-{
-    pci_write_config(bdf, addr + 4, (uint32_t)(val >> 32), 4);
-    pci_write_config(bdf, addr, (uint32_t)val, 4);
-}
-
-static uint64_t get_bar_sz(uint16_t bdf, uint8_t barn)
-{
-    uint64_t bar, tmp;
-    uint64_t barsz;
-
-    bar = pci_cfg_read64(bdf, PCI_CFG_BAR + (8 * barn));
-    pci_cfg_write64(bdf, PCI_CFG_BAR + (8 * barn), 0xffffffffffffffffULL);
-    tmp = pci_cfg_read64(bdf, PCI_CFG_BAR + (8 * barn));
-    barsz = ~(tmp & ~(0xf)) + 1;
-    pci_cfg_write64(bdf, PCI_CFG_BAR + (8 * barn), bar);
-
-    return barsz;
-}
-
-static void map_shmem_and_bars(struct ivshmem_dev_data *d)
-{
-    int cap = pci_find_cap(d->bdf, PCI_CAP_MSIX);
-
-    if (cap < 0) {
-        _err("device is not MSI-X capable\n");
-        return;
-    }
-
-    d->shmemsz = pci_cfg_read64(d->bdf, IVSHMEM_CFG_SHMEM_SIZE);
-    d->shmem = (void *)pci_cfg_read64(d->bdf, IVSHMEM_CFG_SHMEM_ADDR);
-
-    _info("shmem is at %p\n", d->shmem);
-    d->registers = (uint32_t *)((uint64_t)(d->shmem + d->shmemsz + PAGE_SIZE - 1)
-        & PAGE_MASK);
-    pci_cfg_write64(d->bdf, PCI_CFG_BAR, (uint64_t)d->registers);
-    _info("bar0 is at %p\n", d->registers);
-
-    d->bar2sz = get_bar_sz(d->bdf, 2);
-    d->msix_table = (uint32_t *)((uint64_t)d->registers + PAGE_SIZE);
-    pci_cfg_write64(d->bdf, PCI_CFG_BAR + 8, (uint64_t)d->msix_table);
-    _info("bar2 is at %p\n", d->msix_table);
-
-    pci_write_config(d->bdf, PCI_CFG_COMMAND,
-             (PCI_CMD_MEM | PCI_CMD_MASTER), 2);
-    up_map_region((void*)d->shmem, d->shmemsz + PAGE_SIZE + d->bar2sz, 0x10);
-}
 
 static int get_ivpos(struct ivshmem_dev_data *d)
 {
@@ -300,62 +243,71 @@ static ssize_t ivshmem_write(file_t *filep, FAR const char *buf, size_t buflen)
  * Initialize device, add /dev/... nodes
  ****************************************************************************/
 
-void up_ivshmem(void)
+void ivshmem_probe(uint16_t bdf)
 {
-    int bdf = 0;
-    unsigned int class_rev;
     struct ivshmem_dev_data *d;
     char buf[32];
 
-    memset(devs, 0, sizeof(struct ivshmem_dev_data) * MAX_NDEV);
+    if(ndevices == MAX_NDEV) return;
 
-    while ((ndevices < MAX_NDEV) &&
-           (-1 != (bdf = pci_find_device(VENDORID, DEVICEID, bdf)))) {
-        _info("Found %04x:%04x at %02x:%02x.%x\n",
-               pci_read_config(bdf, PCI_CFG_VENDOR_ID, 2),
-               pci_read_config(bdf, PCI_CFG_DEVICE_ID, 2),
-               bdf >> 8, (bdf >> 3) & 0x1f, bdf & 0x3);
-        class_rev = pci_read_config(bdf, 0x8, 4);
-        if (class_rev != (PCI_DEV_CLASS_OTHER << 24 |
-                  JAILHOUSE_SHMEM_PROTO_UNDEFINED << 8 | JAILHOUSE_IVSHMEM_REVERSION)) {
-            _info("class/revision %08x, not supported "
-                   "skipping device\n", class_rev);
-            bdf++;
-            continue;
-        }
-        ndevices++;
-        d = devs + ndevices - 1;
-        d->bdf = bdf;
-
-        map_shmem_and_bars(d);
-        _info("mapped the bars got position %d\n", get_ivpos(d));
-
-        //XXX: conflict with pre-existing x86 IRQ number?
-        (void)irq_attach(IRQ2 + ndevices, (xcpt_t)ivshmem_irq_handler, d);
-        pci_msix_set_vector(bdf, IRQ2 + ndevices, 0);
-
-        if(sem_init(&(d->ivshmem_input_sem), 0, 0)){
-            _info("IVSHMEM semaphore init failed\n");
-            PANIC();
-        };
-
-        sprintf(buf, "/dev/ivshmem%d", ndevices);
-        int ret = register_driver(buf, &ivshmem_ops, 0444, d);
-        if(ret){
-            _info("IVSHMEM %s register failed with errno=%d\n", buf, ret);
-            PANIC();
-        };
-
-        d->ivshmem_initialized = 1;
-
-        bdf++;
-    }
-
-    if (!ndevices) {
-        _warn("No PCI devices found .. nothing to do.\n");
+    if (pci_find_cap(bdf, PCI_CAP_MSIX) < 0)
+      {
+        _err("device is not MSI-X capable\n");
         return;
-    }
+      }
+
+    // Allocate a new device in array
+    d = devs + ndevices;
+    d->bdf = bdf;
+    ndevices++;
+
+    // read and setup the shmem region
+    d->shmemsz = pci_cfg_read64(d->bdf, IVSHMEM_CFG_SHMEM_SIZE);
+    d->shmem = (void *)pci_cfg_read64(d->bdf, IVSHMEM_CFG_SHMEM_ADDR);
+    _info("New share memory region is at 0x%08x, length 0x%x\n", d->shmem, d->shmemsz);
+
+    // map BARs
+
+    d->registers = (uint32_t *)pci_ioremap64(bdf, 0, PAGE_SIZE);
+    d->msix_table = (uint32_t *)pci_ioremap64(bdf, 2, PAGE_SIZE);
+    d->bar2sz = PAGE_SIZE; //??
+
+    pci_write_config(d->bdf, PCI_CFG_COMMAND, (PCI_CMD_MEM | PCI_CMD_MASTER), 2);
+
+    _info("mapped the bars got position %d\n", get_ivpos(d));
+
+    (void)irq_attach(IRQ2 + ndevices, (xcpt_t)ivshmem_irq_handler, d);
+    pci_msix_set_vector(bdf, IRQ2 + ndevices, 0);
+
+    if(sem_init(&(d->ivshmem_input_sem), 0, 0)){
+        _info("IVSHMEM semaphore init failed\n");
+        PANIC();
+    };
+
+    sprintf(buf, "/dev/ivshmem%d", ndevices);
+    int ret = register_driver(buf, &ivshmem_ops, 0444, d);
+    if(ret){
+        _info("IVSHMEM %s register failed with errno=%d\n", buf, ret);
+        PANIC();
+    };
+
+    d->ivshmem_initialized = 1;
 
     /* Hard coded to put system_map into first ivshmem region */
-    memcpy(devs[0].shmem, g_system_map, 0x20000);
+    if(ndevices == 1)
+        memcpy(devs[0].shmem, g_system_map, 0x20000);
+}
+
+struct pcie_dev_t pci_ivshmem = {
+    .vendor = VENDORID,
+    .device = DEVICEID,
+    .class_rev = (PCI_DEV_CLASS_OTHER << 24 |
+          JAILHOUSE_SHMEM_PROTO_UNDEFINED << 8 | JAILHOUSE_IVSHMEM_REVERSION),
+    .probe = ivshmem_probe
+};
+
+void up_ivshmem(void)
+{
+  memset(devs, 0, sizeof(struct ivshmem_dev_data) * MAX_NDEV);
+  pci_register(&pci_ivshmem);
 }

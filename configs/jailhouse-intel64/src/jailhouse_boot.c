@@ -38,6 +38,7 @@
  ************************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/pcie/pcie.h>
 
 #include <debug.h>
 
@@ -70,7 +71,7 @@
 void up_netinitialize(void){
 
 #ifdef CONFIG_NET_IVSHMEM_NET
-  ivshmnet_initialize(0);
+  up_ivshmem_net();
 #endif
 
   return;
@@ -120,6 +121,7 @@ void board_initialize(void)
   struct net_driver_s *dev;
 
   up_ivshmem();
+  pci_initialize();
 
 #ifdef CONFIG_NET_IVSHMEM_NET
   /* Set up our host address */
