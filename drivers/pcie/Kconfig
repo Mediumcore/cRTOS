@@ -1,0 +1,19 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+if PCIE
+config PCIE_DEV_TYPE_NUM
+	int "Number of device types"
+	default 8
+
+config PCIE_IO_REMAP_NUM
+	int "Number of PCI-E I/O remap"
+	default 32
+
+config PCIE_IO_REMAP_START
+	hex "Strating Address of PCI-E I/O remap region"
+	default 0xfffe0000
+
+endif # I2C

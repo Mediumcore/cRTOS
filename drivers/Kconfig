@@ -140,6 +140,16 @@ if I2S
 source drivers/i2s/Kconfig
 endif # I2S
 
+menuconfig PCIE
+	bool "PCIE Driver Support"
+	default n
+	---help---
+		This selection enables building of the "upper-half" PCIE driver.
+
+if PCIE
+source drivers/pcie/Kconfig
+endif
+
 source drivers/timers/Kconfig
 
 menuconfig ANALOG
