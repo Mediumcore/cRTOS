@@ -48,7 +48,6 @@ CMN_CSRCS += up_regdump.c up_releasepending.c up_releasestack.c
 CMN_CSRCS += up_reprioritizertr.c up_savestate.c up_sigdeliver.c
 CMN_CSRCS += up_schedulesigaction.c up_stackframe.c up_unblocktask.c
 CMN_CSRCS += up_usestack.c
-CMN_CSRCS += up_pci.c
 CMN_CSRCS += up_rtc.c
 CMN_CSRCS += up_map_region.c
 CMN_CSRCS += up_vfork.c
