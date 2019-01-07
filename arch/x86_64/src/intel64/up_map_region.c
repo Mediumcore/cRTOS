@@ -55,11 +55,12 @@
 
 int up_map_region(void* base, int size, int flags)
 {
+
   /* Round to page boundary */
   uint64_t bb = (uint64_t)base & ~(HUGE_PAGE_SIZE - 1);
 
   /* Increase size if the base address is rounded off */
-  size = bb - (uint64_t)base + size;
+  size += (uint64_t)base - bb;
   uint64_t num_of_pages = (size + HUGE_PAGE_SIZE - 1) / HUGE_PAGE_SIZE;
 
   uint64_t pdpt_entry;
