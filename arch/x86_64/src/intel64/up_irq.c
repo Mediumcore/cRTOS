@@ -106,7 +106,7 @@ void up_ioapic_pin_set_vector(unsigned int pin, enum ioapic_trigger_mode trigger
 {
   mmio_write32(IOAPIC_BASE + IOAPIC_REG_INDEX,
     IOAPIC_REDIR_TBL_START + pin * 2 + 1);
-  mmio_write32(IOAPIC_BASE + IOAPIC_REG_DATA, cpu_id() << (56 - 32));
+  mmio_write32(IOAPIC_BASE + IOAPIC_REG_DATA, up_apic_cpu_id() << (56 - 32));
 
   mmio_write32(IOAPIC_BASE + IOAPIC_REG_INDEX,
     IOAPIC_REDIR_TBL_START + pin * 2);

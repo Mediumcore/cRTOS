@@ -288,7 +288,7 @@ static inline void up_irq_restore(irqstate_t flags)
     }
 }
 
-static inline unsigned int cpu_id(void)
+static inline unsigned int up_apic_cpu_id(void)
 {
 	return read_msr(X2APIC_ID);
 }
