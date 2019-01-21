@@ -4,6 +4,9 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <debug.h>
 
 #include <nuttx/sched.h>
@@ -119,8 +122,7 @@ void tux_on_exit(int val, void* arg){
     params[1] = val;
 
     write(rtcb->xcp.linux_sock, params, sizeof(params));
-    read(rtcb->xcp.linux_sock, params, sizeof(uint64_t));
-    shutdown(rtcb->xcp.linux_sock, SHUT_RDWR);
+    close(rtcb->xcp.linux_sock);
 
   } else {
     _err("Non-linux process calling linux syscall or invalid sock fd %d, %d\n", rtcb->xcp.is_linux, rtcb->xcp.linux_sock);
@@ -211,11 +213,12 @@ int execvs_setupargs(struct task_tcb_s* tcb,
 int execvs(void* base, int bsize,
            void* entry, int priority,
            int argc, char* argv[],
-           int envc, char* envv[], int sock)
+           int envc, char* envv[], uint64_t shadow_tcb)
 {
     struct task_tcb_s *tcb;
     uint64_t stack;
     int ret;
+    int sock = open("/dev/shadow0", O_RDWR);
 
     // First try to create a new task
     _info("Entry: %016llx, base: %016llx\n", entry, base);
@@ -289,6 +292,8 @@ int execvs(void* base, int bsize,
     /* setup some linux handlers */
     tcb->cmn.xcp.is_linux = 2;
     tcb->cmn.xcp.linux_sock = sock;
+    _info("LINUX SOCK: %d\n", tcb->cmn.xcp.linux_sock);
+    tcb->cmn.xcp.linux_tcb = shadow_tcb;
 
     add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
 

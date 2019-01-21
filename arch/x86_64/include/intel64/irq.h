@@ -192,6 +192,8 @@ struct xcptcontext
 
   uint32_t is_linux;
   int32_t linux_sock;
+  uint64_t linux_tcb;
+  int syscall_ret;
 
   void* __brk;
   void* __min_brk;

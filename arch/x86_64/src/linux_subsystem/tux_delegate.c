@@ -55,8 +55,7 @@ int tux_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
     params[5] = parm5;
     params[6] = parm6;
 
-    write(rtcb->xcp.linux_sock, params, sizeof(params));
-    read(rtcb->xcp.linux_sock, &syscall_ret, sizeof(syscall_ret));
+    syscall_ret = write(rtcb->xcp.linux_sock, params, sizeof(params));
 
   } else {
     _err("Non-linux process calling linux syscall or invalid sock fd %d, %d\n", rtcb->xcp.is_linux, rtcb->xcp.linux_sock);
