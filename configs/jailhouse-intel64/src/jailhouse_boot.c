@@ -121,6 +121,7 @@ void board_initialize(void)
   struct net_driver_s *dev;
 
   up_ivshmem();
+  up_shadow_proc();
   pci_initialize();
 
 #ifdef CONFIG_NET_IVSHMEM_NET
