@@ -6,7 +6,7 @@
 if ARCH_BOARD_JAILHOUSE_INTEL64
 
 config COMM_REGION_BASE
-	int "Jailhouse comm region base address"
+	hex "Jailhouse comm region base address"
 	default 0x40000000
 	---help---
 		The base address of communication region with jailhouse
