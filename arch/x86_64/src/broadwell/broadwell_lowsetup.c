@@ -77,21 +77,23 @@ void up_lowsetup(void)
    * 2MiB of physical ram to virtual ram
    */
 
+
+  /* perform board-specific initializations
+   * This includes the inititlization of PCI-e serial cards*/
+  x86_64_boardinitialize();
+
   /* Early serial driver initialization */
 
 #ifdef USE_EARLYSERIALINIT
   up_earlyserialinit();
 #endif
 
-  /* Now perform board-specific initializations */
-  x86_64_boardinitialize();
-
 #ifdef CONFIG_SCHED_TICKLESS
-    x86_64_timer_calibrate_freq();
+  x86_64_timer_calibrate_freq();
 #endif
 
 #ifdef CONFIG_LIB_SYSCALL
-    enable_syscall();
+  enable_syscall();
 #endif
 
 }

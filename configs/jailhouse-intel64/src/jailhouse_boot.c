@@ -93,6 +93,13 @@ void up_netinitialize(void){
 
 void x86_64_boardinitialize(void)
 {
+
+  int bdf1;
+  int bdf2;
+  void *ptr;
+  int cap;
+  int pmcsr;
+  int old_cmd, cmd;
   /* Configure on-board LEDs if LED support has been selected. */
 
 #ifdef CONFIG_ARCH_LEDS
@@ -100,6 +107,8 @@ void x86_64_boardinitialize(void)
 #endif
 
   up_map_region((void*)COMM_REGION_BASE, HUGE_PAGE_SIZE, 0x10);
+
+  up_mcs99xx();
 
   return;
 }
@@ -122,7 +131,6 @@ void board_initialize(void)
 
   up_ivshmem();
   up_shadow_proc();
-  pci_initialize();
 
 #ifdef CONFIG_NET_IVSHMEM_NET
   /* Set up our host address */
