@@ -59,13 +59,13 @@ void mcs99xx_probe(uint16_t bdf)
   mmio_write8(bar1mem + 0x280 + 3 * 4, 0x03);
   mmio_write8(bar1mem + 0x280 + 2 * 4, 0x00);
 
-  /*pci_msi_set_vector(bdf, IRQ6 + mcs99xx_count);*/
+  pci_msi_set_vector(bdf, IRQ6 + mcs99xx_count);
 }
 
 struct pcie_dev_t pci_mcs99xx = {
     .vendor = 0x9710,
     .device = 0x9912,
-    .class_rev = PCI_ID_ANY,
+    .class_rev = 0x07000200,
     .probe = mcs99xx_probe
 };
 
