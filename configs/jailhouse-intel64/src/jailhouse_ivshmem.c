@@ -268,16 +268,19 @@ void ivshmem_probe(uint16_t bdf)
 
     // map BARs
 
-    d->registers = (uint32_t *)pci_ioremap64(bdf, 0, PAGE_SIZE);
-    d->msix_table = (uint32_t *)pci_ioremap64(bdf, 2, PAGE_SIZE);
+    d->registers = (uint32_t *)pci_alloc_mem_region(PAGE_SIZE);
+    d->msix_table = (uint32_t *)pci_alloc_mem_region(PAGE_SIZE);
+
+    pci_set_bar64(d->bdf, 0, (uint64_t)d->registers);
+    pci_set_bar64(d->bdf, 2, (uint64_t)d->msix_table);
     d->bar2sz = PAGE_SIZE; //??
 
-    pci_write_config(d->bdf, PCI_CFG_COMMAND, (PCI_CMD_MEM | PCI_CMD_MASTER), 2);
+    pci_enable_device(d->bdf, (PCI_CMD_MEM | PCI_CMD_MASTER));
 
     _info("mapped the bars got position %d\n", get_ivpos(d));
 
-    (void)irq_attach(IRQ2 + ndevices, (xcpt_t)ivshmem_irq_handler, d);
-    pci_msix_set_vector(bdf, IRQ2 + ndevices, 0);
+    (void)irq_attach(IRQ0 + ndevices, (xcpt_t)ivshmem_irq_handler, d);
+    pci_msix_set_vector(bdf, IRQ0 + ndevices, 0);
 
     if(sem_init(&(d->ivshmem_input_sem), 0, 0)){
         _info("IVSHMEM semaphore init failed\n");

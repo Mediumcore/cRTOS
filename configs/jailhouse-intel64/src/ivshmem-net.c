@@ -1863,6 +1863,7 @@ int ivshmnet_probe(uint16_t bdf)
   FAR struct ivshmnet_driver_s *priv;
   uint64_t shmlen[2];
   uint64_t cap_pos;
+  void* bar2mem;
 
   if (pci_find_cap(bdf, PCI_CAP_MSIX) < 0)
     {
@@ -1883,7 +1884,6 @@ int ivshmnet_probe(uint16_t bdf)
 
   priv->bdf = bdf;
 
-
   for (int region = 0; region < 2; region++)
     {
       cap_pos = IVSHMEM_CFG_SHMEM_ADDR + (region + 1) * 16;
@@ -1901,20 +1901,20 @@ int ivshmnet_probe(uint16_t bdf)
 
   priv->shmlen = shmlen[0] < shmlen[1] ? shmlen[0] : shmlen[1];
 
-  /* set the bar0 region beyond topmost memory space */
+  priv->ivshm_regs = (struct ivshmem_regs *)pci_alloc_mem_region(PAGE_SIZE);
+  bar2mem = pci_alloc_mem_region(PAGE_SIZE);
 
-  priv->ivshm_regs = (struct ivshmem_regs *)pci_ioremap64(bdf, 0, PAGE_SIZE);
+  pci_set_bar64(bdf, 0, (uint64_t)priv->ivshm_regs);
+  pci_set_bar64(bdf, 2, (uint64_t)bar2mem);
 
-  pci_ioremap64(bdf, 2, PAGE_SIZE);
-
-  pci_write_config(priv->bdf, PCI_CFG_COMMAND, (PCI_CMD_MEM | PCI_CMD_MASTER), 2);
+  pci_enable_device(priv->bdf, (PCI_CMD_MEM | PCI_CMD_MASTER));
 
   _info("mapped the bars got position %d\n", priv->ivshm_regs->id);
 
-  (void)irq_attach(IRQ10, (xcpt_t)ivshmnet_state_handler, priv);
-  (void)irq_attach(IRQ11, (xcpt_t)ivshmnet_interrupt, priv);
-  pci_msix_set_vector(bdf, IRQ10, 0);
-  pci_msix_set_vector(bdf, IRQ11, 1);
+  (void)irq_attach(IRQ5, (xcpt_t)ivshmnet_state_handler, priv);
+  (void)irq_attach(IRQ6, (xcpt_t)ivshmnet_interrupt, priv);
+  pci_msix_set_vector(bdf, IRQ5, 0);
+  pci_msix_set_vector(bdf, IRQ6, 1);
   priv->peer_id = !priv->ivshm_regs->id;
 
   if (ivshm_net_calc_qsize(priv))

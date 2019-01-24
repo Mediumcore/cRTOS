@@ -55,8 +55,6 @@
 
 uint32_t pci_remap_region[CONFIG_PCIE_IO_REMAP_NUM];
 
-struct pcie_dev_t* pci_device_type_list[CONFIG_PCIE_DEV_TYPE_NUM];
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -132,73 +130,34 @@ void pci_cfg_write64(uint16_t bdf, uintptr_t addr, uint64_t val)
 
 int pci_register(struct pcie_dev_t* dev)
 {
-  irqstate_t flags;
-  int i;
-
-  flags = enter_critical_section();
-  for(i = 0; i < CONFIG_PCIE_DEV_TYPE_NUM; i++)
-    {
-      if(pci_device_type_list[i] == 0)
-        {
-          pci_device_type_list[i] = dev;
-          leave_critical_section(flags);
-
-          _info("Register PIC-e device type %04x:%04x, class/reversion %04x\n",
-                  dev->vendor, dev->device, dev->class_rev);
-          return OK;
-        }
-    }
-
-  leave_critical_section(flags);
-  return -ENOMEM;
-}
-
-/****************************************************************************
- * Name: pci_initialize
- *
- * Description:
- *  Enumerate the PCI-e bus and probe the devices using the register device
- *  list
- *
- ****************************************************************************/
-
-void pci_initialize(void)
-{
   unsigned int bdf;
   uint16_t id;
-  int i;
+  if(!dev) return -EINVAL;
 
   for (bdf = 0; bdf < 0x10000; bdf++)
     {
-        id = pci_read_config(bdf, PCI_CFG_VENDOR_ID, 2);
-        if (id == PCI_ID_ANY)
-          continue;
-        for(i = 0; i < CONFIG_PCIE_DEV_TYPE_NUM; i++)
-          {
-            if(pci_device_type_list[i] == NULL) continue;
-            if(pci_device_type_list[i]->vendor == PCI_ID_ANY ||
-                pci_device_type_list[i]->vendor == id)
-              {
-                if(pci_device_type_list[i]->device == PCI_ID_ANY ||
-                    pci_device_type_list[i]->device == pci_read_config(bdf, PCI_CFG_DEVICE_ID, 2))
-                  {
+      id = pci_read_config(bdf, PCI_CFG_VENDOR_ID, 2);
+      if (id == PCI_ID_ANY)
+        continue;
 
-                    if(pci_device_type_list[i]->class_rev == PCI_ID_ANY ||
-                        pci_device_type_list[i]->class_rev == pci_read_config(bdf, 0x8, 4))
-                      {
-                        _info("Found %04x:%04x, class/reversion %04x at %02x:%02x.%x\n",
-                           pci_read_config(bdf, PCI_CFG_VENDOR_ID, 2),
-                           pci_read_config(bdf, PCI_CFG_DEVICE_ID, 2),
-                           pci_read_config(bdf, 0x8, 4),
-                           bdf >> 8, (bdf >> 3) & 0x1f, bdf & 0x3);
-                        pci_device_type_list[i]->probe(bdf);
-                        break;
-                      }
-                  }
-              }
-          }
+      if(dev->vendor == PCI_ID_ANY || dev->vendor == id)
+        {
+          if(dev->device == PCI_ID_ANY || dev->device == pci_read_config(bdf, PCI_CFG_DEVICE_ID, 2))
+            {
+              if(dev->class_rev == PCI_ID_ANY || dev->class_rev == pci_read_config(bdf, 0x8, 4))
+                {
+                  _info("Found %04x:%04x, class/reversion %08x at %02x:%02x.%x\n",
+                     pci_read_config(bdf, PCI_CFG_VENDOR_ID, 2),
+                     pci_read_config(bdf, PCI_CFG_DEVICE_ID, 2),
+                     pci_read_config(bdf, 0x8, 4),
+                     bdf >> 8, (bdf >> 3) & 0x1f, bdf & 0x3);
+
+                  dev->probe(bdf);
+                }
+            }
+        }
     }
-  return;
+  return OK;
 }
 
 /****************************************************************************
@@ -384,23 +343,21 @@ int pci_msi_set_vector(uint16_t bdf, unsigned int vector)
 }
 
 /****************************************************************************
- * Name: pci_ioremap64
+ * Name: pci_alloc_mem_region
  *
  * Description:
- *  Map a mamory region for PCI a 64 bit BARs
+ *  Allocate a mamory region for PCI BARs
  *
  * Input Parameters:
- *   bdf - Device BDF
- *   bar - Bar number
  *   length - length of the resource
  *
  * Returned Value:
- *   NULL: Mapping failed
- *  other: Maped Address
+ *   NULL: Allocation failed
+ *  other: Allocated Address
  *
  ****************************************************************************/
 
-void* pci_ioremap64(uint16_t bdf, int bar, size_t length)
+void* pci_alloc_mem_region(size_t length)
 {
   irqstate_t flags;
   int i, j;
@@ -408,8 +365,6 @@ void* pci_ioremap64(uint16_t bdf, int bar, size_t length)
 
   if(length == 0) return NULL;
   length = (length + PAGE_SIZE - 1) / PAGE_SIZE;
-
-  if(bar & 0x1) return NULL; // check 64bit bars
 
   flags = enter_critical_section();
 
@@ -435,12 +390,7 @@ void* pci_ioremap64(uint16_t bdf, int bar, size_t length)
 
           leave_critical_section(flags);
 
-          pci_cfg_write64(bdf, PCI_CFG_BAR + bar * 4, CONFIG_PCIE_IO_REMAP_START + PAGE_SIZE * i);
           up_map_region((void*)(CONFIG_PCIE_IO_REMAP_START + PAGE_SIZE * i), length * PAGE_SIZE, 0x10);
-
-          _info("%02x:%02x.%x, BAR %d is at %p, length %d\n",
-                  bdf >> 8, (bdf >> 3) & 0x1f, bdf & 0x3, bar,
-                  CONFIG_PCIE_IO_REMAP_START + PAGE_SIZE * i, length * PAGE_SIZE);
 
           return (void*)(CONFIG_PCIE_IO_REMAP_START + PAGE_SIZE * i);
         }
@@ -448,4 +398,95 @@ void* pci_ioremap64(uint16_t bdf, int bar, size_t length)
 
   leave_critical_section(flags);
   return NULL;
+}
+
+/****************************************************************************
+ * Name: pci_set_bar
+ *
+ * Description:
+ *  Set the bar value
+ *
+ * Input Parameters:
+ *   bdf - device BDF
+ *   bar - the bar number
+ *   value - the value to be set
+ *
+ ****************************************************************************/
+
+void pci_set_bar32(uint16_t bdf, int bar, uint32_t value)
+{
+  pci_write_config(bdf, PCI_CFG_BAR + bar * 4, value, 4);
+
+  _info("%02x:%02x.%x, BAR %d is at %p\n",
+          bdf >> 8, (bdf >> 3) & 0x1f, bdf & 0x3, bar,
+          value);
+}
+
+void pci_set_bar64(uint16_t bdf, int bar, uint64_t value)
+{
+  if(bar & 0x1) return; // check 64bit bars
+
+  pci_cfg_write64(bdf, PCI_CFG_BAR + bar * 4, value);
+
+  _info("%02x:%02x.%x, BAR %d is at %p\n",
+          bdf >> 8, (bdf >> 3) & 0x1f, bdf & 0x3, bar,
+          value);
+}
+
+/****************************************************************************
+ * Name: pci_get_bar
+ *
+ * Description:
+ *  Get the bar value
+ *
+ * Input Parameters:
+ *   bdf - device BDF
+ *   bar - the bar number
+ *
+ * Return value:
+ *   -EINVAL: passing a Odd numbered bar to 64bit version
+ *   Other: The value of the BAR.
+ *
+ ****************************************************************************/
+
+uint32_t pci_get_bar32(uint16_t bdf, int bar)
+{
+  return pci_read_config(bdf, PCI_CFG_BAR + bar * 4, 4);
+}
+
+uint64_t pci_get_bar64(uint16_t bdf, int bar)
+{
+  if(bar & 0x1) return; // check 64bit bars
+
+  return pci_cfg_read64(bdf, PCI_CFG_BAR + bar * 4);
+}
+
+/****************************************************************************
+ * Name: pci_enable_device
+ *
+ * Description:
+ *  Enable device
+ *
+ * Input Parameters:
+ *   bdf - device BDF
+ *   flags - device ability to be enabled
+ *
+ * Return value:
+ *   -EINVAL: error
+ *   OK: OK
+ *
+ ****************************************************************************/
+
+int pci_enable_device(uint16_t bdf, uint32_t flags)
+{
+  int old_cmd, cmd;
+  old_cmd = cmd = pci_read_config(bdf, PCI_CFG_COMMAND, 2);
+  cmd |= flags;
+  pci_write_config(bdf, PCI_CFG_COMMAND, cmd, 2);
+
+  _info("%02x:%02x.%x, CMD: %x -> %x\n",
+          bdf >> 8, (bdf >> 3) & 0x1f, bdf & 0x3,
+          old_cmd, cmd);
+
+  return OK;
 }

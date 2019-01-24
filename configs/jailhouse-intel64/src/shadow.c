@@ -885,6 +885,7 @@ int shadow_proc_probe(uint16_t bdf)
   FAR struct shadow_proc_driver_s *priv;
   uint64_t shmlen[2];
   uint64_t cap_pos;
+  void* bar2mem;
 
   if (pci_find_cap(bdf, PCI_CAP_MSIX) < 0)
     {
@@ -922,20 +923,20 @@ int shadow_proc_probe(uint16_t bdf)
 
   priv->shmlen = shmlen[0] < shmlen[1] ? shmlen[0] : shmlen[1];
 
-  /* set the bar0 region beyond topmost memory space */
+  priv->ivshm_regs = (struct ivshmem_regs *)pci_alloc_mem_region(PAGE_SIZE);
+  bar2mem = pci_alloc_mem_region(PAGE_SIZE);
 
-  priv->ivshm_regs = (struct ivshmem_regs *)pci_ioremap64(bdf, 0, PAGE_SIZE);
+  pci_set_bar64(bdf, 0, (uint64_t)priv->ivshm_regs);
+  pci_set_bar64(bdf, 2, (uint64_t)bar2mem);
 
-  pci_ioremap64(bdf, 2, PAGE_SIZE);
-
-  pci_write_config(priv->bdf, PCI_CFG_COMMAND, (PCI_CMD_MEM | PCI_CMD_MASTER), 2);
+  pci_enable_device(priv->bdf, (PCI_CMD_MEM | PCI_CMD_MASTER));
 
   _info("mapped the bars got position %d\n", priv->ivshm_regs->id);
 
-  (void)irq_attach(IRQ8, (xcpt_t)shadow_proc_state_handler, priv);
-  (void)irq_attach(IRQ9, (xcpt_t)shadow_proc_interrupt, priv);
-  pci_msix_set_vector(bdf, IRQ8, 0);
-  pci_msix_set_vector(bdf, IRQ9, 1);
+  (void)irq_attach(IRQ12, (xcpt_t)shadow_proc_state_handler, priv);
+  (void)irq_attach(IRQ13, (xcpt_t)shadow_proc_interrupt, priv);
+  pci_msix_set_vector(bdf, IRQ12, 0);
+  pci_msix_set_vector(bdf, IRQ13, 1);
   priv->peer_id = !priv->ivshm_regs->id;
 
   if (shadow_proc_calc_qsize(priv))

@@ -63,11 +63,14 @@
 #define PCI_CFG_BAR		0x010
 # define PCI_BAR_64BIT		0x4
 #define PCI_CFG_CAP_PTR		0x034
+#define PCI_PM_CTRL		4	/* PM control and status register */
+#define  PCI_PM_CTRL_STATE_MASK	0x0003	/* Current power state (D0 to D3) */
 
 #define PCI_ID_ANY		0xffff
 
 #define PCI_DEV_CLASS_OTHER	0xff
 
+#define PCI_CAP_PM		0x01
 #define PCI_CAP_MSI		0x05
 #define PCI_CAP_MSIX		0x11
 
@@ -90,7 +93,6 @@ struct pcie_dev_t{
 };
 
 int pci_register(struct pcie_dev_t* dev);
-void pci_initialize(void);
 
 uint32_t pci_read_config(uint16_t bdf, uintptr_t addr, unsigned int size);
 void pci_write_config(uint16_t bdf, uintptr_t addr, uint32_t value, unsigned int size);
@@ -103,6 +105,13 @@ int pci_find_cap(uint16_t bdf, uint16_t cap);
 int pci_msi_set_vector(uint16_t bdf, unsigned int vector);
 int pci_msix_set_vector(uint16_t bdf, unsigned int vector, uint32_t index);
 
-void* pci_ioremap64(uint16_t bdf, int bar, size_t length);
+void* pci_alloc_mem_region(size_t length);
+void pci_set_bar32(uint16_t bdf, int bar, uint32_t value);
+void pci_set_bar64(uint16_t bdf, int bar, uint64_t value);
+
+uint32_t pci_get_bar32(uint16_t bdf, int bar);
+uint64_t pci_get_bar64(uint16_t bdf, int bar);
+
+int pci_enable_device(uint16_t bdf, uint32_t flags);
 
 #endif /* __INCLUDE_NUTTX_PCIE_H */
