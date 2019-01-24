@@ -53,13 +53,7 @@ void mcs99xx_probe(uint16_t bdf)
   // Enable MMIO region
   pci_enable_device(bdf, (PCI_CMD_MASTER | PCI_CMD_MEM));
 
-  mmio_write8(bar1mem + 0x280 +  3 * 4, 0x83);
-  mmio_write8(bar1mem + 0x280 +  1 * 4, 0x00);
-  mmio_write8(bar1mem + 0x280 , 0x01);
-  mmio_write8(bar1mem + 0x280 + 3 * 4, 0x03);
-  mmio_write8(bar1mem + 0x280 + 2 * 4, 0x00);
-
-  pci_msi_set_vector(bdf, IRQ6 + mcs99xx_count);
+  pci_msi_set_vector(bdf, IRQ7 + mcs99xx_count++);
 }
 
 struct pcie_dev_t pci_mcs99xx = {
