@@ -44,5 +44,6 @@ CSRCS += jailhouse_ivshmem.c
 CSRCS += jailhouse_leds.c
 CSRCS += ivshmem-net.c
 CSRCS += shadow.c
+CSRCS += mcs99xx.c
 
 include $(TOPDIR)/configs/Board.mk
