@@ -18,8 +18,6 @@
 #include "tux.h"
 #include "tux_syscall_table.h"
 
-#define TUX_FD_OFFSET (CONFIG_NFILE_DESCRIPTORS + CONFIG_NSOCKET_DESCRIPTORS + 16)
-
 int tux_local(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6)

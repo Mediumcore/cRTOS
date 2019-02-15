@@ -8,6 +8,8 @@
 
 #include <sys/time.h>
 
+#define TUX_FD_OFFSET (CONFIG_NFILE_DESCRIPTORS + CONFIG_NSOCKET_DESCRIPTORS + 16)
+
 #define PAGE_SLOT_SIZE 0x1000000
 
 #define FUTEX_WAIT 0x0
@@ -66,7 +68,7 @@ int     tux_gettimeofday   (unsigned long nbr, struct timeval *tv, struct timezo
 int     tux_clone       (unsigned long nbr, unsigned long flags, void *child_stack,
                          void *ptid, void *ctid, unsigned long tls);
 
-void*   tux_mmap        (unsigned long nbr, void* addr, size_t length, int prot, int flags);
+void*   tux_mmap        (unsigned long nbr, void* addr, size_t length, int prot, int flags, int fd, off_t offset);
 int     tux_munmap      (unsigned long nbr, void* addr, size_t length);
 
 int     tux_getrlimit   (unsigned long nbr, int resource, struct rlimit *rlim);
