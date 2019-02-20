@@ -53,7 +53,7 @@
  * defined below:
  */
 
-#define _TIOCBASE       (0x0100) /* Terminal I/O ioctl commands */
+#define _TIOCBASE       (0x5400) /* Terminal I/O ioctl commands Linux compatiable(T)*/
 #define _WDIOCBASE      (0x0200) /* Watchdog driver ioctl commands */
 #define _FIOCBASE       (0x0300) /* File system ioctl commands */
 #define _DIOCBASE       (0x0400) /* Character driver ioctl commands */
