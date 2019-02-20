@@ -1057,6 +1057,43 @@ static int u16550_ioctl(struct file *filep, int cmd, unsigned long arg)
       break;
 #endif
 
+    case TIOCMBIS:
+      {
+        uint32_t bitset = *(uint32_t *)arg;
+        uint32_t mcr = u16550_serialin(priv, UART_MCR_OFFSET);
+
+#if defined(CONFIG_SERIAL_IFLOWCONTROL) || defined(CONFIG_SERIAL_OFLOWCONTROL)
+        if (!priv->flow)
+#endif
+          {
+
+            if(bitset & TIOCM_RTS)
+              {
+                mcr |= UART_MCR_RTS;
+              }
+            u16550_serialout(priv, UART_MCR_OFFSET, mcr);
+          }
+      }
+      break;
+
+    case TIOCMBIC:
+      {
+        uint32_t bitset = *(uint32_t *)arg;
+        uint32_t mcr = u16550_serialin(priv, UART_MCR_OFFSET);
+
+#if defined(CONFIG_SERIAL_IFLOWCONTROL) || defined(CONFIG_SERIAL_OFLOWCONTROL)
+        if (!priv->flow)
+#endif
+          {
+            if(bitset & TIOCM_RTS)
+              {
+                mcr &= ~UART_MCR_RTS;
+              }
+            u16550_serialout(priv, UART_MCR_OFFSET, mcr);
+          }
+      }
+      break;
+
     default:
       ret = -ENOTTY;
       break;
