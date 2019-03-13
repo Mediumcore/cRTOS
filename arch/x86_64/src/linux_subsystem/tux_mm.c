@@ -66,13 +66,15 @@ int get_free_pg_index(void) {
   return i;
 }
 
-int create_and_map_pages(void** physical, void* virtual, int num_of_pages){
+int create_and_map_pages(void** physical, void* virtual, uint64_t num_of_pages){
   struct tcb_s *tcb = this_task();
   int i;
 
   int pg_index = (uint64_t)virtual / HUGE_PAGE_SIZE;
 
   if(pg_index >= 128) return -1; // Mapping out of bound
+
+  _info("NOP: %lld\n", num_of_pages);
 
   // Create backing memory
   void* mm = kmm_memalign(HUGE_PAGE_SIZE, num_of_pages * HUGE_PAGE_SIZE);
@@ -83,6 +85,9 @@ int create_and_map_pages(void** physical, void* virtual, int num_of_pages){
     }
   svcinfo("TUX: mmap allocated 0x%llx bytes at 0x%llx\n", num_of_pages * HUGE_PAGE_SIZE, mm);
 
+  // Zero fill the page
+  memset(mm, 0, num_of_pages * HUGE_PAGE_SIZE);
+
   // Give back the physical memory
   *physical = mm;
 
@@ -91,6 +96,13 @@ int create_and_map_pages(void** physical, void* virtual, int num_of_pages){
   for(i = 1; i < num_of_pages; i++)
     {
       pd[pg_index + i] = tcb->xcp.page_table[pg_index + i] = ((uint64_t)mm + (i) * HUGE_PAGE_SIZE) | 0x83;
+    }
+
+  // Trigger the shadow process to gain the same mapping
+  if(tux_delegate(9, (((uint64_t)*physical) << 32) | (uint64_t)virtual, num_of_pages * HUGE_PAGE_SIZE,
+              0, MAP_ANONYMOUS, 0, 0) == -1)
+    {
+      return -1;
     }
 
   svcinfo("TUX: mmap maped 0x%llx bytes at 0x%llx, backed by 0x%llx\n", num_of_pages * HUGE_PAGE_SIZE, virtual, *physical);
@@ -133,14 +145,14 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
       svcinfo("TUX: mmap trying to allocate 0x%llx bytes\n", length);
 
       // Calculate page to be mapped
-      uint64_t num_of_pages = (length + HUGE_PAGE_SIZE - 1) / HUGE_PAGE_SIZE;
+      uint64_t num_of_pages = (uint64_t)(length + HUGE_PAGE_SIZE - 1) / HUGE_PAGE_SIZE;
 
       // Find a free page_table entry
       pg = get_free_pg_index();
       if(pg == -1) {return (void*)-1;}
       addr = pg * HUGE_PAGE_SIZE;
 
-      create_and_map_pages(&mm, addr, num_of_pages);
+      if(create_and_map_pages(&mm, addr, num_of_pages)) return (void*)-1;
     }
   else
     {
@@ -161,7 +173,7 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
           // Scan the continuous block
           for(j = i; !(tcb->xcp.page_table[pg + j] & 1) && (j < num_of_pages); j++);
 
-          create_and_map_pages(&mm, (pg + i) * HUGE_PAGE_SIZE, (j - i));
+          if(create_and_map_pages(&mm, (pg + i) * HUGE_PAGE_SIZE, (j - i))) return (void*)-1;
 
           i = j - 1;
       }
@@ -169,26 +181,15 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
 
   print_mapping();
 
-  if((flags & MAP_ANONYMOUS)) return addr;
-
-  // temporary memory for receive the file content
-  void* tmp_mm = kmm_malloc(length);
-  if(!tmp_mm){
-    svcinfo("TUX: mmap failed to allocate 0x%llx bytes\n", length);
-    return (void*)-1;
-  }
-
-  if(tux_delegate(nbr, tmp_mm, length, prot, flags, fd - TUX_FD_OFFSET, offset) != -1)
+  if(!(flags & MAP_ANONYMOUS))
     {
-      memcpy(addr, tmp_mm, length);
-      kmm_free(tmp_mm);
-      return addr;
+      if(tux_delegate(nbr, addr, length, prot, flags, fd - TUX_FD_OFFSET, offset) == -1)
+        {
+          return (void*)-1;
+        }
     }
-  else
-    {
-      kmm_free(tmp_mm);
-      return (void*)-1;
-    }
+
+  return addr;
 }
 
 int tux_munmap(unsigned long nbr, void* addr, size_t length){
