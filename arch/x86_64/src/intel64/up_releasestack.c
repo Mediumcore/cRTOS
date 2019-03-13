@@ -124,13 +124,7 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
   dtcb->adj_stack_size = 0;
 
   if(dtcb->xcp.is_linux == 2) {
-    release_slot(dtcb->xcp.page_table[0]);
-  }
 
-  for(i = 8; i < 128; i++){
-    if(dtcb->xcp.page_table[i] & 0x200) {
-      kmm_free((void*)(dtcb->xcp.page_table[i] & HUGE_PAGE_MASK));
-    }
-    dtcb->xcp.page_table[i] = 0x82;
+    release_slot(dtcb->xcp.page_table[0]);
   }
 }
