@@ -70,6 +70,7 @@
 struct u16550_s
 {
   uart_addrwidth_t uartbase;  /* Base address of UART registers */
+  sem_t           msisem;
 #ifndef CONFIG_16550_SUPRESS_CONFIG
   uint32_t         baud;      /* Configured baud */
   uint32_t         uartclk;   /* UART clock frequency */
@@ -718,6 +719,13 @@ static int u16550_setup(FAR struct uart_dev_s *dev)
   u16550_serialout(priv, UART_MCR_OFFSET, mcr);
 #endif /* defined(CONFIG_SERIAL_IFLOWCONTROL) || defined(CONFIG_SERIAL_OFLOWCONTROL) */
 
+  /* setup msi sem */
+  if(sem_init(&(priv->msisem), 0, 0))
+    {
+      _err("16550 MSI Semaphore initialization failed\n");
+      PANIC();
+    };
+
 #endif
   return OK;
 }
@@ -735,6 +743,8 @@ static void u16550_shutdown(struct uart_dev_s *dev)
 {
   FAR struct u16550_s *priv = (FAR struct u16550_s *)dev->priv;
   u16550_disableuartint(priv, NULL);
+
+  sem_destroy(&(priv->msisem));
 }
 
 /****************************************************************************
@@ -864,10 +874,20 @@ static int u16550_interrupt(int irq, FAR void *context, FAR void *arg)
 
           case UART_IIR_INTID_MSI:
             {
+              int svalue;
               /* Read the modem status register (MSR) to clear */
 
               status = u16550_serialin(priv, UART_MSR_OFFSET);
               sinfo("MSR: %02x\n", status);
+
+              priv->ier &= ~UART_IER_EDSSI;
+              u16550_serialout(priv, UART_IER_OFFSET, priv->ier);
+
+              sem_getvalue(&(priv->msisem), &svalue);
+              if(svalue < 0)
+                {
+                  sem_post(&(priv->msisem));
+                }
               break;
             }
 
@@ -1091,6 +1111,15 @@ static int u16550_ioctl(struct file *filep, int cmd, unsigned long arg)
               }
             u16550_serialout(priv, UART_MCR_OFFSET, mcr);
           }
+      }
+      break;
+
+    case TIOCMIWAIT:
+      {
+        priv->ier |= UART_IER_EDSSI;
+        u16550_serialout(priv, UART_IER_OFFSET, priv->ier);
+
+        sem_wait(&(priv->msisem));
       }
       break;
 
