@@ -73,10 +73,10 @@ syscall_t linux_syscall_action_table[500] = {
     tux_local,
     tux_no_impl, // SYS_sigreturn,
     tux_file_delegate, // SYS_ioctl,
-    tux_delegate, // SYS_pread,
-    tux_delegate, // SYS_pwrite,
-    tux_delegate, // sys_readv
-    tux_delegate, // sys_writev
+    tux_file_delegate, // SYS_pread,
+    tux_file_delegate, // SYS_pwrite,
+    tux_file_delegate, // sys_readv
+    tux_file_delegate, // sys_writev
     tux_delegate, // sys_access
     tux_file_delegate, // sys_pipe
     tux_file_delegate, // sys_select
