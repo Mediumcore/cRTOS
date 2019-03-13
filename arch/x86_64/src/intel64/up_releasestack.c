@@ -46,6 +46,7 @@
 #include <nuttx/kmalloc.h>
 
 #include "up_internal.h"
+#include "arch/io.h"
 
 /****************************************************************************
  * Private Types
@@ -127,8 +128,8 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
   }
 
   for(i = 8; i < 128; i++){
-    if(dtcb->xcp.page_table[i] & 0x100) {
-      kmm_free((void*)dtcb->xcp.page_table[i]);
+    if(dtcb->xcp.page_table[i] & 0x200) {
+      kmm_free((void*)(dtcb->xcp.page_table[i] & HUGE_PAGE_MASK));
     }
     dtcb->xcp.page_table[i] = 0x82;
   }
