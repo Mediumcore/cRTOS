@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #include "up_internal.h"
+#include "arch/io.h"
 #include "tux.h"
 #include "sched/sched.h"
 
@@ -48,91 +49,138 @@ int get_free_ma_index(void) {
   return i;
 }
 
-void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags, int fd, off_t offset){
+int get_free_pg_index(void) {
   struct tcb_s *tcb = this_task();
   int i;
-  int vma, ma;
+
+  //XXX: Possible race condition, lock scheduler perhaps?
+  for(i = 8; i < 128; i++){
+      if(tcb->xcp.page_table[i] == 0x82) break;
+  }
+
+  if(i == 128){
+    svcinfo("TUX: mmap failed to allocate page table entry, exhausted\n");
+    return -1; // page_table entry exhuasted
+  }
+
+  return i;
+}
+
+void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags, int fd, off_t offset){
+  struct tcb_s *tcb = this_task();
+  int i, j;
+  int vma, ma, pg;
   uint64_t scan_addr;
   int can_fix_pos = 0;
   uint64_t* ma_ptr;
+  void *mm;
 
   svcinfo("TUX: mmap with flags: %x\n", flags);
 
-  if(((flags & MAP_NONRESERVE) == 1) && prot == 0) return (void*)-1; // Why glibc require large amount of non accessible memory?
+  if(((flags & MAP_NONRESERVE)) && (prot == 0)) return (void*)-1; // Why glibc require large amount of non accessible memory?
 
-  // XXX
-  // We only support dividing a memory region smaller
-  // We don't support merging 2 memory regions
+  if((flags & MAP_FIXED) && ((uint64_t)addr < 8 * HUGE_PAGE_SIZE)) return (void*)-1;
 
-  if(((uint64_t)addr != 0))
-    {
-      for(i = 0; i < 64; i++)
-        {
-          if(tcb->xcp.vma[i][0] == 0) continue;
-          if((tcb->xcp.vma[i][1] <= (uint64_t)addr) && (tcb->xcp.vma[i][2] >= (uint64_t)addr + length))
-            {
-              can_fix_pos = 1;
-              break;
-            }
-       }
-    }
-
-  if((flags & MAP_FIXED) && ((uint64_t)addr == 0)) return (void*)-1;
-  if((flags & MAP_FIXED) && !can_fix_pos) return (void*)-1;
-
-  if(!can_fix_pos) // Split out the vma region from existing vma
+  if(!(flags & MAP_FIXED)) // Fixed mapping?
     {
       svcinfo("TUX: mmap trying to allocate 0x%llx bytes\n", length);
 
-      void* mm = kmm_zalloc(length);
+      // Calculate page to be mapped
+      uint64_t num_of_pages = (length + HUGE_PAGE_SIZE - 1) / HUGE_PAGE_SIZE;
+
+      mm = kmm_memalign(HUGE_PAGE_SIZE, num_of_pages * HUGE_PAGE_SIZE);
       if(!mm){
-        svcinfo("TUX: mmap failed to allocate 0x%llx bytes\n", length);
+        svcinfo("TUX: mmap failed to allocate 0x%llx bytes\n", num_of_pages * HUGE_PAGE_SIZE);
         return (void*)-1;
       }
 
-      svcinfo("TUX: mmap allocated 0x%llx bytes\n", length);
+      svcinfo("TUX: mmap allocated 0x%llx bytes at 0x%llx\n", num_of_pages * HUGE_PAGE_SIZE, mm);
 
-      ma = get_free_ma_index();
-      if(ma == -1) {kmm_free(mm); return (void*)-1;}
-      tcb->xcp.ma[ma][0] = (uint64_t)mm; // base address
-      tcb->xcp.ma[ma][1] = 1; // Reference count
+      // Find a free page_table entry
+      pg = get_free_pg_index();
+      if(pg == -1) {kmm_free(mm); return (void*)-1;}
+      addr = pg * HUGE_PAGE_SIZE;
 
-      ma_ptr = &(tcb->xcp.ma[ma][0]);
+      // Map it
+      for(i = 0; i < num_of_pages; i++) {
+          tcb->xcp.page_table[pg + i] = ((uint64_t)mm + (i) * HUGE_PAGE_SIZE) | 0x83;
+          pd[pg + i] = ((uint64_t)mm + (i) * HUGE_PAGE_SIZE) | 0x83;
+      }
 
-      addr = mm;
+      // Mark the starting page, used in release_stack to recycle
+      tcb->xcp.page_table[pg] |= 1 << 9;
+      pd[pg] |= 1 << 9;
+
+      svcinfo("TUX: mmap maped 0x%llx bytes at 0x%llx, backed by 0x%llx\n", length, addr, mm);
     }
   else
     {
-      svcinfo("TUX: mmap used existing map to fix position at %llx\n", addr);
-      tux_munmap(0, addr, length);
-      ma_ptr = (uint64_t*)tcb->xcp.vma[i][0];
-      ma_ptr[1]++;
+      svcinfo("TUX: mmap try to fix position at %llx\n", addr);
+
+      /* Round to page boundary */
+      uint64_t bb = (uint64_t)addr & ~(HUGE_PAGE_SIZE - 1);
+      pg = bb / HUGE_PAGE_SIZE;
+
+      // Calculate page to be mapped
+      uint64_t num_of_pages = (length + (uint64_t)addr - bb + HUGE_PAGE_SIZE - 1) / HUGE_PAGE_SIZE;
+
+      for(i = 0; i < num_of_pages; i++) {
+          if(tcb->xcp.page_table[pg + i] & 1) continue; // Already mapped
+
+          // Scan the continuous block
+          for(j = i; !(tcb->xcp.page_table[pg + j] & 1) && (j < num_of_pages); j++);
+
+          // Create backing memory
+          mm = kmm_memalign(HUGE_PAGE_SIZE, (j - i) * HUGE_PAGE_SIZE);
+          if(!mm){
+            svcinfo("TUX: mmap failed to allocate 0x%llx bytes\n", (j - i) * HUGE_PAGE_SIZE);
+            return (void*)-1;
+          }
+          svcinfo("TUX: mmap allocated 0x%llx bytes at 0x%llx\n", (j - i) * HUGE_PAGE_SIZE, mm);
+
+          // Map it
+          for(j = i; !(tcb->xcp.page_table[pg + j] & 1) && (j < num_of_pages); j++){
+              tcb->xcp.page_table[pg + j] = ((uint64_t)mm + (j) * HUGE_PAGE_SIZE) | 0x83;
+              pd[pg + j] = ((uint64_t)mm + (j) * HUGE_PAGE_SIZE) | 0x83;
+          }
+
+          // Mark the starting page, used in release_stack to recycle
+          tcb->xcp.page_table[pg + i] |= 1 << 9;
+          pd[pg + i] |= 1 << 9;
+
+          svcinfo("TUX: mmap maped 0x%llx bytes at 0x%llx, backed by 0x%llx\n", (j - i) * HUGE_PAGE_SIZE, (pg + i) * HUGE_PAGE_SIZE, mm);
+          i = j - 1;
+      }
     }
 
-  vma = get_free_vma_index();
-  if(vma == -1) return (void*)-1;
-
-  tcb->xcp.vma[vma][0] = (uint64_t)ma_ptr;
-  tcb->xcp.vma[vma][1] = (uint64_t)addr;
-  tcb->xcp.vma[vma][2] = (uint64_t)addr + (uint64_t)length;
-
-  svcinfo("TUX: mmap maped 0x%llx bytes at 0x%llx\n", length, addr);
-
   svcinfo("Current Map: \n");
-  for(i = 0; i < 64; i++){
-    if(tcb->xcp.vma[i][0] == 0) continue;
-    svcinfo("0x%llx - 0x%llx\n", tcb->xcp.vma[i][1], tcb->xcp.vma[i][2]);
+  for(i = 0; i < 128; i++)
+    {
+      if(!(tcb->xcp.page_table[i] & 1)) continue;
+      for(j = i; (tcb->xcp.page_table[j] & 1) &&  (j < 128); j++);
+      svcinfo("0x%llx - 0x%llx\n", HUGE_PAGE_SIZE * i, HUGE_PAGE_SIZE * j - 1);
+      i = j - 1;
+    }
+
+  if((flags & MAP_ANONYMOUS)) return pg * HUGE_PAGE_SIZE;
+
+
+  // temporary memory for receive the file content
+  void* tmp_mm = kmm_malloc(length);
+  if(!tmp_mm){
+    svcinfo("TUX: mmap failed to allocate 0x%llx bytes\n", length);
+    return (void*)-1;
   }
 
-  if((flags & MAP_ANONYMOUS)) return addr;
-
-  if(tux_delegate(nbr, addr, length, prot, flags, fd - TUX_FD_OFFSET, offset) != -1)
+  if(tux_delegate(nbr, tmp_mm, length, prot, flags, fd - TUX_FD_OFFSET, offset) != -1)
     {
+      memcpy(addr, tmp_mm, length);
+      kmm_free(tmp_mm);
       return addr;
     }
   else
     {
-      tux_munmap(0, addr, length); // Recycle memory
+      kmm_free(tmp_mm);
       return (void*)-1;
     }
 }
@@ -143,61 +191,6 @@ int tux_munmap(unsigned long nbr, void* addr, size_t length){
   uint64_t* ptr;
   int vma;
 
-  if(addr == NULL) return -1;
-
-  svcinfo("Current Map: \n");
-  for(i = 0; i < 64; i++){
-    if(tcb->xcp.vma[i][0] == 0) continue;
-    svcinfo("0x%llx - 0x%llx\n", tcb->xcp.vma[i][1], tcb->xcp.vma[i][2]);
-  }
-
-  svcinfo("TUX: Trying to unmap 0x%llx bytes from 0x%llx\n", length, addr);
-  for(i = 0; i < 64; i++){
-    if(tcb->xcp.vma[i][0] == 0) continue;
-
-    ptr = (uint64_t*)(tcb->xcp.vma[i][0]);
-
-    if(((uint64_t)addr > tcb->xcp.vma[i][1]) && ((uint64_t)addr < tcb->xcp.vma[i][2]) && (tcb->xcp.vma[i][2] <= (uint64_t)addr + length)) {
-      svcinfo("TUX: Cut End\n");
-      tcb->xcp.vma[i][2] = (uint64_t)addr;
-    }else if(((uint64_t)addr <= tcb->xcp.vma[i][1]) && (tcb->xcp.vma[i][2] > (uint64_t)addr + length) && (tcb->xcp.vma[i][1] < (uint64_t)addr + length)) {
-      svcinfo("TUX: Cut Beginning\n");
-      tcb->xcp.vma[i][1] = (uint64_t)addr + length;
-    }else if(((uint64_t)addr <= tcb->xcp.vma[i][1]) && (tcb->xcp.vma[i][2] <= (uint64_t)addr + length)) {
-        // Simply free this
-
-        svcinfo("TUX: Founded a whole mapping\n");
-        ptr[1]--;
-
-        tcb->xcp.vma[i][0] = 0;
-    }else if(((uint64_t)addr > tcb->xcp.vma[i][1]) && (tcb->xcp.vma[i][2] > (uint64_t)addr + length)) {
-        // Divide to 2 regions
-
-        svcinfo("TUX: Divide a mapping to 2\n");
-        vma = get_free_vma_index();
-        if(vma == -1) return -1;
-
-        tcb->xcp.vma[vma][0] = tcb->xcp.vma[i][0];
-
-        tcb->xcp.vma[vma][1] = (uint64_t)addr + length;
-        tcb->xcp.vma[vma][2] = tcb->xcp.vma[i][2];
-        ptr[1]++;
-
-        tcb->xcp.vma[i][2] = (uint64_t)addr;
-    }
-
-    if(ptr && !ptr[1]){
-        svcinfo("TUX: Freeing non-used memory: %llx\n", ptr[0]);
-        kmm_free((void*)ptr[0]);
-    }
-  }
-
-  svcinfo("Current Map: \n");
-  for(i = 0; i < 64; i++){
-    if(tcb->xcp.vma[i][0] == 0) continue;
-    svcinfo("0x%llx - 0x%llx\n", tcb->xcp.vma[i][1], tcb->xcp.vma[i][2]);
-  }
-
-      return 0;
+  return 0;
 }
 

@@ -273,9 +273,14 @@ int execvs(void* base, int bsize,
 
     // setup the tcb page_table entries
     // load the pages for now, going to do some setup
-    for(int i = 0; i < (PAGE_SLOT_SIZE) / HUGE_PAGE_SIZE; i++)
+    int i;
+    for(i = 0; i < (PAGE_SLOT_SIZE) / HUGE_PAGE_SIZE; i++)
     {
         tcb->cmn.xcp.page_table[i] = ((uint64_t)base + 0x200000 * i) | 0x83;
+    }
+    for(; i < 128; i++)
+    {
+        tcb->cmn.xcp.page_table[i] = 0x82; // Not present on creation
     }
 
     // set brk

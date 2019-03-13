@@ -126,10 +126,10 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
     release_slot(dtcb->xcp.page_table[0]);
   }
 
-  // XXX: this might work but if partial of the block is unmaped, we will start to leak vma
-  for(i = 0; i < 64; i++){
-    if(dtcb->xcp.vma[i][0] != 0) {
-      kmm_free((void*)dtcb->xcp.vma[i][0]);
+  for(i = 8; i < 128; i++){
+    if(dtcb->xcp.page_table[i] & 0x100) {
+      kmm_free((void*)dtcb->xcp.page_table[i]);
     }
+    dtcb->xcp.page_table[i] = 0x82;
   }
 }

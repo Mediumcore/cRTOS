@@ -203,7 +203,7 @@ struct xcptcontext
 
   int32_t* clear_child_tid;
 
-  uint64_t page_table[32];
+  uint64_t page_table[128];
 
   uint64_t ma[64][2];
   uint64_t vma[64][3];

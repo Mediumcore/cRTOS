@@ -99,14 +99,14 @@ void up_initial_state(struct tcb_s *tcb)
    */
 
   if (rtcb != NULL && !up_interrupt_context()){
-    for(int i = 0; i < 8; i ++){
+    for(int i = 0; i < 128; i ++){
       xcp->page_table[i] = rtcb->xcp.page_table[i];
     }
     xcp->is_linux = (rtcb->xcp.is_linux ? 1 : 0);
     xcp->linux_sock = rtcb->xcp.linux_sock;
     xcp->linux_tcb = rtcb->xcp.linux_tcb;
   }else{
-    for(int i = 0; i < 8; i ++){
+    for(int i = 0; i < 128; i ++){
       xcp->page_table[i] = (0x200000 * i) | 0x83;
     }
   }
