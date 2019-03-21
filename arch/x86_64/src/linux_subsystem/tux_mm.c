@@ -74,8 +74,6 @@ int create_and_map_pages(void** physical, void* virtual, uint64_t num_of_pages){
 
   if(pg_index >= 128) return -1; // Mapping out of bound
 
-  _info("NOP: %lld\n", num_of_pages);
-
   // Create backing memory
   void* mm = kmm_memalign(HUGE_PAGE_SIZE, num_of_pages * HUGE_PAGE_SIZE);
   if(!mm)
