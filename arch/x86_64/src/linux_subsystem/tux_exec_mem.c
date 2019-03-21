@@ -176,10 +176,11 @@ int execvs_setupargs(struct task_tcb_s* tcb,
     }
     total_size = argv_size + envv_size;
 
+    total_size += sizeof(uint64_t);         // argc
     total_size += sizeof(char*) * (argc + 1); // argvs + NULL
     total_size += sizeof(char*) * (envc + 1); // envp + NULL
     total_size += sizeof(Elf64_auxv_t) * 3; // 3 aux vectors
-    total_size += sizeof(uint64_t);         // argc
+    total_size += sizeof(uint64_t);         // AT_RANDOM
 
     sp = up_stack_frame((struct tcb_s*)tcb, total_size);
     if (!sp) return -ENOMEM;
@@ -212,8 +213,8 @@ int execvs_setupargs(struct task_tcb_s* tcb,
     auxptr[0].a_type = 6; //AT_PAGESZ
     auxptr[0].a_un.a_val = 0x1000;
 
-    auxptr[1].a_type = 1; //AT_IGNORE
-    auxptr[1].a_un.a_val = 0x0;
+    auxptr[1].a_type = 25; //AT_RANDOM
+    auxptr[1].a_un.a_val = sp + total_size - argv_size - envv_size - 8;
 
     auxptr[2].a_type = 0; //AT_NULL
     auxptr[2].a_un.a_val = 0x0;
@@ -221,7 +222,7 @@ int execvs_setupargs(struct task_tcb_s* tcb,
     return OK;
 }
 
-int execvs(void* base, int bsize,
+int execvs(void* pbase, void* vbase, int bsize,
            void* entry, int priority,
            int argc, char* argv[],
            int envc, char* envv[], uint64_t shadow_tcb)
@@ -232,7 +233,7 @@ int execvs(void* base, int bsize,
     int sock = open("/dev/shadow0", O_RDWR);
 
     // First try to create a new task
-    _info("Entry: %016llx, base: %016llx\n", entry, base);
+    _info("Entry: 0x%016llx, pbase: 0x%016llx, vbase: 0x%016llx\n", entry, pbase, vbase);
 
     /* Allocate a TCB for the new task. */
 
@@ -284,22 +285,21 @@ int execvs(void* base, int bsize,
 
     // setup the tcb page_table entries
     // load the pages for now, going to do some setup
-    int i;
-    for(i = 0; i < (PAGE_SLOT_SIZE) / HUGE_PAGE_SIZE; i++)
-    {
-        tcb->cmn.xcp.page_table[i] = ((uint64_t)base + 0x200000 * i) | 0x83;
-    }
-    for(; i < 128; i++)
+    uint64_t i;
+    for(i = 0; i < 128; i++)
     {
         tcb->cmn.xcp.page_table[i] = 0x82; // Not present on creation
     }
+    for(i = (uint64_t)vbase; i < (uint64_t)vbase + bsize; i += HUGE_PAGE_SIZE)
+    {
+        _info("Mapping: %llx, %lld\n", i, i / HUGE_PAGE_SIZE);
+        tcb->cmn.xcp.page_table[i / HUGE_PAGE_SIZE] = ((uint64_t)pbase + i - (uint64_t)vbase) | 0x83;
+    }
 
     // set brk
-    tcb->cmn.xcp.__min_brk = (void*)((uint64_t)LINUX_ELF_OFFSET + bsize + 0x1000);
-    if(tcb->cmn.xcp.__min_brk >= (void*)(PAGE_SLOT_SIZE)) tcb->cmn.xcp.__min_brk = (void*)(PAGE_SLOT_SIZE - 1);
+    tcb->cmn.xcp.__min_brk = (void*)kmm_zalloc(0x800000);
     tcb->cmn.xcp.__brk = tcb->cmn.xcp.__min_brk;
     sinfo("Set min_brk at: %llx\n", tcb->cmn.xcp.__min_brk);
-
 
     // Don't given a fuck about nuttx task start and management, we are doing this properly in Linux way
     tcb->cmn.xcp.regs[REG_RSP] += 8; // up_stack_frame left a hole on stack

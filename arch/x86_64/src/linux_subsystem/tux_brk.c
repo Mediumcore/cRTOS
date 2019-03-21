@@ -12,8 +12,8 @@ void* tux_brk(unsigned long nbr, void* brk){
   if((rtcb->xcp.page_table[0] != 0) && (brk > rtcb->xcp.__min_brk))
   {
     rtcb->xcp.__brk = brk;
-    if(rtcb->xcp.__brk >= (void*)PAGE_SLOT_SIZE)
-      rtcb->xcp.__brk = (void*)(PAGE_SLOT_SIZE - 1);
+    if(rtcb->xcp.__brk >= rtcb->xcp.__min_brk + 0x800000)
+      rtcb->xcp.__brk = rtcb->xcp.__min_brk + 0x800000;
   }
   return rtcb->xcp.__brk;
 }
