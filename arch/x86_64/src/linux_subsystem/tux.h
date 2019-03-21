@@ -3,6 +3,7 @@
 
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
+#include <nuttx/mm/gran.h>
 
 #include "up_internal.h"
 
@@ -15,6 +16,8 @@
 #define FUTEX_WAIT 0x0
 #define FUTEX_WAKE 0x1
 #define FUTEX_PRIVATE_FLAG 0x80
+
+extern GRAN_HANDLE tux_mm_hnd;
 
 struct rlimit {
   unsigned long rlim_cur;  /* Soft limit */
@@ -68,6 +71,7 @@ int     tux_gettimeofday   (unsigned long nbr, struct timeval *tv, struct timezo
 int     tux_clone       (unsigned long nbr, unsigned long flags, void *child_stack,
                          void *ptid, void *ctid, unsigned long tls);
 
+void    tux_mm_init     (void);
 void*   tux_mmap        (unsigned long nbr, void* addr, size_t length, int prot, int flags, int fd, off_t offset);
 int     tux_munmap      (unsigned long nbr, void* addr, size_t length);
 

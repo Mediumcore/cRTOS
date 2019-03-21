@@ -4,6 +4,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/sched.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/mm/gran.h>
 #include <stdint.h>
 
 #include "up_internal.h"
@@ -14,6 +15,12 @@
 #define MAP_FIXED 0x10
 #define MAP_ANONYMOUS 0x20
 #define MAP_NONRESERVE 0x4000
+
+GRAN_HANDLE tux_mm_hnd;
+
+void tux_mm_init(void) {
+  tux_mm_hnd = gran_initialize(0x1000000, (0x10000000 - 0x1000000), 21, 21); // 2^21 is 2MB, the HUGE_PAGE_SIZE
+}
 
 int get_free_vma_index(void) {
   struct tcb_s *tcb = this_task();

@@ -141,5 +141,7 @@ void board_initialize(void)
     }
 #endif
 
+  tux_mm_init();
+
   return;
 }
