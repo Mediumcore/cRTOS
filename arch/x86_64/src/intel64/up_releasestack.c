@@ -125,6 +125,7 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
 
   dtcb->adj_stack_size = 0;
 
+// Clean up the mmaped virtual memories
   if(dtcb->xcp.is_linux == 2) {
       for(i = 0; i < 128; i ++){
           if(dtcb->xcp.page_table[i] & 0x200) {

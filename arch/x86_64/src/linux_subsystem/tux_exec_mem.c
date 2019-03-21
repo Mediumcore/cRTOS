@@ -125,16 +125,6 @@ void tux_on_exit(int val, void* arg){
     write(rtcb->xcp.linux_sock, params, sizeof(params));
     close(rtcb->xcp.linux_sock);
 
-    // Clean up the mmaped virtual memories
-    // Have to be done here, and late release will cause
-    // kernel PANIC because of heap corruption
-
-    for(int i = 8; i < 128; i++){
-      if(rtcb->xcp.page_table[i] & 0x200) {
-        kmm_free((void*)(rtcb->xcp.page_table[i] & HUGE_PAGE_MASK));
-      }
-    }
-
   } else {
     _err("Non-linux process calling linux syscall or invalid sock fd %d, %d\n", rtcb->xcp.is_linux, rtcb->xcp.linux_sock);
     PANIC();

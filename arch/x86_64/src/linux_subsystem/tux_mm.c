@@ -80,18 +80,17 @@ int create_and_map_pages(void** physical, void* virtual, uint64_t num_of_pages){
   int pg_index = (uint64_t)virtual / HUGE_PAGE_SIZE;
 
   if(pg_index >= 128) return -1; // Mapping out of bound
+  if(num_of_pages > 32) return -1; // Not support by Nuttx's grandules allocator
 
   // Create backing memory
-  void* mm = kmm_memalign(HUGE_PAGE_SIZE, num_of_pages * HUGE_PAGE_SIZE);
+  // The allocated physical memory is non-accessible from this process, must be mapped
+  void* mm = gran_alloc(tux_mm_hnd, num_of_pages * HUGE_PAGE_SIZE);
   if(!mm)
     {
       svcinfo("TUX: mmap failed to allocate 0x%llx bytes\n", num_of_pages * HUGE_PAGE_SIZE);
       return (void*)-1;
     }
   svcinfo("TUX: mmap allocated 0x%llx bytes at 0x%llx\n", num_of_pages * HUGE_PAGE_SIZE, mm);
-
-  // Zero fill the page
-  memset(mm, 0, num_of_pages * HUGE_PAGE_SIZE);
 
   // Give back the physical memory
   *physical = mm;
@@ -102,6 +101,9 @@ int create_and_map_pages(void** physical, void* virtual, uint64_t num_of_pages){
     {
       pd[pg_index + i] = tcb->xcp.page_table[pg_index + i] = ((uint64_t)mm + (i) * HUGE_PAGE_SIZE) | 0x83;
     }
+
+  // Zero fill the page via virtual memory
+  memset(virtual, 0, num_of_pages * HUGE_PAGE_SIZE);
 
   // Trigger the shadow process to gain the same mapping
   if(tux_delegate(9, (((uint64_t)*physical) << 32) | (uint64_t)virtual, num_of_pages * HUGE_PAGE_SIZE,
@@ -127,7 +129,6 @@ void print_mapping(void) {
       svcinfo("0x%llx - 0x%llx : backed by 0x%llx\n", HUGE_PAGE_SIZE * i, HUGE_PAGE_SIZE * j - 1, tcb->xcp.page_table[i]);
       i = j - 1;
     }
-
 }
 
 void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags, int fd, off_t offset){
