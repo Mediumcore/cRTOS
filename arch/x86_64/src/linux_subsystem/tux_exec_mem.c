@@ -292,9 +292,9 @@ int execvs(void* pbase, void* vbase, int bsize,
     }
     for(i = (uint64_t)vbase; i < (uint64_t)vbase + bsize; i += HUGE_PAGE_SIZE)
     {
-        _info("Mapping: %llx, %lld\n", i, i / HUGE_PAGE_SIZE);
         tcb->cmn.xcp.page_table[i / HUGE_PAGE_SIZE] = ((uint64_t)pbase + i - (uint64_t)vbase) | 0x83;
     }
+   tcb->cmn.xcp.page_table[(uint64_t)vbase / HUGE_PAGE_SIZE] |= 0x200;
 
     // set brk
     tcb->cmn.xcp.__min_brk = (void*)kmm_zalloc(0x800000);

@@ -44,6 +44,8 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/mm/gran.h>
+#include <tux.h>
 
 #include "up_internal.h"
 #include "arch/io.h"
@@ -93,7 +95,7 @@
 
 void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
 {
-  int i;
+  int i, j;
 
   /* Is there a stack allocated? */
 
@@ -124,7 +126,11 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
   dtcb->adj_stack_size = 0;
 
   if(dtcb->xcp.is_linux == 2) {
-
-    release_slot(dtcb->xcp.page_table[0]);
+      for(i = 0; i < 128; i ++){
+          if(dtcb->xcp.page_table[i] & 0x200) {
+              for(j = i; j < 128 && !(dtcb->xcp.page_table[j] & 0x200); j++);
+              gran_free(tux_mm_hnd, dtcb->xcp.page_table[i] & HUGE_PAGE_MASK, (j - i) * HUGE_PAGE_SIZE);
+          }
+      }
   }
 }
