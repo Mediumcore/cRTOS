@@ -191,10 +191,10 @@ int execvs_setupargs(struct task_tcb_s* tcb,
     }
 
     done = 0;
-    envv_ptr = ((char**)sp + sizeof(char*) * (argc + 1));
+    envv_ptr = ((char**)sp + (argc + 1));
     for(int i = 0; i < envc; i++){
         envv_ptr[i] = (char*)(sp + total_size - envv_size + done);
-        strcpy(envv_ptr[i], argv[i]);
+        strcpy(envv_ptr[i], envv[i]);
         done += strlen(envv[i]) + 1;
     }
 
