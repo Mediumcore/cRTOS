@@ -52,6 +52,33 @@
  * Name: up_registerdump
  ****************************************************************************/
 
+void print_mem(void* sp, size_t size){
+  char buf[9];
+  int i, j;
+
+  _alert("Memory Dump (%d bytes):\n", size);
+  for(i = 0; i < size / 8; i++){
+    for(j = 0; j < 8; j++){
+      buf[j] = *((uint8_t*)(sp + i * 8 + j));
+      if((buf[j] > 126) || (buf[j] < 32))
+        buf[j] = '.';
+    }
+
+    buf[8] = '\0';
+    _alert(" %016llx\t%02x %02x %02x %02x %02x %02x %02x %02x\t%s\n",
+            (sp + i * 8),
+            *((uint8_t*)(sp + i * 8 + 0)),
+            *((uint8_t*)(sp + i * 8 + 1)),
+            *((uint8_t*)(sp + i * 8 + 2)),
+            *((uint8_t*)(sp + i * 8 + 3)),
+            *((uint8_t*)(sp + i * 8 + 4)),
+            *((uint8_t*)(sp + i * 8 + 5)),
+            *((uint8_t*)(sp + i * 8 + 6)),
+            *((uint8_t*)(sp + i * 8 + 7)),
+            buf);
+  }
+}
+
 void up_registerdump(uint64_t *regs)
 {
   int i, j;
@@ -73,27 +100,9 @@ void up_registerdump(uint64_t *regs)
   _alert("RAX: %016llx, RBX: %016llx\n", regs[REG_RAX], regs[REG_RBX]);
   _alert("RCX: %016llx, RDX: %016llx\n", regs[REG_RCX], regs[REG_RDX]);
   _alert("RDI: %016llx, RSI: %016llx\n", regs[REG_RDI], regs[REG_RSI]);
-  _alert("Stack Dump (+-64 bytes):\n");
-  for(i = 0; i < 16; i++){
-    for(j = 0; j < 8; j++){
-      buf[j] = *((uint8_t*)(regs[REG_RSP] + i * 8 + j - 64));
-      if((buf[j] > 126) || (buf[j] < 32))
-        buf[j] = '.';
-    }
+  _alert("Dumping Stack (+-64 bytes):\n");
+  print_mem(regs[REG_RSP] - 64, 128);
 
-    buf[8] = '\0';
-    _alert(" %016llx\t%02x %02x %02x %02x %02x %02x %02x %02x\t%s\n",
-            (regs[REG_RSP] + i * 8 - 64),
-            *((uint8_t*)(regs[REG_RSP] + i * 8 + 0 - 64)),
-            *((uint8_t*)(regs[REG_RSP] + i * 8 + 1 - 64)),
-            *((uint8_t*)(regs[REG_RSP] + i * 8 + 2 - 64)),
-            *((uint8_t*)(regs[REG_RSP] + i * 8 + 3 - 64)),
-            *((uint8_t*)(regs[REG_RSP] + i * 8 + 4 - 64)),
-            *((uint8_t*)(regs[REG_RSP] + i * 8 + 5 - 64)),
-            *((uint8_t*)(regs[REG_RSP] + i * 8 + 6 - 64)),
-            *((uint8_t*)(regs[REG_RSP] + i * 8 + 7 - 64)),
-            buf);
-  }
 #ifdef CONFIG_DEBUG_NOOPT
   _alert("Frame Dump (64 bytes):\n");
   rbp = regs[REG_RBP];
