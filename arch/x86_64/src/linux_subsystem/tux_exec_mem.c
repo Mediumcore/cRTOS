@@ -169,7 +169,7 @@ int execvs_setupargs(struct task_tcb_s* tcb,
     total_size += sizeof(uint64_t);         // argc
     total_size += sizeof(char*) * (argc + 1); // argvs + NULL
     total_size += sizeof(char*) * (envc + 1); // envp + NULL
-    total_size += sizeof(Elf64_auxv_t) * 3; // 3 aux vectors
+    total_size += sizeof(Elf64_auxv_t) * 6; // 6 aux vectors
     total_size += sizeof(uint64_t);         // AT_RANDOM
 
     sp = up_stack_frame((struct tcb_s*)tcb, total_size);
@@ -206,8 +206,17 @@ int execvs_setupargs(struct task_tcb_s* tcb,
     auxptr[1].a_type = 25; //AT_RANDOM
     auxptr[1].a_un.a_val = sp + total_size - argv_size - envv_size - 8;
 
-    auxptr[2].a_type = 0; //AT_NULL
+    auxptr[2].a_type = 33; //AT_SYSINFO_EHDR
     auxptr[2].a_un.a_val = 0x0;
+
+    auxptr[3].a_type = 0; //AT_NULL
+    auxptr[3].a_un.a_val = 0x0;
+
+    auxptr[4].a_type = 0; //AT_NULL
+    auxptr[4].a_un.a_val = 0x0;
+
+    auxptr[5].a_type = 0; //AT_NULL
+    auxptr[5].a_un.a_val = 0x0;
 
     return OK;
 }
