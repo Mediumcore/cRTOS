@@ -144,7 +144,7 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
 
   if(((flags & MAP_NONRESERVE)) && (prot == 0)) return (void*)-1; // Why glibc require large amount of non accessible memory?
 
-  if((flags & MAP_FIXED) && ((uint64_t)addr < 8 * HUGE_PAGE_SIZE)) return (void*)-1;
+  print_mapping();
 
   if(!(flags & MAP_FIXED)) // Fixed mapping?
     {
