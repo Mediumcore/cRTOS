@@ -277,7 +277,7 @@ syscall_t linux_syscall_action_table[500] = {
     (syscall_t)tux_set_tid_address,
     tux_no_impl, // SYS_restart_syscall,
     tux_no_impl, // SYS_semtimedop,
-    tux_no_impl, // SYS_fadvise64,
+    (syscall_t)tux_success_stub, // SYS_fadvise64,
     tux_local, // SYS_timer_create,
     tux_local, // SYS_timer_settime,
     tux_local, // SYS_timer_gettime,
