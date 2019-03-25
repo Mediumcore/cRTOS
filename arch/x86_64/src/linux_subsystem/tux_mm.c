@@ -22,40 +22,6 @@ void tux_mm_init(void) {
   tux_mm_hnd = gran_initialize(0x1000000, (0x10000000 - 0x1000000), 21, 21); // 2^21 is 2MB, the HUGE_PAGE_SIZE
 }
 
-int get_free_vma_index(void) {
-  struct tcb_s *tcb = this_task();
-  int i;
-
-  //XXX: Possible race condition, lock scheduler perhaps?
-  for(i = 0; i < 64; i++){
-      if(tcb->xcp.vma[i][0] == 0) break;
-  }
-
-  if(i == 64){
-    svcinfo("TUX: mmap failed to allocate vma, exhausted\n");
-    return -1; // vma exhuasted
-  }
-
-  return i;
-}
-
-int get_free_ma_index(void) {
-  struct tcb_s *tcb = this_task();
-  int i;
-
-  //XXX: Possible race condition, lock scheduler perhaps?
-  for(i = 0; i < 64; i++){
-      if(tcb->xcp.ma[i][0] == 0) break;
-  }
-
-  if(i == 64){
-    svcinfo("TUX: mmap failed to allocate ma, exhausted\n");
-    return -1; // ma exhuasted
-  }
-
-  return i;
-}
-
 int get_free_pg_index(void) {
   struct tcb_s *tcb = this_task();
   int i;
@@ -143,8 +109,6 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
   svcinfo("TUX: mmap with flags: %x\n", flags);
 
   if(((flags & MAP_NONRESERVE)) && (prot == 0)) return (void*)-1; // Why glibc require large amount of non accessible memory?
-
-  print_mapping();
 
   if(!(flags & MAP_FIXED)) // Fixed mapping?
     {

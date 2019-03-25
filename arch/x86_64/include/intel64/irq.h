@@ -205,8 +205,6 @@ struct xcptcontext
 
   uint64_t page_table[128];
 
-  uint64_t ma[64][2];
-  uint64_t vma[64][3];
   /* Register save area */
 
   uint64_t regs[XCPTCONTEXT_REGS] __attribute__((aligned (16)));
