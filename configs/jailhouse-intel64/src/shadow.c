@@ -761,7 +761,7 @@ static void shadow_proc_receive(FAR struct shadow_proc_driver_s *priv, uint64_t 
     return;
   }
 
-  memcpy(buf, data, sizeof(uint64_t) * 2);
+  memcpy(buf, data, sizeof(uint64_t) * 3);
 
   shadow_proc_rx_finish(priv, desc); /* Release the read descriptor in to the used ring */
   return;
@@ -789,18 +789,19 @@ static void shadow_proc_receive(FAR struct shadow_proc_driver_s *priv, uint64_t 
 static int shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct shadow_proc_driver_s *priv = (FAR struct shadow_proc_driver_s *)arg;
-  uint64_t buf[2];
+  uint64_t buf[3];
   struct tcb_s *rtcb;
 
   DEBUGASSERT(priv != NULL);
 
   shadow_proc_receive(priv, buf);
 
-  rtcb = (struct tcb_s *)buf[1];
-  rtcb->xcp.syscall_ret = (int)buf[0];
+  rtcb = (struct tcb_s *)buf[2];
+  rtcb->xcp.syscall_ret = buf[0];
+
   shadow_proc_enable_rx_irq(priv);
 
-  up_unblock_task((void*)buf[1]);
+  up_unblock_task(rtcb);
 
   return OK;
 }
