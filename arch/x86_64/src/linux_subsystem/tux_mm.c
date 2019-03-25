@@ -6,6 +6,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/mm/gran.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "up_internal.h"
 #include "arch/io.h"
@@ -19,7 +20,7 @@
 GRAN_HANDLE tux_mm_hnd;
 
 void tux_mm_init(void) {
-  tux_mm_hnd = gran_initialize(0x1000000, (0x10000000 - 0x1000000), 21, 21); // 2^21 is 2MB, the HUGE_PAGE_SIZE
+  tux_mm_hnd = gran_initialize((void*)0x1000000, (0x10000000 - 0x1000000), 21, 21); // 2^21 is 2MB, the HUGE_PAGE_SIZE
 }
 
 int get_free_pg_index(void) {
@@ -54,7 +55,7 @@ int create_and_map_pages(void** physical, void* virtual, uint64_t num_of_pages){
   if(!mm)
     {
       svcinfo("TUX: mmap failed to allocate 0x%llx bytes\n", num_of_pages * HUGE_PAGE_SIZE);
-      return (void*)-1;
+      return -1;
     }
   svcinfo("TUX: mmap allocated 0x%llx bytes at 0x%llx\n", num_of_pages * HUGE_PAGE_SIZE, mm);
 
@@ -100,10 +101,7 @@ void print_mapping(void) {
 void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags, int fd, off_t offset){
   struct tcb_s *tcb = this_task();
   int i, j;
-  int vma, ma, pg;
-  uint64_t scan_addr;
-  int can_fix_pos = 0;
-  uint64_t* ma_ptr;
+  int pg;
   void *mm;
 
   svcinfo("TUX: mmap with flags: %x\n", flags);
@@ -120,7 +118,7 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
       // Find a free page_table entry
       pg = get_free_pg_index();
       if(pg == -1) {return (void*)-1;}
-      addr = pg * HUGE_PAGE_SIZE;
+      addr = (void*)(pg * HUGE_PAGE_SIZE);
 
       if(create_and_map_pages(&mm, addr, num_of_pages)) return (void*)-1;
     }
@@ -143,7 +141,7 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
           // Scan the continuous block
           for(j = i; !(tcb->xcp.page_table[pg + j] & 1) && (j < num_of_pages); j++);
 
-          if(create_and_map_pages(&mm, (pg + i) * HUGE_PAGE_SIZE, (j - i))) return (void*)-1;
+          if(create_and_map_pages(&mm, (void*)((pg + i) * HUGE_PAGE_SIZE), (j - i))) return (void*)-1;
 
           i = j - 1;
       }
@@ -153,7 +151,7 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
 
   if(!(flags & MAP_ANONYMOUS))
     {
-      if(tux_delegate(nbr, addr, length, prot, flags, fd - TUX_FD_OFFSET, offset) == -1)
+      if(tux_delegate(nbr, (uint64_t)addr, length, prot, flags, fd - TUX_FD_OFFSET, offset) == -1)
         {
           return (void*)-1;
         }
@@ -164,9 +162,7 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
 
 int tux_munmap(unsigned long nbr, void* addr, size_t length){
   struct tcb_s *tcb = this_task();
-  int i;
-  uint64_t* ptr;
-  int vma;
+
 
   return 0;
 }
