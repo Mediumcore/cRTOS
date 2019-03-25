@@ -155,7 +155,7 @@ syscall_t linux_syscall_action_table[500] = {
     (syscall_t)tux_gettimeofday, // SYS_gettimeofday,
     (syscall_t)tux_getrlimit,
     tux_delegate, // SYS_getrusage,
-    tux_no_impl, // SYS_sysinfo,
+    tux_delegate, // SYS_sysinfo // XXX: should fill in the memory slots using nuttx's parameter
     tux_no_impl, // SYS_times,
     tux_no_impl, // SYS_ptrace,
     (syscall_t)tux_success_stub, // SYS_getuid,
