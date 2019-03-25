@@ -95,7 +95,7 @@
 
 void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
 {
-  int i, j;
+  int i;
 
   /* Is there a stack allocated? */
 
@@ -128,9 +128,8 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
 // Clean up the mmaped virtual memories
   if(dtcb->xcp.is_linux == 2) {
       for(i = 0; i < 128; i ++){
-          if(dtcb->xcp.page_table[i] & 0x200) {
-              for(j = i; j < 128 && !(dtcb->xcp.page_table[j] & 0x200); j++);
-              gran_free(tux_mm_hnd, dtcb->xcp.page_table[i] & HUGE_PAGE_MASK, (j - i) * HUGE_PAGE_SIZE);
+          if(dtcb->xcp.page_table[i] & 1) {
+              gran_free(tux_mm_hnd, (void*)(dtcb->xcp.page_table[i] & HUGE_PAGE_MASK), HUGE_PAGE_SIZE);
           }
       }
   }
