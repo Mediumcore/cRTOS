@@ -110,13 +110,13 @@ int tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
 {
   int ret;
 
-  svcinfo("Open syscall %d, path: %s\n", nbr, (char*)parm1);
+  svcinfo("Open/Socket syscall %d, path: %s\n", nbr, (char*)parm1);
 
   ret = tux_local(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
   if(ret < 0){
       svcinfo("%s\n", strerror(errno));
       ret = tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6) + TUX_FD_OFFSET;
-      svcinfo("Open fd: %d\n", ret - TUX_FD_OFFSET);
+      svcinfo("Open/Socket fd: %d\n", ret);
   }
 
   return ret;

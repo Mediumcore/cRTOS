@@ -97,7 +97,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_no_impl, // SYS_setitimer,
     tux_local, // SYS_getpid,
     tux_file_delegate, // SYS_sendfile,
-    tux_file_delegate, // SYS_socket,
+    tux_open_delegate, // SYS_socket,
     tux_file_delegate, // SYS_connect,
     tux_file_delegate, // SYS_accept,
     tux_file_delegate, // SYS_sendto,
