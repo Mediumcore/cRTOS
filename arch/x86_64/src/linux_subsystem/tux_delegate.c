@@ -115,9 +115,10 @@ int tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
   ret = tux_local(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
   if(ret < 0){
       svcinfo("%s\n", strerror(errno));
-      ret = tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6) + TUX_FD_OFFSET;
+      ret = tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
       svcinfo("Open/Socket fd: %d\n", ret);
   }
 
-  return ret;
+  if(ret < 0) return ret;
+  return ret + TUX_FD_OFFSET;
 }
