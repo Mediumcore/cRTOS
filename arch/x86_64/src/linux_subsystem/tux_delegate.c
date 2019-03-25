@@ -59,7 +59,7 @@ int tux_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
     _err("Non-linux process calling linux syscall or invalid sock fd %d, %d\n", rtcb->xcp.is_linux, rtcb->xcp.linux_sock);
     PANIC();
   }
-  return syscall_ret;
+  return params[0];
 }
 
 int tux_file_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,

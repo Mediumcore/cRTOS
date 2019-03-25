@@ -202,7 +202,7 @@ static void shadow_proc_check_state(struct shadow_proc_driver_s *in);
 
 /* Common TX logic */
 
-static int  shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint64_t *buf);
+static uint64_t  shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint64_t *buf);
 static int  shadow_proc_txpoll(FAR struct net_driver_s *dev);
 
 /* Interrupt handling */
@@ -706,7 +706,7 @@ static int shadow_proc_state_handler(int irq, uint32_t *regs, void *arg)
  *
  ****************************************************************************/
 
-static int shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint64_t *data)
+static uint64_t shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint64_t *data)
 {
   /* Verify that the hardware is ready to send another packet.  If we get
    * here, then we are committed to sending a packet; Higher level logic
@@ -861,6 +861,7 @@ static ssize_t shadow_proc_write(file_t *filep, FAR const char *buf, size_t bufl
     struct inode              *inode;
     struct shadow_proc_driver_s   *priv;
     int                        size;
+    uint64_t ret;
 
     DEBUGASSERT(filep);
     inode = filep->f_inode;
@@ -868,7 +869,10 @@ static ssize_t shadow_proc_write(file_t *filep, FAR const char *buf, size_t bufl
     DEBUGASSERT(inode && inode->i_private);
     priv  = (struct shadow_proc_driver_s *)inode->i_private;
 
-    return shadow_proc_transmit(priv, buf);
+    ret = shadow_proc_transmit(priv, buf);
+    ((uint64_t*)buf)[0] = ret;
+
+    return ret;
 }
 
 static const struct file_operations shadow_proc_ops = {
