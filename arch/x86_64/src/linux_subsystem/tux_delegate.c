@@ -11,6 +11,7 @@
 #include <syscall.h>
 #include <semaphore.h>
 #include <errno.h>
+#include <poll.h>
 
 #include "up_internal.h"
 #include "sched/sched.h"
@@ -81,6 +82,24 @@ int tux_file_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
       ret = tux_delegate(nbr, parm1 - TUX_FD_OFFSET, parm2, parm3, parm4, parm5, parm6);
     }
   }
+
+  return ret;
+}
+
+int tux_poll_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+                          uintptr_t parm6)
+{
+  int ret, i;
+  svcinfo("Poll syscall %d, nfd: %d\n", nbr, parm2);
+
+  ret = -1;
+  for(i = 0; i < parm2; i++)
+    {
+      svcinfo("Poll fd #%d: %d\n", i, ((struct pollfd*)parm1)[i].fd);
+      ((struct pollfd*)parm1)[i].fd -= TUX_FD_OFFSET;
+    }
+  ret = tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
 
   return ret;
 }

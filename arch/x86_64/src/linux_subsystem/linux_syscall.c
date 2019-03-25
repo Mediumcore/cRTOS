@@ -63,7 +63,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_delegate, // SYS_stat
     tux_file_delegate, // SYS_fstat
     tux_delegate, // sys_lstat
-    tux_file_delegate, // SYS_poll,
+    tux_poll_delegate, // SYS_poll,
     tux_file_delegate, // SYS_lseek,
     (syscall_t)tux_mmap,
     (syscall_t)tux_success_stub, // XXX: SYS_mprotect Missing logic, how to protect flat memory space
