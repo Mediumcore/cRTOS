@@ -135,7 +135,7 @@ __reset_entry:
 
     // Long jump into protected mode
     // Hardcode the address
-	ljmpl $0x8,$0x20000000
+	ljmpl $0x8,$0x3c000000
 
     // Loader GDT and GDTR
 	.align(16)

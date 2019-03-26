@@ -20,7 +20,7 @@
 GRAN_HANDLE tux_mm_hnd;
 
 void tux_mm_init(void) {
-  tux_mm_hnd = gran_initialize((void*)0x1000000, (0x10000000 - 0x1000000), 21, 21); // 2^21 is 2MB, the HUGE_PAGE_SIZE
+  tux_mm_hnd = gran_initialize((void*)0x1000000, (0x34000000 - 0x1000000), 21, 21); // 2^21 is 2MB, the HUGE_PAGE_SIZE
 }
 
 int get_free_pg_index(void) {

@@ -38,7 +38,7 @@ ENTRY(__start)
 SECTIONS
 {
 
-	. = 0x20000000;
+	. = 0x3c000000;
 
 	.text :
     {
