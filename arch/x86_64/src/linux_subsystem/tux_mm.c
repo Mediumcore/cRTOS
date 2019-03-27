@@ -163,29 +163,29 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
 int tux_munmap(unsigned long nbr, void* addr, size_t length){
   struct tcb_s *tcb = this_task();
 
-  if(length > HUGE_PAGE_SIZE * 32)
-    {
-      errno = -EINVAL;
-      return -1;
-    }
+  /*if(length > HUGE_PAGE_SIZE * 32)*/
+    /*{*/
+      /*errno = -EINVAL;*/
+      /*return -1;*/
+    /*}*/
 
-  /* Round to page boundary */
-  uint64_t bb = (uint64_t)addr & ~(HUGE_PAGE_SIZE - 1);
+  /*[> Round to page boundary <]*/
+  /*uint64_t bb = (uint64_t)addr & ~(HUGE_PAGE_SIZE - 1);*/
 
-  // Calculate page to be unmapped
-  uint64_t num_of_pages = (length + (uint64_t)addr - bb + HUGE_PAGE_SIZE - 1) / HUGE_PAGE_SIZE;
+  /*// Calculate page to be unmapped*/
+  /*uint64_t num_of_pages = (length + (uint64_t)addr - bb + HUGE_PAGE_SIZE - 1) / HUGE_PAGE_SIZE;*/
 
-  // Calculate starting page table entry
-  int pg = bb / HUGE_PAGE_SIZE;
+  /*// Calculate starting page table entry*/
+  /*int pg = bb / HUGE_PAGE_SIZE;*/
 
-  for(int i = 0; i < num_of_pages; i++) {
-      if(!(tcb->xcp.page_table[pg + i] & 1)) continue; // Already unmapped
+  /*for(int i = 0; i < num_of_pages; i++) {*/
+      /*if(!(tcb->xcp.page_table[pg + i] & 1)) continue; // Already unmapped*/
 
-      gran_free(tux_mm_hnd, (void*)(tcb->xcp.page_table[pg + i] & HUGE_PAGE_MASK), HUGE_PAGE_SIZE);
-      tcb->xcp.page_table[pg + i] = 0x82;
-  }
+      /*gran_free(tux_mm_hnd, (void*)(tcb->xcp.page_table[pg + i] & HUGE_PAGE_MASK), HUGE_PAGE_SIZE);*/
+      /*tcb->xcp.page_table[pg + i] = 0x82;*/
+  /*}*/
 
-  print_mapping();
+  /*print_mapping();*/
 
   return 0;
 }
