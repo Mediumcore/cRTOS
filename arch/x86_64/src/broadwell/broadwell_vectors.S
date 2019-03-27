@@ -62,6 +62,8 @@
 
 	.globl	irq_handler
 	.globl	isr_handler
+	.globl	g_interrupt_stack
+	.globl	g_interrupt_stack_end
 
 /****************************************************************************
  * Macros
@@ -233,6 +235,25 @@ vector_irq\irqno:
 
 isr_common:
 /*	trace	'S' */
+    /* swap to the interrupt stack */
+    /* stack is automatically recovered by iretq using task state */
+
+    // First save the current rsp to rdi
+    mov %rsp, %rdi
+
+    //swap-in the new rsp
+    mov g_interrupt_stack_end, %rsp
+
+    //Copy the values stored on the old stack
+    pushq 56(%rdi)
+    pushq 48(%rdi)
+    pushq 40(%rdi)
+    pushq 32(%rdi)
+    pushq 24(%rdi)
+    pushq 16(%rdi)
+    pushq 8(%rdi)
+    pushq (%rdi)
+
     /* x86_64 don't have pusha, we have to do things manually */
     /* RDI and RSI are pushed above for handling IRQ no */
     pushq   %rdx
@@ -265,6 +286,7 @@ isr_common:
     /* save xmm registers */
     leaq -512(%rsp), %rsp
     fxsaveq (%rsp)
+    
 
 	/* The current value of the SP points to the beginning of the state save
 	 * structure.  Save that in RDI as the input parameter to isr_handler.
@@ -288,6 +310,25 @@ isr_common:
 	.type	irq_common, @function
 irq_common:
 /*	trace	'R' */
+    /* swap to the interrupt stack */
+    /* stack is automatically recovered by iretq using task state */
+
+    // First save the current rsp to rdi
+    mov %rsp, %rdi
+
+    //swap-in the new rsp
+    mov g_interrupt_stack_end, %rsp
+
+    //Copy the values stored on the old stack
+    pushq 56(%rdi)
+    pushq 48(%rdi)
+    pushq 40(%rdi)
+    pushq 32(%rdi)
+    pushq 24(%rdi)
+    pushq 16(%rdi)
+    pushq 8(%rdi)
+    pushq (%rdi)
+
     /* x86_64 don't have pusha, we have to do things manually */
     /* RDI and RSI are pushed above for handling IRQ no */
     pushq   %rdx
