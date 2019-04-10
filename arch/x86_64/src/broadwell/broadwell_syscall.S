@@ -60,6 +60,7 @@
  ****************************************************************************/
     .global syscall_entry
     .global enable_syscall
+    .global get_kernel_stack_ptr
 
 /****************************************************************************
  * Macros
@@ -87,6 +88,24 @@
 syscall_entry:
     /* RCX is the userspace RIP */
     pushq %rcx
+    pushq %rax
+
+    /* switch to the kernel stack */
+    call get_kernel_stack_ptr
+
+    mov %rsp, %rcx
+    mov %rax, %rsp
+
+    /* User stack address + 8(return address) */
+    add $16, %rcx
+    pushq %rcx
+
+    /* return address */
+    pushq -8(%rcx)
+
+    /* the original RAX */
+    mov -16(%rcx), %rax
+
     
     /* Maintain a traceable chain of frame pointer */
     pushq %rbp
@@ -146,10 +165,11 @@ syscall_entry:
     popq   %rdi
     popq   %r11
     popq   %rbp
-    popq   %rcx
-    
-    // Setup a stack for return
-    // XXX: We didn't handle the flags    
+
+    /* recover the Stack pointer */
+    /* return address should be the following item in stack */
+    popq %rcx
+    mov (%rsp), %rsp
     pushq %rcx
 
 	ret

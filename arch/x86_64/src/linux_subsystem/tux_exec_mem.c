@@ -1,5 +1,7 @@
 #include <nuttx/config.h>
 
+#include <sys/mman.h>
+#include <stdint.h>
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
@@ -11,6 +13,7 @@
 
 #include <nuttx/sched.h>
 #include <nuttx/arch.h>
+#include <nuttx/mm/gran.h>
 #include <arch/irq.h>
 #include <arch/io.h>
 
@@ -131,7 +134,7 @@ void tux_on_exit(int val, void* arg){
   }
 }
 
-int execvs_setupargs(struct task_tcb_s* tcb,
+void* execvs_setupargs(struct task_tcb_s* tcb, uint64_t pstack,
     int argc, char* argv[], int envc, char* envv[]){
     // Now we have to organize the stack as Linux exec will do
     // ---------
@@ -172,7 +175,7 @@ int execvs_setupargs(struct task_tcb_s* tcb,
     total_size += sizeof(Elf64_auxv_t) * 6; // 6 aux vectors
     total_size += sizeof(uint64_t);         // AT_RANDOM
 
-    sp = up_stack_frame((struct tcb_s*)tcb, total_size);
+    sp = pstack + 0x800000 - total_size;
     if (!sp) return -ENOMEM;
 
     sinfo("Setting up stack args at %p\n", sp);
@@ -188,6 +191,8 @@ int execvs_setupargs(struct task_tcb_s* tcb,
         argv_ptr[i] = (char*)(sp + total_size - argv_size - envv_size + done);
         strcpy(argv_ptr[i], argv[i]);
         done += strlen(argv[i]) + 1;
+
+        argv_ptr[i] += -pstack + 124 * HUGE_PAGE_SIZE;
     }
 
     done = 0;
@@ -196,6 +201,8 @@ int execvs_setupargs(struct task_tcb_s* tcb,
         envv_ptr[i] = (char*)(sp + total_size - envv_size + done);
         strcpy(envv_ptr[i], envv[i]);
         done += strlen(envv[i]) + 1;
+
+        envv_ptr[i] += -pstack + 124 * HUGE_PAGE_SIZE;
     }
 
     auxptr = (Elf64_auxv_t*)(sp + (argc + 1 + envc + 1) * sizeof(char*));
@@ -204,7 +211,8 @@ int execvs_setupargs(struct task_tcb_s* tcb,
     auxptr[0].a_un.a_val = 0x1000;
 
     auxptr[1].a_type = 25; //AT_RANDOM
-    auxptr[1].a_un.a_val = sp + total_size - argv_size - envv_size - 8;
+    auxptr[1].a_un.a_val = (uint64_t)(sp + total_size - argv_size - envv_size - 8 - pstack + 124 * HUGE_PAGE_SIZE);
+    _info("AT_RANDOM: %llx\n", auxptr[1].a_un.a_val);
 
     auxptr[2].a_type = 33; //AT_SYSINFO_EHDR
     auxptr[2].a_un.a_val = 0x0;
@@ -218,7 +226,39 @@ int execvs_setupargs(struct task_tcb_s* tcb,
     auxptr[5].a_type = 0; //AT_NULL
     auxptr[5].a_un.a_val = 0x0;
 
-    return OK;
+    return sp - sizeof(uint64_t);
+}
+
+void exec_trampoline(void* entry, void* pstack, void* vstack) {
+    tux_delegate(9, (((uint64_t)pstack) << 32) | (uint64_t)(124 * HUGE_PAGE_SIZE), 4 * HUGE_PAGE_SIZE,
+                 0, MAP_ANONYMOUS, 0, 0);
+
+    print_mem(124 * HUGE_PAGE_SIZE + (uint64_t)vstack - (uint64_t)pstack, 1024);
+
+    register uint64_t sp asm("rsp");
+    register uint64_t rdi asm("rdi");
+    register uint64_t rsi asm("rsi");
+    register uint64_t rdx asm("rdx");
+    register uint64_t rcx asm("rcx");
+    register uint64_t r8 asm("r8");
+    register uint64_t r9 asm("r9");
+
+    // Set the stack pointer to user stack
+    sp = 124 * HUGE_PAGE_SIZE + (uint64_t)vstack - (uint64_t)pstack;
+
+    // Jump to the actual entry point, not using call to preserve stack
+    // Clear the registers, otherwise the libc_main will
+    // mistaken the trash value in registers as arguments
+    rdi = 0;
+    rsi = 0;
+    rdx = 0;
+    rcx = 0;
+    r8 = 0;
+    r9 = 0;
+
+    goto *entry;
+
+    _exit(255); // We should never end up here
 }
 
 int execvs(void* pbase, void* vbase, int bsize,
@@ -227,8 +267,9 @@ int execvs(void* pbase, void* vbase, int bsize,
            int envc, char* envv[], uint64_t shadow_tcb)
 {
     struct task_tcb_s *tcb;
-    uint64_t stack;
-    int ret;
+    uint64_t stack, kstack, vstack;
+    uint64_t ret;
+    uint64_t i;
     int sock = open("/dev/shadow0", O_RDWR);
 
     // First try to create a new task
@@ -242,17 +283,27 @@ int execvs(void* pbase, void* vbase, int bsize,
         return -ENOMEM;
     }
 
+    // First try to create a new task
+    _info("New TCB: 0x%016llx\n", tcb);
+
     /* Initialize the user heap and stack */
     /*umm_initialize((FAR void *)CONFIG_ARCH_HEAP_VBASE,*/
                  /*up_addrenv_heapsize(&binp->addrenv));*/
 
-    //Stack start at the end of address space
-    stack = (uint64_t)kmm_zalloc(0x800000);
+    //Stack is allocated and will be placed at the high mem of the task
+    stack = (uint64_t)gran_alloc(tux_mm_hnd, 0x800000);
+
+    //First we need to clean the user stack
+    memset(stack, 0, 0x800000);
+
+    // Setup a 8k kernel stack
+    kstack = kmm_zalloc(0x8000);
 
     /* Initialize the task */
     /* The addresses are the virtual address of new task */
+    /* the trampoline will be using the kernel stack, and switch to the user stack for us */
     ret = task_init((FAR struct tcb_s *)tcb, argv[0], priority,
-                    (uint32_t*)stack, 0x800000, entry, NULL);
+                    (void*)kstack, 0x8000, entry, NULL);
     if (ret < 0)
     {
         ret = -get_errno();
@@ -260,31 +311,18 @@ int execvs(void* pbase, void* vbase, int bsize,
         goto errout_with_tcb;
     }
 
-    ret = execvs_setupargs(tcb, argc, argv, envc, envv);
-    if (ret < 0)
+    /* Put the arguments etc. on to the user stack */
+    vstack = execvs_setupargs(tcb, stack, argc, argv, envc, envv);
+    if (vstack < 0)
     {
         ret = -get_errno();
         berr("execvs_setupargs() failed: %d\n", ret);
         goto errout_with_tcbinit;
     }
 
-    // Allocate the newly created task to a new address space
-    /* Find new pages for the task, every task is assumed to be 64MB, 32 pages */
-    /*new_page_start_address = (uint64_t)find_free_slot();*/
-    /*if (new_page_start_address == -1)*/
-    /*{*/
-        /*sinfo("page exhausted\n");*/
-        /*ret = -ENOMEM;*/
-        /*goto errout_with_tcbinit;*/
-    /*}*/
-
-    // clear and copy the memory
-    /*memset((void*)new_page_start_address, 0, PAGE_SLOT_SIZE);*/
-    /*memcpy((void*)new_page_start_address + LINUX_ELF_OFFSET, base, bsize); //Load to the mighty 0x400000*/
+    _info("STACK: %llx, KSTACK: %llx, RSP: %llx, VSTACK: %llx\n", stack, kstack, tcb->cmn.xcp.regs[REG_RSP], vstack);
 
     // setup the tcb page_table entries
-    // load the pages for now, going to do some setup
-    uint64_t i;
     for(i = 0; i < 128; i++)
     {
         tcb->cmn.xcp.page_table[i] = 0x82; // Not present on creation
@@ -293,16 +331,24 @@ int execvs(void* pbase, void* vbase, int bsize,
     {
         tcb->cmn.xcp.page_table[i / HUGE_PAGE_SIZE] = ((uint64_t)pbase + i - (uint64_t)vbase) | 0x83;
     }
-   tcb->cmn.xcp.page_table[(uint64_t)vbase / HUGE_PAGE_SIZE] |= 0x200;
+    tcb->cmn.xcp.page_table[(uint64_t)vbase / HUGE_PAGE_SIZE] |= 0x200;
+
+    for(i = 124; i < 128; i++)
+    {
+        tcb->cmn.xcp.page_table[i] = (HUGE_PAGE_SIZE * (i - 124) + stack) | 0x83;
+    }
+    tcb->cmn.xcp.page_table[124] |= 0x200;
 
     // set brk
     tcb->cmn.xcp.__min_brk = (void*)kmm_zalloc(0x800000);
     tcb->cmn.xcp.__brk = tcb->cmn.xcp.__min_brk;
     sinfo("Set min_brk at: %llx\n", tcb->cmn.xcp.__min_brk);
 
-    // Don't given a fuck about nuttx task start and management, we are doing this properly in Linux way
-    tcb->cmn.xcp.regs[REG_RSP] += 8; // up_stack_frame left a hole on stack
-    tcb->cmn.xcp.regs[REG_RIP] = (uint64_t)entry;
+    // Call the trampoline function to provide synchronized mapping
+    tcb->cmn.xcp.regs[REG_RDI] = (uint64_t)entry;
+    tcb->cmn.xcp.regs[REG_RSI] = (uint64_t)stack;
+    tcb->cmn.xcp.regs[REG_RDX] = (uint64_t)vstack;
+    tcb->cmn.xcp.regs[REG_RIP] = (uint64_t)exec_trampoline;
 
     /* setup some linux handlers */
     tcb->cmn.xcp.is_linux = 2;
@@ -322,9 +368,7 @@ int execvs(void* pbase, void* vbase, int bsize,
         goto errout_with_tcbinit;
     }
 
-    /*exit(0);*/
-
-    return OK; //Although we shall never return
+    return OK;
 
 errout_with_tcbinit:
     tcb->cmn.stack_alloc_ptr = NULL;
