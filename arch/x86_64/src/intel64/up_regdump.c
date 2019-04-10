@@ -79,6 +79,21 @@ void print_mem(void* sp, size_t size){
   }
 }
 
+void backtrace(uint64_t rbp)
+{
+  int i, j;
+  _alert("Frame Dump (64 bytes):\n");
+  for(i = 0; i < 16; i++){
+    if((rbp < 0x200000) || (rbp > 0xffffffff))
+        break;
+    _alert("  %016llx\t%016llx\n", *((uint64_t*)(rbp)), *((uint64_t*)(rbp + 1 * 8)));
+    if((rbp) && *((uint64_t*)(rbp + 1 * 8)) )
+        rbp = *(uint64_t*)rbp;
+    else
+        break;
+  }
+}
+
 void up_registerdump(uint64_t *regs)
 {
   int i, j;
@@ -104,17 +119,7 @@ void up_registerdump(uint64_t *regs)
   print_mem(regs[REG_RSP] - 64, 128);
 
 #ifdef CONFIG_DEBUG_NOOPT
-  _alert("Frame Dump (64 bytes):\n");
-  rbp = regs[REG_RBP];
-  for(i = 0; i < 16; i++){
-    if(!rbp)
-        break;
-    _alert("  %016llx\t%016llx\n", *((uint64_t*)(rbp)), *((uint64_t*)(rbp + 1 * 8)));
-    if((rbp) && *((uint64_t*)(rbp + 1 * 8)) )
-        rbp = *(uint64_t*)rbp;
-    else
-        break;
-  }
+  backtrace(regs[REG_RBP]);
 #endif
   _alert("-----------------------------------------\n");
 }

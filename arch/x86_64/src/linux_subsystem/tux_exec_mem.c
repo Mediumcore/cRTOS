@@ -233,8 +233,6 @@ void exec_trampoline(void* entry, void* pstack, void* vstack) {
     tux_delegate(9, (((uint64_t)pstack) << 32) | (uint64_t)(124 * HUGE_PAGE_SIZE), 4 * HUGE_PAGE_SIZE,
                  0, MAP_ANONYMOUS, 0, 0);
 
-    print_mem(124 * HUGE_PAGE_SIZE + (uint64_t)vstack - (uint64_t)pstack, 1024);
-
     register uint64_t sp asm("rsp");
     register uint64_t rdi asm("rdi");
     register uint64_t rsi asm("rsi");
