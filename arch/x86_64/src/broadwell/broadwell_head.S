@@ -81,6 +81,7 @@
 	.global	up_lowsetup					/* up_lowsetup is defined elsewhere */
 	.global	g_idle_topstack				/* The start of the heap */
     .global pd
+    .global pt
 
 /****************************************************************************
  * .text
@@ -163,16 +164,50 @@ start32:
 
     // initialize rest of the page directory
     // Popluate the whole lower 1GB on 1:1 mapping
-    lea pd, %edi
-    mov $0x00000183, %eax
-    mov $512, %ecx
 
+    mov $0x00000103, %eax
+
+    lea pd, %edi
+    lea pt, %esi
+    mov $512, %ecx
 pd_loop: 
-    mov %eax, 0(%edi)
-    add $0x00200000, %eax
+
+    mov %esi, %edx
+    or $0x00000003, %edx
+    mov %edx, 0(%edi)
     add $8, %edi
+
+    mov $512, %ebx
+pt_loop:
+    mov %eax, 0(%esi)
+    add $0x00001000, %eax
+    add $8, %esi
+
+    dec %ebx
+    jnz pt_loop
+
     dec %ecx
     jnz pd_loop
+
+    // Popluate the upper 3GB as non-present
+    mov $0x600, %ecx // 512 * 3
+epd_loop: 
+
+    mov %esi, %edx
+    or $0x00000003, %edx
+    mov %edx, 0(%edi)
+    add $8, %edi
+
+    mov $1024, %ebx
+ept_loop:
+    movl $0x0, 0(%esi)
+    add $4, %esi
+
+    dec %ebx
+    jnz ept_loop
+
+    dec %ecx
+    jnz epd_loop
 
     // Enable PAE
 	mov %cr4,%eax
@@ -180,8 +215,8 @@ pd_loop:
 	mov %eax,%cr4
 
     // Load the level 4 page table
-    // Level 2 and 3 are set at build time in assembelly
-    // 2MiB huge page table is used
+    // Level 1, 2 and 3 are set at build time in assembelly
+    // 4KiB page table is used
     // Kernel mapped to 1GB HiMem
 	mov $pml4,%eax
 	mov %eax,%cr3
@@ -319,7 +354,13 @@ pd_3:
 	.align(4096)
 pd_4:
 	.fill 512, 8, 0x80
+
 	.align(4096)
+pt:
+	.fill 0x40000, 8, 0x00
+	.fill 0x40000, 8, 0x00
+	.fill 0x40000, 8, 0x00
+	.fill 0x40000, 8, 0x00
 
 /****************************************************************************
  * .bss

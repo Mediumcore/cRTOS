@@ -57,26 +57,24 @@ int up_map_region(void* base, int size, int flags)
 {
 
   /* Round to page boundary */
-  uint64_t bb = (uint64_t)base & ~(HUGE_PAGE_SIZE - 1);
+  uint64_t bb = (uint64_t)base & ~(PAGE_SIZE - 1);
 
   /* Increase size if the base address is rounded off */
   size += (uint64_t)base - bb;
-  uint64_t num_of_pages = (size + HUGE_PAGE_SIZE - 1) / HUGE_PAGE_SIZE;
+  uint64_t num_of_pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
 
-  uint64_t pdpt_entry;
-  uint64_t pd_entry;
+  uint64_t entry;
   uint64_t curr;
 
-  if(bb > 0xFFFFFFFF) return -1; //Only < 4GB can be mapped
+  if(bb > 0xFFFFFFFF) return -1; //Only < 1GB can be mapped
 
   curr = bb;
   for(int i = 0; i < num_of_pages; i++){
-    pdpt_entry = (curr >> 30) & 0x1ff;
-    pd_entry   = (curr >> 21) & 0x1ff;
-    pd[pd_entry + pdpt_entry * 512] = curr | 0x83 | flags;
-    curr += HUGE_PAGE_SIZE * i;
+    entry = (curr >> 12) & 0x7ffffff;
+
+    pt[entry] = curr | 0x03 | flags;
+    curr += PAGE_SIZE;
   }
 
   return 0;
 }
-

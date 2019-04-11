@@ -259,6 +259,7 @@ static inline uint32_t up_getgs()
  ****************************************************************************/
 
 extern uint64_t pd[2048];
+extern uint64_t pt[1048576];
 
 void* page_map[16];
 
