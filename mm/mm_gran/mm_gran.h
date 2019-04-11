@@ -141,5 +141,7 @@ void gran_leave_critical(FAR struct gran_s *priv);
 
 void gran_mark_allocated(FAR struct gran_s *priv, uintptr_t alloc,
                          unsigned int ngranules);
+void gran_mark_unallocated(FAR struct gran_s *priv, uintptr_t alloc,
+                         unsigned int ngranules);
 
 #endif /* __MM_MM_GRAN_MM_GRAN_H */

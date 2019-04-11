@@ -73,7 +73,7 @@ void gran_free(GRAN_HANDLE handle, FAR void *memory, size_t size)
   unsigned int gatidx;
   unsigned int gatbit;
   unsigned int granmask;
-  unsigned int ngranules;
+  int ngranules;
   unsigned int avail;
   uint32_t     gatmask;
 
@@ -105,19 +105,26 @@ void gran_free(GRAN_HANDLE handle, FAR void *memory, size_t size)
   if (ngranules > avail)
     {
       /* Clear bits in the first GAT entry */
-
       gatmask = (0xffffffff << gatbit);
       DEBUGASSERT((priv->gat[gatidx] & gatmask) == gatmask);
 
       priv->gat[gatidx] &= ~gatmask;
       ngranules -= avail;
+      gatidx++;
 
-      /* Clear bits in the second GAT entry */
+      /* Clear bits in the middle GAT entry */
+      for(; ngranules >= 32; ngranules -= 32, gatidx++)
+        priv->gat[gatidx] = 0;
 
-      gatmask = 0xffffffff >> (32 - ngranules);
-      DEBUGASSERT((priv->gat[gatidx+1] & gatmask) == gatmask);
+      if(ngranules != 0)
+        {
+          /* Clear bits in the last GAT entry if exist*/
 
-      priv->gat[gatidx+1] &= ~gatmask;
+          gatmask = 0xffffffff >> (32 - ngranules);
+          DEBUGASSERT((priv->gat[gatidx] & gatmask) == gatmask);
+
+          priv->gat[gatidx] &= ~gatmask;
+        }
     }
 
   /* Handle the case where where all of the granules came from one entry */

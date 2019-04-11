@@ -90,34 +90,40 @@ void gran_mark_allocated(FAR struct gran_s *priv, uintptr_t alloc,
   avail = 32 - gatbit;
   if (ngranules > avail)
     {
-      /* Mark bits in the first GAT entry */
-
-      gatmask = 0xffffffff << gatbit;
-      DEBUGASSERT((priv->gat[gatidx] & gatmask) == 0);
+      /* Clear bits in the first GAT entry */
+      gatmask = (0xffffffff << gatbit);
+      DEBUGASSERT((priv->gat[gatidx] & gatmask) == gatmask);
 
       priv->gat[gatidx] |= gatmask;
       ngranules -= avail;
+      gatidx++;
 
-      /* Mark bits in the second GAT entry */
+      /* Clear bits in the middle GAT entry */
+      for(; ngranules >= 32; ngranules -= 32, gatidx++)
+        priv->gat[gatidx] = 0xffffffff;
 
-      gatmask = 0xffffffff >> (32 - ngranules);
-      DEBUGASSERT((priv->gat[gatidx+1] & gatmask) == 0);
+      if(ngranules != 0)
+        {
+          /* Clear bits in the last GAT entry if exist*/
 
-      priv->gat[gatidx+1] |= gatmask;
+          gatmask = 0xffffffff >> (32 - ngranules);
+          DEBUGASSERT((priv->gat[gatidx] & gatmask) == gatmask);
+
+          priv->gat[gatidx] |= gatmask;
+        }
     }
 
-  /* Handle the case where where all of the granules come from one entry */
+  /* Handle the case where where all of the granules came from one entry */
 
   else
     {
-      /* Mark bits in a single GAT entry */
+      /* Clear bits in a single GAT entry */
 
       gatmask   = 0xffffffff >> (32 - ngranules);
       gatmask <<= gatbit;
-      DEBUGASSERT((priv->gat[gatidx] & gatmask) == 0);
+      DEBUGASSERT((priv->gat[gatidx] & gatmask) == gatmask);
 
       priv->gat[gatidx] |= gatmask;
-      return;
     }
 }
 
