@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <assert.h>
+#include <debug.h>
 
 #include <nuttx/mm/gran.h>
 
@@ -84,174 +85,197 @@ FAR void *gran_alloc(GRAN_HANDLE handle, size_t size)
   int          gatidx;
   int          bitidx;
   int          shift;
+  int64_t      osize = size;
+  uintptr_t    ret = 0;
 
-  DEBUGASSERT(priv != NULL && size <= 32 * (1 << priv->log2gran));
+  DEBUGASSERT(priv != NULL);
 
-  if (priv != NULL && size > 0)
+  _info("GRAN allocating totally: %llx\n", osize);
+
+  /* Get exclusive access to the GAT */
+  gran_enter_critical(priv);
+
+    uint32_t p = 0;
+
+  while(osize > 0 && p < 32)
     {
-      /* Get exclusive access to the GAT */
+      p++;
+      size = 32 * (1 << priv->log2gran);
+      if(osize < 32 * (1 << priv->log2gran)) size = osize;
 
-      gran_enter_critical(priv);
+      _info("GRAN allocating partial: %llx\n", size);
 
-      /* How many contiguous granules we we need to find? */
-
-      tmpmask   = (1 << priv->log2gran) - 1;
-      ngranules = (size + tmpmask) >> priv->log2gran;
-
-      /* Then create mask for that number of granules */
-
-      DEBUGASSERT(ngranules <= 32);
-      mask = 0xffffffff >> (32 - ngranules);
-
-      /* Now search the granule allocation table for that number of contiguous */
-
-      alloc = priv->heapstart;
-
-      for (granidx = 0; granidx < priv->ngranules; granidx += 32)
+      if (priv != NULL && size > 0)
         {
-          /* Get the GAT index associated with the granule table entry */
 
-          gatidx = granidx >> 5;
-          curr = priv->gat[gatidx];
+          /* How many contiguous granules we we need to find? */
 
-          /* Handle the case where there are no free granules in the entry */
+          tmpmask   = (1 << priv->log2gran) - 1;
+          ngranules = (size + tmpmask) >> priv->log2gran;
 
-          if (curr == 0xffffffff)
+          /* Then create mask for that number of granules */
+
+          DEBUGASSERT(ngranules <= 32);
+          mask = 0xffffffff >> (32 - ngranules);
+
+          /* Now search the granule allocation table for that number of contiguous */
+
+          alloc = priv->heapstart;
+
+          for (granidx = 0; granidx < priv->ngranules; granidx += 32)
             {
-              alloc += (32 << priv->log2gran);
-              continue;
-            }
+              /* Get the GAT index associated with the granule table entry */
 
-          /* Get the next entry from the GAT to support a 64 bit shift */
+              gatidx = granidx >> 5;
+              curr = priv->gat[gatidx];
 
-          if (granidx < priv->ngranules)
-            {
-              next = priv->gat[gatidx + 1];
-            }
-
-          /* Use all ones when are at the last entry in the GAT (meaning
-           * nothing can be allocated.
-           */
-
-          else
-            {
-              next = 0xffffffff;
-            }
-
-          /* Search through the allocations in the 'curr' GAT entry
-           * to see if we can satisfy the allocation starting in that
-           * entry.
-           *
-           * This loop continues until either all of the bits have been
-           * examined (bitidx >= 32), or until there are insufficient
-           * granules left to satisfy the allocation.
-           */
-
-          for (bitidx = 0;
-               bitidx < 32 && (granidx + bitidx + ngranules) <= priv->ngranules;
-              )
-            {
-              /* Break out if there are no further free bits in 'curr'.
-               * All of the zero bits might have gotten shifted out.
-               */
+              /* Handle the case where there are no free granules in the entry */
 
               if (curr == 0xffffffff)
                 {
-                  break;
+                  alloc += (32 << priv->log2gran);
+                  continue;
                 }
 
-              /* Check for the first zero bit in the lower or upper 16-bits.
-               * From the test above, we know that at least one of the 32-
-               * bits in 'curr' is zero.
-               */
+              /* Get the next entry from the GAT to support a 64 bit shift */
 
-              else if ((curr & 0x0000ffff) == 0x0000ffff)
+              if (granidx < priv->ngranules)
                 {
-                  /* Not in the lower 16 bits.  The first free bit must be
-                   * in the upper 16 bits.
-                   */
-
-                  shift = 16;
+                  next = priv->gat[gatidx + 1];
                 }
 
-              /* We know that the first free bit is now within the lower 16
-               * bits of 'curr'.  Is it in the upper or lower byte?
+              /* Use all ones when are at the last entry in the GAT (meaning
+               * nothing can be allocated.
                */
-
-              else if ((curr & 0x0000ff) == 0x000000ff)
-                {
-                  /* Not in the lower 8 bits.  The first free bit must be in
-                   * the upper 8 bits.
-                   */
-
-                  shift = 8;
-                }
-
-              /* We know that the first free bit is now within the lower 4
-               * bits of 'curr'.  Is it in the upper or lower nibble?
-               */
-
-              else if ((curr & 0x00000f) == 0x0000000f)
-                {
-                  /* Not in the lower 4 bits.  The first free bit must be in
-                   * the upper 4 bits.
-                   */
-
-                  shift = 4;
-                }
-
-              /* We know that the first free bit is now within the lower 4 bits
-               * of 'curr'.  Is it in the upper or lower pair?
-               */
-
-              else if ((curr & 0x000003) == 0x00000003)
-                {
-                  /* Not in the lower 2 bits.  The first free bit must be in
-                   * the upper 2 bits.
-                   */
-
-                  shift = 2;
-                }
-
-              /* We know that the first free bit is now within the lower 4 bits
-               * of 'curr'.  Check if we have the allocation at this bit position.
-               */
-
-              else if ((curr & mask) == 0)
-                {
-                  /* Yes.. mark these granules allocated */
-
-                  gran_mark_allocated(priv, alloc, ngranules);
-
-                  /* And return the allocation address */
-
-                  gran_leave_critical(priv);
-                  return (FAR void *)alloc;
-                }
-
-              /* The free allocation does not start at this position */
 
               else
                 {
-                  shift = 1;
+                  next = 0xffffffff;
                 }
 
-              /* Set up for the next time through the loop.  Perform a 64
-               * bit shift to move to the next gran position and increment
-               * to the next candidate allocation address.
+              /* Search through the allocations in the 'curr' GAT entry
+               * to see if we can satisfy the allocation starting in that
+               * entry.
+               *
+               * This loop continues until either all of the bits have been
+               * examined (bitidx >= 32), or until there are insufficient
+               * granules left to satisfy the allocation.
                */
 
-              alloc  += (shift << priv->log2gran);
-              curr    = (curr >> shift) | (next << (32 - shift));
-              next  >>= shift;
-              bitidx += shift;
+              for (bitidx = 0;
+                   bitidx < 32 && (granidx + bitidx + ngranules) <= priv->ngranules;
+                  )
+                {
+                  /* Break out if there are no further free bits in 'curr'.
+                   * All of the zero bits might have gotten shifted out.
+                   */
+
+                  if (curr == 0xffffffff)
+                    {
+                      break;
+                    }
+
+                  /* Check for the first zero bit in the lower or upper 16-bits.
+                   * From the test above, we know that at least one of the 32-
+                   * bits in 'curr' is zero.
+                   */
+
+                  else if ((curr & 0x0000ffff) == 0x0000ffff)
+                    {
+                      /* Not in the lower 16 bits.  The first free bit must be
+                       * in the upper 16 bits.
+                       */
+
+                      shift = 16;
+                    }
+
+                  /* We know that the first free bit is now within the lower 16
+                   * bits of 'curr'.  Is it in the upper or lower byte?
+                   */
+
+                  else if ((curr & 0x0000ff) == 0x000000ff)
+                    {
+                      /* Not in the lower 8 bits.  The first free bit must be in
+                       * the upper 8 bits.
+                       */
+
+                      shift = 8;
+                    }
+
+                  /* We know that the first free bit is now within the lower 4
+                   * bits of 'curr'.  Is it in the upper or lower nibble?
+                   */
+
+                  else if ((curr & 0x00000f) == 0x0000000f)
+                    {
+                      /* Not in the lower 4 bits.  The first free bit must be in
+                       * the upper 4 bits.
+                       */
+
+                      shift = 4;
+                    }
+
+                  /* We know that the first free bit is now within the lower 4 bits
+                   * of 'curr'.  Is it in the upper or lower pair?
+                   */
+
+                  else if ((curr & 0x000003) == 0x00000003)
+                    {
+                      /* Not in the lower 2 bits.  The first free bit must be in
+                       * the upper 2 bits.
+                       */
+
+                      shift = 2;
+                    }
+
+                  /* We know that the first free bit is now within the lower 4 bits
+                   * of 'curr'.  Check if we have the allocation at this bit position.
+                   */
+
+                  else if ((curr & mask) == 0)
+                    {
+                      /* Yes.. mark these granules allocated */
+
+                      _info("GRAN allocated partial: %llx - %llx\n", alloc, alloc + size);
+                      gran_mark_allocated(priv, alloc, ngranules);
+
+                      if(!ret) ret = alloc;
+                      goto found_start;
+                    }
+
+                  /* The free allocation does not start at this position */
+
+                  else
+                    {
+                      shift = 1;
+                    }
+
+                  /* Set up for the next time through the loop.  Perform a 64
+                   * bit shift to move to the next gran position and increment
+                   * to the next candidate allocation address.
+                   */
+
+                  alloc  += (shift << priv->log2gran);
+                  curr    = (curr >> shift) | (next << (32 - shift));
+                  next  >>= shift;
+                  bitidx += shift;
+                }
             }
         }
 
-      gran_leave_critical(priv);
+      // if we end up here, there is nothing left in the heap for allocation
+      // XXX: Should clean up the allocated part
+      return NULL;
+
+found_start:
+      osize -= 32 * (1 << priv->log2gran);
+      _info("Remain to alloc: %llx %llx\n", osize, osize > 0);
     }
 
-  return NULL;
+  gran_leave_critical(priv);
+
+  _info("GRAN allocated at: %llx\n", ret);
+  return ret;
 }
 
 #endif /* CONFIG_GRAN */
