@@ -46,6 +46,7 @@
 
 #include <arch/arch.h>
 #include <arch/irq.h>
+#include <arch/io.h>
 
 #include "up_internal.h"
 
@@ -75,9 +76,14 @@
 
 void up_restore_auxstate(struct tcb_s *rtcb)
 {
-  for(int i = 0; i < 128; i++){
-    pd[i] = rtcb->xcp.page_table[i];
+  struct vma_s* ptr;
+  uint64_t i;
+  for(ptr = rtcb->xcp.vma; ptr; ptr = ptr->next) {
+      for(i = ptr->va_start; i < ptr->va_end; i += PAGE_SIZE) {
+        pt[(i >> 12) & 0x7ffffff] = ((i - ptr->va_start) + ptr->pa_start) | ptr->proto;
+      }
   }
+
   set_pcid(rtcb->pid);
   if(rtcb->xcp.fs_base_set){
     write_msr(MSR_FS_BASE, rtcb->xcp.fs_base);
@@ -86,6 +92,5 @@ void up_restore_auxstate(struct tcb_s *rtcb)
   }
 
   sinfo("resuming %d\n", rtcb->pid);
-  sinfo("PD base: %llx:\n", pd[0]);
 
 }

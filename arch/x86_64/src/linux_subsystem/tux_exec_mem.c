@@ -320,22 +320,28 @@ int execvs(void* pbase, void* vbase, int bsize,
 
     _info("STACK: %llx, KSTACK: %llx, RSP: %llx, VSTACK: %llx\n", stack, kstack, tcb->cmn.xcp.regs[REG_RSP], vstack);
 
-    // setup the tcb page_table entries
-    for(i = 0; i < 128; i++)
-    {
-        tcb->cmn.xcp.page_table[i] = 0x82; // Not present on creation
-    }
-    for(i = (uint64_t)vbase; i < (uint64_t)vbase + bsize; i += HUGE_PAGE_SIZE)
-    {
-        tcb->cmn.xcp.page_table[i / HUGE_PAGE_SIZE] = ((uint64_t)pbase + i - (uint64_t)vbase) | 0x83;
-    }
-    tcb->cmn.xcp.page_table[(uint64_t)vbase / HUGE_PAGE_SIZE] |= 0x200;
+    /* setup the tcb page_table entries as not present on creation*/
+    struct vma_s* empty_mapping = kmm_malloc(sizeof(struct vma_s));
+    struct vma_s* program_mapping = kmm_malloc(sizeof(struct vma_s));
+    struct vma_s* stack_mapping = kmm_malloc(sizeof(struct vma_s));
 
-    for(i = 124; i < 128; i++)
-    {
-        tcb->cmn.xcp.page_table[i] = (HUGE_PAGE_SIZE * (i - 124) + stack) | 0x83;
-    }
-    tcb->cmn.xcp.page_table[124] |= 0x200;
+    memcpy(empty_mapping, &g_vm_empty_map, sizeof(struct vma_s));
+    empty_mapping->next = program_mapping;
+    tcb->cmn.xcp.vma = empty_mapping;
+
+    program_mapping->va_start = vbase;
+    program_mapping->va_end = vbase + bsize;
+    program_mapping->pa_start = pbase;
+    program_mapping->proto = 3;
+    program_mapping->_backing = "[Program Image]";
+    program_mapping->next = stack_mapping;
+
+    stack_mapping->va_start = 124 * HUGE_PAGE_SIZE;
+    stack_mapping->va_end = 128 * HUGE_PAGE_SIZE;
+    stack_mapping->pa_start = stack;
+    stack_mapping->proto = 3;
+    stack_mapping->_backing = "[Stack]";
+    stack_mapping->next = NULL;
 
     // set brk
     tcb->cmn.xcp.__min_brk = (void*)kmm_zalloc(0x800000);

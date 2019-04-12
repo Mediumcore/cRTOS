@@ -171,6 +171,18 @@ enum ioapic_trigger_mode {
  TRIGGER_LEVEL_ACTIVE_LOW = (1 << 15) | (1 << 13),
 };
 
+struct vma_s {
+    uint64_t va_start;
+    uint64_t va_end;
+    uint64_t pa_start;
+    char* _backing;
+    uint64_t proto;
+
+    struct vma_s* next;
+};
+
+extern struct vma_s g_vm_full_map;
+extern struct vma_s g_vm_empty_map;
 
 /* This struct defines the way the registers are stored */
 struct xcptcontext
@@ -203,7 +215,7 @@ struct xcptcontext
 
   int32_t* clear_child_tid;
 
-  uint64_t page_table[128];
+  struct vma_s* vma;
 
   /* Register save area */
 

@@ -57,6 +57,24 @@
  * Private Data
  ****************************************************************************/
 
+struct vma_s g_vm_full_map = {
+    .va_start = 0x0,
+    .va_end = 0x34000000, // start of kheap
+    .pa_start = 0x0,
+    ._backing = "",
+    .proto = 3,
+    .next = NULL
+};
+
+struct vma_s g_vm_empty_map = {
+    .va_start = 0x0,
+    .va_end = 0x34000000, // start of kheap
+    .pa_start = 0x0,
+    ._backing = "",
+    .proto = 0,
+    .next = NULL
+};
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -98,25 +116,26 @@ void up_initial_state(struct tcb_s *tcb)
    * early boot-up phases, and (2) what if a irq spawns a task?.
    */
 
-  if (rtcb != NULL && !up_interrupt_context()){
-      if(rtcb->xcp.is_linux){
-        for(int i = 0; i < 128; i ++){
-          xcp->page_table[i] = rtcb->xcp.page_table[i];
+  if (rtcb != NULL && !up_interrupt_context())
+    {
+      if(rtcb->xcp.is_linux)
+        {
+          xcp->vma = &g_vm_empty_map;
+          xcp->is_linux = 1;
+          xcp->linux_sock = rtcb->xcp.linux_sock;
+          xcp->linux_tcb = rtcb->xcp.linux_tcb;
         }
-        xcp->is_linux = 1;
-        xcp->linux_sock = rtcb->xcp.linux_sock;
-        xcp->linux_tcb = rtcb->xcp.linux_tcb;
-      }else{
-        for(int i = 0; i < 128; i ++){
-          xcp->page_table[i] = (0x200000 * i) | 0x83;
+      else
+        {
+          xcp->is_linux = 0;
+          xcp->vma = &g_vm_full_map;
         }
-        xcp->is_linux = 0;
-      }
-  }else{
-    for(int i = 0; i < 128; i ++){
-      xcp->page_table[i] = (0x200000 * i) | 0x83;
     }
-  }
+  else
+    {
+      xcp->is_linux = 0;
+      xcp->vma = &g_vm_full_map;
+    }
 
   /* Save the initial stack pointer... the value of the stackpointer before
    * the "interrupt occurs."

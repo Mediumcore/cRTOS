@@ -49,6 +49,7 @@
 
 #include "up_internal.h"
 #include "arch/io.h"
+#include "arch/irq.h"
 
 /****************************************************************************
  * Private Types
@@ -95,6 +96,7 @@
 
 void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
 {
+  struct vma_s* ptr;
   int i;
 
   /* Is there a stack allocated? */
@@ -127,10 +129,11 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
 
 // Clean up the mmaped virtual memories
   if(dtcb->xcp.is_linux == 2) {
-      for(i = 0; i < 128; i ++){
-          if(dtcb->xcp.page_table[i] & 1) {
-              gran_free(tux_mm_hnd, (void*)(dtcb->xcp.page_table[i] & HUGE_PAGE_MASK), HUGE_PAGE_SIZE);
-          }
-      }
+    for(ptr = dtcb->xcp.vma->next; ptr; ptr = ptr->next) {
+      if(ptr == &g_vm_full_map) continue;
+      if(ptr == &g_vm_empty_map) continue;
+      gran_free(tux_mm_hnd, (void*)(ptr->pa_start), ptr->va_end - ptr->va_start);
+      sched_kfree(ptr);
+    }
   }
 }

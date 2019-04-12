@@ -9,7 +9,7 @@
 
 void* tux_brk(unsigned long nbr, void* brk){
   struct tcb_s *rtcb = this_task();
-  if((rtcb->xcp.page_table[0] != 0) && (brk > rtcb->xcp.__min_brk))
+  if((brk > rtcb->xcp.__min_brk))
   {
     rtcb->xcp.__brk = brk;
     if(rtcb->xcp.__brk >= rtcb->xcp.__min_brk + 0x800000)
