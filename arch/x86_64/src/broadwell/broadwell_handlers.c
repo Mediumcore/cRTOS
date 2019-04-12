@@ -176,6 +176,7 @@ uint64_t *isr_handler(uint64_t *regs, uint64_t irq)
   _alert("PANIC:\n");
   _alert("Exception %lld occurred with error code %lld:\n", irq, regs[REG_ERRCODE]);
   up_registerdump(regs);
+  up_trash_cpu();
   PANIC();
 
   /* Dispatch the interrupt */
