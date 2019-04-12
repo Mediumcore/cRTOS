@@ -98,9 +98,11 @@ void up_registerdump(uint64_t *regs)
 {
   int i, j;
   uint64_t mxcsr;
+  uint64_t cr2;
   uint64_t rbp;
   char buf[9];
   asm volatile ("stmxcsr %0"::"m"(mxcsr):"memory");
+  asm volatile ("mov %%cr2, %%rax; mov %%rax, %0"::"m"(cr2):"memory", "rax");
   _alert("----------------CUT HERE-----------------\n");
   _alert("Gerneral Informations:\n");
   _alert("CPL: %d, RPL: %d\n", regs[REG_CS] & 0x3, regs[REG_DS] & 0x3);
@@ -108,6 +110,7 @@ void up_registerdump(uint64_t *regs)
   _alert("RBP: %016llx, RFLAGS: %016llx\n", regs[REG_RBP], regs[REG_RFLAGS]);
   _alert("MSR_STAR: %016llx, MSR_LSTAR: %016llx\n", read_msr(0xc0000081), read_msr(0xc0000082));
   _alert("MXCSR: %016llx, MSR_FS_BASE: %016llx\n", mxcsr, read_msr(MSR_FS_BASE));
+  _alert("CR2: %016llx\n", cr2);
   _alert("Selector Dump:\n");
   _alert("CS: %016llx, DS: %016llx, SS: %016llx\n", regs[REG_CS], regs[REG_DS], regs[REG_SS]);
   _alert("ES: %016llx, FS: %016llx, GS: %016llx\n", regs[REG_ES], regs[REG_FS], regs[REG_GS]);
