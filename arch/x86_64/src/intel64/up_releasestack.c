@@ -129,10 +129,14 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
 
 // Clean up the mmaped virtual memories
   if(dtcb->xcp.is_linux == 2) {
-    for(ptr = dtcb->xcp.vma->next; ptr; ptr = ptr->next) {
+    for(ptr = dtcb->xcp.vma; ptr; ptr = ptr->next) {
       if(ptr == &g_vm_full_map) continue;
-      if(ptr == &g_vm_empty_map) continue;
       gran_free(tux_mm_hnd, (void*)(ptr->pa_start), ptr->va_end - ptr->va_start);
+      /*sched_kfree(ptr);*/
+    }
+    for(ptr = dtcb->xcp.pda; ptr; ptr = ptr->next) {
+      if(ptr == &g_vm_full_map) continue;
+      gran_free(tux_mm_hnd, (void*)(ptr->pa_start), (ptr->va_end - ptr->va_start) / HUGE_PAGE_SIZE * PAGE_SIZE);
       sched_kfree(ptr);
     }
   }

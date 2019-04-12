@@ -120,7 +120,8 @@ void up_initial_state(struct tcb_s *tcb)
     {
       if(rtcb->xcp.is_linux)
         {
-          xcp->vma = &g_vm_empty_map;
+          xcp->vma = NULL;
+          xcp->pda = NULL;
           xcp->is_linux = 1;
           xcp->linux_sock = rtcb->xcp.linux_sock;
           xcp->linux_tcb = rtcb->xcp.linux_tcb;
@@ -129,12 +130,14 @@ void up_initial_state(struct tcb_s *tcb)
         {
           xcp->is_linux = 0;
           xcp->vma = &g_vm_full_map;
+          xcp->pda = &g_vm_full_map;
         }
     }
   else
     {
       xcp->is_linux = 0;
       xcp->vma = &g_vm_full_map;
+      xcp->pda = &g_vm_full_map;
     }
 
   /* Save the initial stack pointer... the value of the stackpointer before

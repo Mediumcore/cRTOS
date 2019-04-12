@@ -230,6 +230,8 @@ void* execvs_setupargs(struct task_tcb_s* tcb, uint64_t pstack,
 }
 
 void exec_trampoline(void* entry, void* pstack, void* vstack) {
+    _info("Entering Trampoline\n");
+
     tux_delegate(9, (((uint64_t)pstack) << 32) | (uint64_t)(124 * HUGE_PAGE_SIZE), 4 * HUGE_PAGE_SIZE,
                  0, MAP_ANONYMOUS, 0, 0);
 
@@ -321,27 +323,51 @@ int execvs(void* pbase, void* vbase, int bsize,
     _info("STACK: %llx, KSTACK: %llx, RSP: %llx, VSTACK: %llx\n", stack, kstack, tcb->cmn.xcp.regs[REG_RSP], vstack);
 
     /* setup the tcb page_table entries as not present on creation*/
-    struct vma_s* empty_mapping = kmm_malloc(sizeof(struct vma_s));
     struct vma_s* program_mapping = kmm_malloc(sizeof(struct vma_s));
+    struct vma_s* program_mapping_pda = kmm_malloc(sizeof(struct vma_s));
     struct vma_s* stack_mapping = kmm_malloc(sizeof(struct vma_s));
+    struct vma_s* stack_mapping_pda = kmm_malloc(sizeof(struct vma_s));
 
-    memcpy(empty_mapping, &g_vm_empty_map, sizeof(struct vma_s));
-    empty_mapping->next = program_mapping;
-    tcb->cmn.xcp.vma = empty_mapping;
+    tcb->cmn.xcp.vma = program_mapping;
+    tcb->cmn.xcp.pda = program_mapping_pda;
 
     program_mapping->va_start = vbase;
     program_mapping->va_end = vbase + bsize;
     program_mapping->pa_start = pbase;
     program_mapping->proto = 3;
     program_mapping->_backing = "[Program Image]";
+
+    program_mapping_pda->va_start = (uint64_t)vbase & HUGE_PAGE_MASK;
+    program_mapping_pda->va_end = ((uint64_t)vbase + bsize + HUGE_PAGE_SIZE - 1) & HUGE_PAGE_MASK;
+    program_mapping_pda->pa_start = (void*)gran_alloc(tux_mm_hnd, PAGE_SIZE * (program_mapping_pda->va_end - program_mapping_pda->va_start) / HUGE_PAGE_SIZE);
+    program_mapping_pda->proto = 0x3;
+    program_mapping_pda->_backing = "[Program Image]";
+    memset(program_mapping_pda->pa_start, 0, PAGE_SIZE * (program_mapping_pda->va_end - program_mapping_pda->va_start) / HUGE_PAGE_SIZE);
+    for(i = program_mapping->va_start; i < program_mapping->va_end; i += PAGE_SIZE){
+        ((uint64_t*)(program_mapping_pda->pa_start))[((i - program_mapping_pda->va_start) >> 12) & 0x3ffff] = (program_mapping->pa_start + i - program_mapping->va_start) | program_mapping->proto;
+    }
+
     program_mapping->next = stack_mapping;
+    program_mapping_pda->next = stack_mapping_pda;
 
     stack_mapping->va_start = 124 * HUGE_PAGE_SIZE;
     stack_mapping->va_end = 128 * HUGE_PAGE_SIZE;
     stack_mapping->pa_start = stack;
     stack_mapping->proto = 3;
     stack_mapping->_backing = "[Stack]";
+
+    stack_mapping_pda->va_start = 124 * HUGE_PAGE_SIZE;
+    stack_mapping_pda->va_end = 128 * HUGE_PAGE_SIZE;
+    stack_mapping_pda->pa_start = (void*)gran_alloc(tux_mm_hnd, PAGE_SIZE * (stack_mapping_pda->va_end - stack_mapping_pda->va_start) / HUGE_PAGE_SIZE);
+    stack_mapping_pda->proto = 0x3;
+    stack_mapping_pda->_backing = "[Stack]";
+    memset(stack_mapping_pda->pa_start, 0, PAGE_SIZE * (stack_mapping_pda->va_end - stack_mapping_pda->va_start) / HUGE_PAGE_SIZE);
+    for(i = stack_mapping->va_start; i < stack_mapping->va_end; i += PAGE_SIZE){
+        ((uint64_t*)(stack_mapping_pda->pa_start))[((i - stack_mapping_pda->va_start) >> 12) & 0x3ffff] = (stack_mapping->pa_start + i - stack_mapping->va_start) | stack_mapping->proto;
+    }
+
     stack_mapping->next = NULL;
+    stack_mapping_pda->next = NULL;
 
     // set brk
     tcb->cmn.xcp.__min_brk = (void*)kmm_zalloc(0x800000);

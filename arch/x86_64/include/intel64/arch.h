@@ -258,6 +258,7 @@ static inline uint32_t up_getgs()
  * Public Data
  ****************************************************************************/
 
+extern uint64_t pdpt[512];
 extern uint64_t pd[2048];
 extern uint64_t pt[1048576];
 

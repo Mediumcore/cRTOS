@@ -26,13 +26,13 @@ void tux_mm_init(void) {
 void revoke_vma(struct vma_s* vma){
   struct tcb_s *tcb = this_task();
   struct vma_s* ptr;
-  struct vma_s* pptr;
+  struct vma_s** pptr;
 
   if(vma == NULL) return;
 
-  for(pptr = tcb->xcp.vma, ptr = tcb->xcp.vma->next; ptr; pptr = ptr, ptr = ptr->next) {
+  for(pptr = &tcb->xcp.vma, ptr = tcb->xcp.vma; ptr; pptr = &(ptr->next), ptr = ptr->next) {
     if(ptr == vma){
-      pptr->next = ptr->next;
+      *pptr = ptr->next;
       kmm_free(ptr);
     }
   }
@@ -49,13 +49,11 @@ struct vma_s* get_free_vma(uint64_t size) {
 
   ret->next = NULL;
 
-  // The first should always be empty_mapping, skip it
-  // Should always exist at least 3 entries, start from the third one
-  for(pptr = tcb->xcp.vma->next, ptr = tcb->xcp.vma->next->next; ptr; pptr = ptr, ptr = ptr->next) {
-    if(ptr == &g_vm_full_map) continue;
-    if(ptr == &g_vm_empty_map) continue;
+  // Should always exist at least 2 entries, start from the second one
+  for(pptr = tcb->xcp.vma, ptr = tcb->xcp.vma->next; ptr; pptr = ptr, ptr = ptr->next) {
     if(ptr->va_start - pptr->va_end >= size)
       {
+        // Find a large enough hole
         ret->next = ptr;
         break;
       }
@@ -70,8 +68,9 @@ struct vma_s* get_free_vma(uint64_t size) {
 struct vma_s* make_vma_free(uint64_t va_start, uint64_t va_end) {
   struct tcb_s *tcb = this_task();
   struct vma_s* ptr;
-  struct vma_s* pptr;
+  struct vma_s** pptr;
   struct vma_s* ret = kmm_malloc(sizeof(struct vma_s));
+  uint64_t prev_end = 0;
 
   if(!ret) return ret;
 
@@ -79,15 +78,13 @@ struct vma_s* make_vma_free(uint64_t va_start, uint64_t va_end) {
   ret->va_end = va_end;
   ret->next = NULL;
 
-  // The first should always be empty_mapping, skip it
-  for(pptr = tcb->xcp.vma, ptr = tcb->xcp.vma->next; ptr; pptr = ptr, ptr = ptr->next) {
+  for(prev_end = 0, pptr = &tcb->xcp.vma, ptr = tcb->xcp.vma; ptr; prev_end = ptr->va_end, pptr = &(ptr->next), ptr = ptr->next) {
     if(ptr == &g_vm_full_map) continue;
-    if(ptr == &g_vm_empty_map) continue;
     if(ptr == ret) continue;
     if(va_start <= ptr->va_start && va_end >= ptr->va_end)
       {
         // Whole covered, remove this mapping
-        pptr->next = ret;
+        *pptr = ret;
         ret->next = ptr->next;
 
         svcinfo("removing covered\n");
@@ -133,26 +130,33 @@ struct vma_s* make_vma_free(uint64_t va_start, uint64_t va_end) {
             // Shrink Head
             gran_free(tux_mm_hnd, (void*)(ptr->pa_start), va_end - ptr->va_start);
             ptr->va_start = va_end;
-            pptr->next = ret;
+            *pptr = ret;
             ret->next = ptr;
+            // In strictly increasing order, we end here
+            return ret;
           }
       }
-    else if((va_start >= pptr->va_end || pptr == &g_vm_empty_map) && va_end <= ptr->va_start)
+    else if((va_start >= prev_end) && va_end <= ptr->va_start)
       {
-        pptr->next = ret;
+        // Hole
+        *pptr = ret;
         ret->next = ptr;
         return ret;
       }
   }
 
-  if(!ret->next) pptr->next = ret;
+  if(!ret->next) *pptr = ret;
 
   return ret;
 }
 
 int create_and_map_pages(struct vma_s* vma){
   struct tcb_s *tcb = this_task();
-  int i;
+  uint64_t i, j;
+  uint64_t prev_end;
+  struct vma_s* pda;
+  struct vma_s* ptr;
+  struct vma_s** pptr;
 
   int pg_index = (uint64_t)vma->va_start / PAGE_SIZE;
 
@@ -174,11 +178,77 @@ int create_and_map_pages(struct vma_s* vma){
   // Give back the physical memory
   vma->pa_start = mm;
 
-  // Map it
-  for(i = vma->va_start; i < vma->va_end; i += PAGE_SIZE)
+  // Search the pdas for insertion, map the un mapped pd duriong the creation of new pda
+  i = vma->va_start;
+  for(prev_end = 0, pptr = &tcb->xcp.pda, ptr = tcb->xcp.pda; ptr; prev_end = ptr->va_end, pptr = &(ptr->next), ptr = ptr->next)
     {
-      pt[((i >> 12) & 0x7ffffff)] = ((uint64_t)mm + (i - vma->va_start)) | vma->proto;
+      for(; i < vma->va_end; i += PAGE_SIZE)
+        {
+          if(i >= ptr->va_start && i < ptr->va_end)
+            {
+              // In this pda
+              ((uint64_t*)(ptr->pa_start))[((i - ptr->va_start) >> 12) & 0x3ffff] = (vma->pa_start + i - vma->va_start) | vma->proto;
+            }
+          else if(i < ptr->va_start && i >= prev_end)
+            {
+              // Fall between 2 pda
+              // Preserving the starting addr
+              j = i;
+              pda = kmm_malloc(sizeof(struct vma_s));
+              pda->va_start = i & HUGE_PAGE_MASK;
+              for(; i < ptr->va_start && i < vma->va_end; i++); // Scan the hole size;
+              pda->va_end = (i + HUGE_PAGE_SIZE - 1) & HUGE_PAGE_MASK;
+              pda->pa_start = (void*)gran_alloc(tux_mm_hnd, PAGE_SIZE * (pda->va_end - pda->va_start) / HUGE_PAGE_SIZE);
+              memset(pda->pa_start, 0, PAGE_SIZE * (pda->va_end - pda->va_start) / HUGE_PAGE_SIZE);
+
+              // TODO: process proto
+              pda->proto = 0x3;
+              pda->_backing = vma->_backing;
+              for(; j < i; j += PAGE_SIZE)
+                ((uint64_t*)(pda->pa_start))[((j - pda->va_start) >> 12) & 0x3ffff] = (vma->pa_start + j - vma->va_start) | vma->proto;
+
+              // Link it to the pdas
+              *pptr = pda;
+              pda->next = ptr;
+
+              // Map it
+              for(j = 0, i = pda->va_start; i < pda->va_end; i += HUGE_PAGE_SIZE, j += PAGE_SIZE) {
+                pd[(i >> 21) & 0x7ffffff] = (j + pda->pa_start) | pda->proto;
+              }
+            }
+          else
+            {
+              break;
+            }
+        }
+      if(i == vma->va_end) break;
     }
+
+    if(i < vma->va_end)
+      {
+        // Fall after all pdas
+        // Preserving the starting addr
+        pda = kmm_malloc(sizeof(struct vma_s));
+        pda->va_start = i & HUGE_PAGE_MASK;
+        pda->va_end = (vma->va_end + HUGE_PAGE_SIZE - 1) & HUGE_PAGE_MASK;
+        pda->pa_start = (void*)gran_alloc(tux_mm_hnd, PAGE_SIZE * (pda->va_end - pda->va_start) / HUGE_PAGE_SIZE);
+        memset(pda->pa_start, 0, PAGE_SIZE * (pda->va_end - pda->va_start) / HUGE_PAGE_SIZE);
+
+        // TODO: process proto
+        pda->proto = 0x3;
+        pda->_backing = vma->_backing;
+        for(; i < vma->va_end; i += PAGE_SIZE)
+          ((uint64_t*)(pda->pa_start))[((i - pda->va_start) >> 12) & 0x3ffff] = (vma->pa_start + i - vma->va_start) | vma->proto;
+
+        // Link it to the pdas
+        *pptr = pda;
+        pda->next = NULL;
+
+        // Map it
+        for(j = 0, i = pda->va_start; i < pda->va_end; i += HUGE_PAGE_SIZE, j += PAGE_SIZE) {
+          pd[(i >> 21) & 0x7ffffff] = (j + pda->pa_start) | pda->proto;
+        }
+      }
 
   // Zero fill the page via virtual memory
   memset(vma->va_start, 0, vma->va_end - vma->va_start);

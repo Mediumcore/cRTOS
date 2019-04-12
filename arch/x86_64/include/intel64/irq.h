@@ -216,6 +216,7 @@ struct xcptcontext
   int32_t* clear_child_tid;
 
   struct vma_s* vma;
+  struct vma_s* pda;
 
   /* Register save area */
 
