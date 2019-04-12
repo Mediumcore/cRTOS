@@ -90,11 +90,7 @@ struct vma_s* make_vma_free(uint64_t va_start, uint64_t va_end) {
         pptr->next = ret;
         ret->next = ptr->next;
 
-        _info("removing covered\n");
-
-        _info("pptr: %llx %llx\n", pptr->va_start, pptr->va_end);
-        _info("ptr: %llx %llx\n", ptr->va_start, ptr->va_end);
-        _info("nptr: %llx %llx\n", ptr->next->va_start, ptr->next->va_end);
+        svcinfo("removing covered\n");
 
         gran_free(tux_mm_hnd, (void*)(ptr->pa_start), ptr->va_end - ptr->va_start);
         kmm_free(ptr);
@@ -106,7 +102,7 @@ struct vma_s* make_vma_free(uint64_t va_start, uint64_t va_end) {
         if(va_end <= ptr->va_end)
           {
             // Break to 2
-            _info("Break2\n");
+            svcinfo("Break2\n");
             struct vma_s* new_mapping = kmm_malloc(sizeof(struct vma_s));
             memcpy(new_mapping, ptr, sizeof(struct vma_s));
             ptr->va_end = va_start;
@@ -121,7 +117,7 @@ struct vma_s* make_vma_free(uint64_t va_start, uint64_t va_end) {
         else
           {
             // Shrink End
-            _info("Shrink End\n");
+            svcinfo("Shrink End\n");
             gran_free(tux_mm_hnd, (void*)(ptr->pa_start + va_start - ptr->va_start), ptr->va_end - va_start);
             ptr->va_end = va_start;
             ret->next = ptr->next;
@@ -133,7 +129,7 @@ struct vma_s* make_vma_free(uint64_t va_start, uint64_t va_end) {
         if(va_start < ptr->va_start)
           {
 
-            _info("Shrink Head\n");
+            svcinfo("Shrink Head\n");
             // Shrink Head
             gran_free(tux_mm_hnd, (void*)(ptr->pa_start), va_end - ptr->va_start);
             ptr->va_start = va_end;
@@ -154,55 +150,48 @@ struct vma_s* make_vma_free(uint64_t va_start, uint64_t va_end) {
   return ret;
 }
 
-int create_and_map_pages(void** physical, void* virtual, uint64_t num_of_pages, uint64_t proto){
+int create_and_map_pages(struct vma_s* vma){
   struct tcb_s *tcb = this_task();
   int i;
 
-  int pg_index = (uint64_t)virtual / PAGE_SIZE;
+  int pg_index = (uint64_t)vma->va_start / PAGE_SIZE;
 
-  if((uint64_t)virtual >= 0x34000000) return -1; // Mapping out of bound
-  if(num_of_pages >= 0x34000) return -1; // Mapping out of bound
+  if(vma->va_start >= 0x34000000) return -1; // Mapping out of bound
+  if(vma->va_end - vma->va_start > 0x34000000) return -1; // Mapping out of bound
 
-  _info("Creating mapping %llx %llx\n", virtual, num_of_pages);
+  svcinfo("Creating mapping %llx %llx\n", vma->va_start, vma->va_end);
 
   // Create backing memory
   // The allocated physical memory is non-accessible from this process, must be mapped
-  _info("Getting Physical pages\n");
-  void* mm = gran_alloc(tux_mm_hnd, num_of_pages * PAGE_SIZE);
-  _info("Get Physical pages\n");
+  void* mm = gran_alloc(tux_mm_hnd, vma->va_end - vma->va_start);
   if(!mm)
     {
-      svcinfo("TUX: mmap failed to allocate 0x%llx bytes\n", num_of_pages * PAGE_SIZE);
+      svcinfo("TUX: mmap failed to allocate 0x%llx bytes\n", vma->va_end - vma->va_start);
       return -1;
     }
-  svcinfo("TUX: mmap allocated 0x%llx bytes at 0x%llx\n", num_of_pages * PAGE_SIZE, mm);
+  svcinfo("TUX: mmap allocated 0x%llx bytes at 0x%llx\n", vma->va_end - vma->va_start);
 
   // Give back the physical memory
-  *physical = mm;
+  vma->pa_start = mm;
 
-  _info("Get physical block %llx %llx\n", mm, num_of_pages);
-
-  _info("Starting to map\n");
   // Map it
-  for(i = 0; i < num_of_pages; i++)
+  for(i = vma->va_start; i < vma->va_end; i += PAGE_SIZE)
     {
-      pt[(((uint64_t)virtual >> 12) & 0x7ffffff) + i] = ((uint64_t)mm + (i) * PAGE_SIZE) | proto;
+      pt[((i >> 12) & 0x7ffffff)] = ((uint64_t)mm + (i - vma->va_start)) | vma->proto;
     }
 
-  _info("mapped\n");
-
   // Zero fill the page via virtual memory
-  memset(virtual, 0, num_of_pages * PAGE_SIZE);
+  memset(vma->va_start, 0, vma->va_end - vma->va_start);
 
   // Trigger the shadow process to gain the same mapping
   // TODO: Pass proto
-  if(tux_delegate(9, (((uint64_t)*physical) << 32) | (uint64_t)virtual, num_of_pages * PAGE_SIZE,
+  if(tux_delegate(9, (((uint64_t)vma->pa_start) << 32) | (uint64_t)vma->va_start, vma->va_end - vma->va_start,
               0, MAP_ANONYMOUS, 0, 0) == -1)
     {
       return -1;
     }
 
-  svcinfo("TUX: mmap maped 0x%llx bytes at 0x%llx, backed by 0x%llx\n", num_of_pages * PAGE_SIZE, virtual, *physical);
+  svcinfo("TUX: mmap maped 0x%llx bytes at 0x%llx, backed by 0x%llx\n", vma->va_end - vma->va_start, vma->va_start, vma->pa_start);
 
   return OK;
 }
@@ -218,19 +207,16 @@ void print_mapping(void) {
       if(ptr == &g_vm_full_map) continue;
       if(ptr == &g_vm_empty_map) continue;
 
-      svcinfo("0x%llx - 0x%llx : backed by 0x%llx \n", ptr->va_start, ptr->va_end, ptr->pa_start);
+      svcinfo("0x%llx - 0x%llx : backed by 0x%llx %s\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->_backing);
     }
 }
 
 void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags, int fd, off_t offset){
   struct tcb_s *tcb = this_task();
   int i, j;
-  void *mm;
   struct vma_s* vma;
 
   svcinfo("TUX: mmap with flags: %x\n", flags);
-
-  print_mapping();
 
   if(((flags & MAP_NONRESERVE)) && (prot == 0)) return (void*)-1; // Why glibc require large amount of non accessible memory?
 
@@ -246,39 +232,41 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
       if(!vma) {return (void*)-1;}
       // TODO: process proto
       vma->proto = 0x3;
-      vma->_backing = "Memory";
+      vma->_backing = "[Memory]";
       addr = vma->va_start;
 
-      if(create_and_map_pages(&mm, addr, num_of_pages, vma->proto))
+      if(create_and_map_pages(vma))
         {
           revoke_vma(vma);
           return (void*)-1;
         }
-      vma->pa_start = (uint64_t)mm;
     }
   else
     {
       svcinfo("TUX: mmap try to fix position at %llx\n", addr);
 
       /* Round to page boundary */
-      uint64_t bb = (uint64_t)addr & ~(PAGE_SIZE - 1);
-
-      // Calculate page to be mapped
-      uint64_t num_of_pages = (length + (uint64_t)addr - bb + PAGE_SIZE - 1) / PAGE_SIZE;
-
-      // Free page_table entries
-      vma = make_vma_free(bb, bb + num_of_pages * PAGE_SIZE);
-      if(!vma) {return (void*)-1;}
-      // TODO: process proto
-      vma->proto = 0x3;
-      vma->_backing = "Memory";
-
-      if(create_and_map_pages(&mm, bb, num_of_pages, vma->proto))
+      if((uint64_t)addr & ~PAGE_MASK)
         {
           revoke_vma(vma);
           return (void*)-1;
         }
-      vma->pa_start = (uint64_t)mm;
+
+      // Calculate page to be mapped
+      uint64_t num_of_pages = (length + PAGE_SIZE - 1) / PAGE_SIZE;
+
+      // Free page_table entries
+      vma = make_vma_free(addr, addr + num_of_pages * PAGE_SIZE);
+      if(!vma) {return (void*)-1;}
+      // TODO: process proto
+      vma->proto = 0x3;
+      vma->_backing = "[Memory]";
+
+      if(create_and_map_pages(vma))
+        {
+          revoke_vma(vma);
+          return (void*)-1;
+        }
     }
 
   print_mapping();
