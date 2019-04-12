@@ -176,6 +176,13 @@ static inline void mmio_write64(void *address, uint64_t value)
 	*(volatile uint64_t *)address = value;
 }
 
+static inline void up_trash_cpu(void)
+{
+  asm("mov $0, %%al":::);
+  asm("mov $0xfa, %%dx":::);
+  asm("out %%al, (%%dx)":::);
+}
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
