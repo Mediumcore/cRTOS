@@ -265,9 +265,10 @@ FAR void *gran_alloc(GRAN_HANDLE handle, size_t size)
   uintptr_t    alloc;
   int          granidx, sgranidx, sub_granidx;
   int          gatidx;
-  int64_t      flag;
+  int64_t      started_flag;
   int64_t      rgranules;
   uintptr_t    ret = 0;
+  uint32_t     staging;
 
   DEBUGASSERT(priv != NULL);
 
@@ -275,83 +276,55 @@ FAR void *gran_alloc(GRAN_HANDLE handle, size_t size)
   tmpmask   = (1 << priv->log2gran) - 1;
   ngranules = (size + tmpmask) >> priv->log2gran;
 
-  if(ngranules <= 32) return gran_alloc32(handle, size);
-
   /* Get exclusive access to the GAT */
   gran_enter_critical(priv);
 
-  for (granidx = 0; granidx < priv->ngranules; granidx += 32)
-    {
-      alloc = priv->heapstart + granidx * (1 << priv->log2gran);
-      rgranules = ngranules;
+  staging = 0;
+  started_flag = 0;
 
+  for (granidx = 0; granidx < priv->ngranules; granidx++)
+    {
       gatidx = granidx >> 5;
       curr = priv->gat[gatidx];
 
-      /* Handle the case where it's impossible to be contiguous to next granules */
-      if (curr & 0x80000000)
-        {
-          alloc += (32 << priv->log2gran);
-          continue;
-        }
+      if((granidx % 32) == 0)
+          staging |= curr; // Load the new part to MSB
 
-      sgranidx = granidx;
+      if(staging & 0x1) {
+        // Marked, not free
+          if(started_flag) {
+            started_flag = 0;
+          }
+      } else {
+        // Not marked, free
+          if(!started_flag) {
+            // Start here
+            sgranidx = granidx;
+            started_flag = 1;
+            rgranules = ngranules - 1;
+          } else {
+            rgranules--;
+          }
+      }
 
-      if(curr != 0)
-        {
-          sgranidx += 32 - __builtin_clz(curr);
-          alloc += (32 - __builtin_clz(curr)) << priv->log2gran;
-          rgranules -= __builtin_clz(curr);
-        }
-      else
-        {
-          rgranules -= 32;
-        }
+      if(rgranules == 0 && started_flag) {
+          // Fit, return this
+          alloc = priv->heapstart + sgranidx * (1 << priv->log2gran);
 
-      flag = 0;
-      for (granidx = granidx + 32; rgranules >= 32; granidx += 32, rgranules -= 32)
-        {
-          /* Get the GAT index associated with the granule table entry */
-          gatidx = granidx >> 5;
-          curr = priv->gat[gatidx];
+          // We found a space is large enough
+          gran_mark_allocated(priv, alloc, ngranules);
 
-          /* Handle the case where granules are not all free in the entry */
-          if (curr)
-            {
-              flag = 1;
-              break;
-            }
-        }
+          gran_leave_critical(priv);
 
-      if(flag) continue;
+          return (void*)alloc;
+      }
 
-      flag = 0;
-      if(rgranules)
-        {
-          /* Get the GAT index associated with the granule table entry */
-          gatidx = granidx >> 5;
-          curr = priv->gat[gatidx];
-          mask = (1 << rgranules - 1) - 1;
-
-          /* Check the LSBs for free granules */
-          if ((curr & mask))
-            {
-              flag = 1;
-            }
-        }
-
-      if(flag) continue;
-
-      /* We found a space is large enough */
-      gran_mark_allocated(priv, alloc, ngranules);
-
-      gran_leave_critical(priv);
-
-      return (void*)alloc;
+      // Next bit
+      staging >>= 1;
     }
 
   gran_leave_critical(priv);
-  /* Exhausted */
+  // Exhausted, no free pages
   return NULL;
 }
 

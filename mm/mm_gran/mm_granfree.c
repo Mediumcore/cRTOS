@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <assert.h>
+#include <debug.h>
 
 #include <nuttx/mm/gran.h>
 
@@ -120,7 +121,7 @@ void gran_free(GRAN_HANDLE handle, FAR void *memory, size_t size)
         {
           /* Clear bits in the last GAT entry if exist*/
 
-          gatmask = 0xffffffff >> (32 - ngranules);
+          gatmask = 0xffffffffUL >> (32 - ngranules);
           DEBUGASSERT((priv->gat[gatidx] & gatmask) == gatmask);
 
           priv->gat[gatidx] &= ~gatmask;

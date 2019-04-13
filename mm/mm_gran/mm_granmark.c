@@ -92,7 +92,7 @@ void gran_mark_allocated(FAR struct gran_s *priv, uintptr_t alloc,
     {
       /* Clear bits in the first GAT entry */
       gatmask = (0xffffffff << gatbit);
-      DEBUGASSERT((priv->gat[gatidx] & gatmask) == gatmask);
+      ASSERT((priv->gat[gatidx] & gatmask) == 0);
 
       priv->gat[gatidx] |= gatmask;
       ngranules -= avail;
@@ -107,7 +107,7 @@ void gran_mark_allocated(FAR struct gran_s *priv, uintptr_t alloc,
           /* Clear bits in the last GAT entry if exist*/
 
           gatmask = 0xffffffff >> (32 - ngranules);
-          DEBUGASSERT((priv->gat[gatidx] & gatmask) == gatmask);
+          ASSERT((priv->gat[gatidx] & gatmask) == 0);
 
           priv->gat[gatidx] |= gatmask;
         }
