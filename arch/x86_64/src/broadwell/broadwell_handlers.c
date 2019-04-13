@@ -175,7 +175,27 @@ uint64_t *isr_handler(uint64_t *regs, uint64_t irq)
   /* Don't even brother to recover, just dump the regs and PANIC*/
   _alert("PANIC:\n");
   _alert("Exception %lld occurred with error code %lld:\n", irq, regs[REG_ERRCODE]);
+
+  /*if(irq == 14)*/
+  {
+
+      uint64_t cr2;
+      asm volatile ("mov %%cr2, %%rax; mov %%rax, %0"::"m"(cr2):"memory", "rax");
+      uint64_t opd = pd[(cr2 >> 21) & 0x7ffffff];
+
+      for(uint64_t j = 0, i = g_vm_full_map.va_start; i < g_vm_full_map.va_end; i += HUGE_PAGE_SIZE, j += PAGE_SIZE) {
+        pd[(i >> 21) & 0x7ffffff] = (j + (uint64_t)pt) | 0x3;
+      }
+
+      _alert("CR2: %llx\n", cr2);
+      _alert("PD: %llx\n", opd);
+      _alert("PT: %llx\n", *(uint64_t*)(opd & PAGE_MASK));
+  }
+
+
   up_registerdump(regs);
+
+
   up_trash_cpu();
   PANIC();
 

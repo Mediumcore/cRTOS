@@ -20,7 +20,7 @@
 GRAN_HANDLE tux_mm_hnd;
 
 void tux_mm_init(void) {
-  tux_mm_hnd = gran_initialize((void*)0x1000000, (0x34000000 - 0x1000000), 12, 12); // 2^21 is 2MB, the HUGE_PAGE_SIZE
+  tux_mm_hnd = gran_initialize((void*)0x1000000, (0x34000000 - 0x1000000), 12, 12); // 2^12 is 4KB, the PAGE_SIZE
 }
 
 void revoke_vma(struct vma_s* vma){
@@ -150,13 +150,33 @@ struct vma_s* make_vma_free(uint64_t va_start, uint64_t va_end) {
   return ret;
 }
 
+uint64_t* temp_map_at_0xc0000000(uintptr_t start, uintptr_t end)
+{
+  uintptr_t k;
+  uintptr_t lsb = start & ~HUGE_PAGE_MASK;
+  start &= HUGE_PAGE_MASK;
+
+  svcinfo("Temp map %llx - %llx at 0xc0000000\n", start, end);
+
+  // Temporary map the new pdas at high memory 0xc000000 ~
+  for(k = start; k < end; k += HUGE_PAGE_SIZE)
+    {
+      pd[((0xc0000000 + k - start) >> 21) & 0x7ffffff] = k | 0x9b; // No cache
+    }
+
+  up_invalid_TLB(start, end);
+
+  return 0xc0000000 + lsb;
+}
+
 int create_and_map_pages(struct vma_s* vma){
   struct tcb_s *tcb = this_task();
-  uint64_t i, j;
+  uint64_t i, j, k;
   uint64_t prev_end;
   struct vma_s* pda;
   struct vma_s* ptr;
   struct vma_s** pptr;
+  uint64_t *tmp_pd;
 
   int pg_index = (uint64_t)vma->va_start / PAGE_SIZE;
 
@@ -173,80 +193,125 @@ int create_and_map_pages(struct vma_s* vma){
       svcinfo("TUX: mmap failed to allocate 0x%llx bytes\n", vma->va_end - vma->va_start);
       return -1;
     }
-  svcinfo("TUX: mmap allocated 0x%llx bytes at 0x%llx\n", vma->va_end - vma->va_start);
+  svcinfo("TUX: mmap allocated 0x%llx bytes at 0x%llx\n", vma->va_end - vma->va_start, mm);
 
   // Give back the physical memory
   vma->pa_start = mm;
 
   // Search the pdas for insertion, map the un mapped pd duriong the creation of new pda
+  svcinfo("Mapping: %llx - %llx\n", vma->va_start, vma->va_end);
   i = vma->va_start;
   for(prev_end = 0, pptr = &tcb->xcp.pda, ptr = tcb->xcp.pda; ptr; prev_end = ptr->va_end, pptr = &(ptr->next), ptr = ptr->next)
     {
-      for(; i < vma->va_end; i += PAGE_SIZE)
-        {
-          if(i >= ptr->va_start && i < ptr->va_end)
-            {
-              // In this pda
-              ((uint64_t*)(ptr->pa_start))[((i - ptr->va_start) >> 12) & 0x3ffff] = (vma->pa_start + i - vma->va_start) | vma->proto;
-            }
-          else if(i < ptr->va_start && i >= prev_end)
+          if(i < ptr->va_start && i >= prev_end)
             {
               // Fall between 2 pda
               // Preserving the starting addr
-              j = i;
+              svcinfo("%llx, Between: %llx, and %llx - %llx\n", i, prev_end, ptr->va_start, ptr->va_end);
+
               pda = kmm_malloc(sizeof(struct vma_s));
+
+              // pda's size should cover sufficient size of the Hole
               pda->va_start = i & HUGE_PAGE_MASK;
-              for(; i < ptr->va_start && i < vma->va_end; i++); // Scan the hole size;
-              pda->va_end = (i + HUGE_PAGE_SIZE - 1) & HUGE_PAGE_MASK;
-              pda->pa_start = (void*)gran_alloc(tux_mm_hnd, PAGE_SIZE * (pda->va_end - pda->va_start) / HUGE_PAGE_SIZE);
-              memset(pda->pa_start, 0, PAGE_SIZE * (pda->va_end - pda->va_start) / HUGE_PAGE_SIZE);
+              for(pda->va_end = i; pda->va_end < ptr->va_start && pda->va_end < vma->va_end; pda->va_end += PAGE_SIZE); // Scan the hole size;
+              pda->va_end = (pda->va_end + HUGE_PAGE_SIZE - 1) & HUGE_PAGE_MASK;
 
               // TODO: process proto
               pda->proto = 0x3;
               pda->_backing = vma->_backing;
-              for(; j < i; j += PAGE_SIZE)
-                ((uint64_t*)(pda->pa_start))[((j - pda->va_start) >> 12) & 0x3ffff] = (vma->pa_start + j - vma->va_start) | vma->proto;
 
-              // Link it to the pdas
+              pda->pa_start = (void*)gran_alloc(tux_mm_hnd, PAGE_SIZE * VMA_SIZE(pda) / HUGE_PAGE_SIZE);
+              if(!pda->pa_start)
+                {
+                  svcinfo("TUX: mmap failed to allocate 0x%llx bytes for new pda\n", PAGE_SIZE * VMA_SIZE(pda) / HUGE_PAGE_SIZE);
+                  return -1;
+                }
+
+              svcinfo("New pda: %llx - %llx %llx\n", pda->va_start, pda->va_end, pda->pa_start);
+
+              // Temporary map the memory for writing
+              tmp_pd = temp_map_at_0xc0000000(pda->pa_start, pda->pa_start + PAGE_SIZE * VMA_SIZE(pda) / HUGE_PAGE_SIZE);
+
+              // Clear the page directories
+              memset(tmp_pd, 0, PAGE_SIZE * VMA_SIZE(pda) / HUGE_PAGE_SIZE);
+
+              // Fill in the new mappings to page directories
+              for(j = i; j < ptr->va_start && j < vma->va_end; j += PAGE_SIZE) // Scan the hole size;
+                tmp_pd[((j - pda->va_start) >> 12) & 0x3ffff] = (vma->pa_start + j - vma->va_start) | vma->proto;
+
+              up_invalid_TLB(i, j);
+
+              // Link it to the pdas list
               *pptr = pda;
               pda->next = ptr;
 
-              // Map it
-              for(j = 0, i = pda->va_start; i < pda->va_end; i += HUGE_PAGE_SIZE, j += PAGE_SIZE) {
-                pd[(i >> 21) & 0x7ffffff] = (j + pda->pa_start) | pda->proto;
+              // Map it via page directories
+              for(j = pda->va_start; j < pda->va_end; j += HUGE_PAGE_SIZE) {
+                pd[(j >> 21) & 0x7ffffff] = (((j - pda->va_start) >> 9) + pda->pa_start) | pda->proto;
               }
+
+              i = ptr->va_start < vma->va_end ? ptr->va_start : vma->va_end;
             }
-          else
+
+          if(i >= ptr->va_start && i < ptr->va_end)
             {
-              break;
+              svcinfo("%llx Overlapping: %llx - %llx\n", i, ptr->va_start, ptr->va_end);
+              // In this pda
+
+              // Temporary map the memory for writing
+              tmp_pd = temp_map_at_0xc0000000(ptr->pa_start, ptr->pa_start + PAGE_SIZE * VMA_SIZE(ptr) / HUGE_PAGE_SIZE);
+
+              // Map it via page directories
+              for(; i < ptr->va_end && i < vma->va_end; i += PAGE_SIZE)
+                  tmp_pd[((i - ptr->va_start) >> 12) & 0x3ffff] = (vma->pa_start + i - vma->va_start) | vma->proto;
             }
-        }
+
       if(i == vma->va_end) break;
     }
 
     if(i < vma->va_end)
       {
+        svcinfo("Insert at End\n");
         // Fall after all pdas
         // Preserving the starting addr
         pda = kmm_malloc(sizeof(struct vma_s));
+
+        // pda's size should cover sufficient size of the Hole
         pda->va_start = i & HUGE_PAGE_MASK;
         pda->va_end = (vma->va_end + HUGE_PAGE_SIZE - 1) & HUGE_PAGE_MASK;
-        pda->pa_start = (void*)gran_alloc(tux_mm_hnd, PAGE_SIZE * (pda->va_end - pda->va_start) / HUGE_PAGE_SIZE);
-        memset(pda->pa_start, 0, PAGE_SIZE * (pda->va_end - pda->va_start) / HUGE_PAGE_SIZE);
 
         // TODO: process proto
         pda->proto = 0x3;
         pda->_backing = vma->_backing;
-        for(; i < vma->va_end; i += PAGE_SIZE)
-          ((uint64_t*)(pda->pa_start))[((i - pda->va_start) >> 12) & 0x3ffff] = (vma->pa_start + i - vma->va_start) | vma->proto;
 
-        // Link it to the pdas
+        svcinfo("New pda: %llx - %llx %llx\n", pda->va_start, pda->va_end, pda->pa_start);
+
+        pda->pa_start = (void*)gran_alloc(tux_mm_hnd, PAGE_SIZE * VMA_SIZE(pda) / HUGE_PAGE_SIZE);
+        if(!pda->pa_start)
+          {
+            svcinfo("TUX: mmap failed to allocate 0x%llx bytes for new pda\n", PAGE_SIZE * VMA_SIZE(pda) / HUGE_PAGE_SIZE);
+            return -1;
+          }
+
+        // Temporary map the memory for writing
+        tmp_pd = temp_map_at_0xc0000000(pda->pa_start, pda->pa_start + VMA_SIZE(pda));
+
+        // Clear the page directories
+        memset(tmp_pd, 0, PAGE_SIZE * VMA_SIZE(pda) / HUGE_PAGE_SIZE);
+
+        // Fill in the new mappings to page directories
+        for(j = i; j < ptr->va_start && j < vma->va_end; j += PAGE_SIZE) // Scan the hole size;
+          tmp_pd[((j - pda->va_start) >> 12) & 0x3ffff] = (vma->pa_start + j - vma->va_start) | vma->proto;
+
+        up_invalid_TLB(i, j);
+
+        // Link it to the pdas list
         *pptr = pda;
         pda->next = NULL;
 
-        // Map it
-        for(j = 0, i = pda->va_start; i < pda->va_end; i += HUGE_PAGE_SIZE, j += PAGE_SIZE) {
-          pd[(i >> 21) & 0x7ffffff] = (j + pda->pa_start) | pda->proto;
+        // Map it via page directories
+        for(j = pda->va_start; j < pda->va_end; j += HUGE_PAGE_SIZE) {
+          pd[(j >> 21) & 0x7ffffff] = ((j >> 9) + pda->pa_start) | pda->proto;
         }
       }
 
@@ -266,19 +331,37 @@ int create_and_map_pages(struct vma_s* vma){
   return OK;
 }
 
+struct graninfo_s granib;
+struct graninfo_s grania;
+
 void print_mapping(void) {
   struct tcb_s *tcb = this_task();
   struct vma_s* ptr;
   uint64_t p = 0;
 
   svcinfo("Current Map: \n");
-  for(ptr = tcb->xcp.vma; ptr && p < 32; ptr = ptr->next, p++)
+  for(ptr = tcb->xcp.vma; ptr && p < 64; ptr = ptr->next, p++)
     {
       if(ptr == &g_vm_full_map) continue;
-      if(ptr == &g_vm_empty_map) continue;
-
       svcinfo("0x%llx - 0x%llx : backed by 0x%llx %s\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->_backing);
     }
+
+  p = 0;
+  svcinfo("Current PDAS: \n");
+  for(ptr = tcb->xcp.pda; ptr && p < 64; ptr = ptr->next, p++)
+    {
+      if(ptr == &g_vm_full_map) continue;
+      svcinfo("0x%llx - 0x%llx : backed by 0x%llx %s\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->_backing);
+    }
+
+  gran_info(tux_mm_hnd, &grania);
+  svcinfo("GRANDULE  BEFORE AFTER\n");
+  svcinfo("======== ======== ========\n");
+  svcinfo("log2gran %8x %8x\n", granib.log2gran, grania.log2gran);
+  svcinfo("nGRAN    %8x %8x\n", granib.ngranules, grania.ngranules);
+  svcinfo("nfree    %8x %8x\n", granib.nfree, grania.nfree);
+  svcinfo("mxfree   %8x %8x\n", granib.mxfree, grania.mxfree);
+  granib = grania;
 }
 
 void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags, int fd, off_t offset){

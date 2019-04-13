@@ -183,6 +183,16 @@ static inline void up_trash_cpu(void)
   asm("out %%al, (%%dx)":::);
 }
 
+static inline void up_invalid_TLB(uintptr_t start, uintptr_t end)
+{
+  start = start & PAGE_MASK;
+  end = (end + PAGE_SIZE - 1) & PAGE_MASK;
+  for(uintptr_t i = start; i < end; i += PAGE_SIZE)
+    {
+      asm("invlpg %0;":: "m"(i):"memory");
+    }
+}
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/

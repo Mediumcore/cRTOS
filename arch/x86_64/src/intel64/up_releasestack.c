@@ -136,7 +136,7 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
     }
     for(ptr = dtcb->xcp.pda; ptr; ptr = ptr->next) {
       if(ptr == &g_vm_full_map) continue;
-      gran_free(tux_mm_hnd, (void*)(ptr->pa_start), (ptr->va_end - ptr->va_start) / HUGE_PAGE_SIZE * PAGE_SIZE);
+      gran_free(tux_mm_hnd, (void*)(ptr->pa_start), VMA_SIZE(ptr) / HUGE_PAGE_SIZE * PAGE_SIZE);
       sched_kfree(ptr);
     }
   }

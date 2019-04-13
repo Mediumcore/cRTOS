@@ -184,6 +184,8 @@ struct vma_s {
 extern struct vma_s g_vm_full_map;
 extern struct vma_s g_vm_empty_map;
 
+#define VMA_SIZE(vma) (vma->va_end - vma->va_start)
+
 /* This struct defines the way the registers are stored */
 struct xcptcontext
 {
