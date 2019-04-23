@@ -40,10 +40,10 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
   if (!tcb)
     return -1;
 
-  stack = kmm_zalloc(0x800); //dummy stack, will be discarded
+  stack = kmm_zalloc(0x8000); //Kernel stack
 
   ret = task_init((FAR struct tcb_s *)tcb, "clone_thread", 255,
-                  (uint32_t*)stack, 0x800, NULL, NULL);
+                  (uint32_t*)stack, 0x8000, NULL, NULL);
   if (ret < 0)
   {
     ret = -get_errno();
@@ -76,20 +76,17 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
   }
 
   /* manual set the stack pointer */
-  tcb->cmn.stack_alloc_ptr = NULL;
   tcb->cmn.xcp.regs[REG_RSP] = (uint64_t)child_stack;
 
   /* manual set the instruction pointer */
   tcb->cmn.xcp.regs[REG_RIP] = (uint64_t)(__builtin_return_address(3)); // Directly leaves the syscall
 
-  sinfo("Cloned a task with RIP=0x%llx, RSP=0x%llx\n",
-        tcb->cmn.xcp.regs[REG_RIP],
-        tcb->cmn.xcp.regs[REG_RSP]);
+  svcinfo("Cloned a task with RIP=0x%llx, RSP=0x%llx\n",
+          tcb->cmn.xcp.regs[REG_RIP],
+          tcb->cmn.xcp.regs[REG_RSP]);
 
   /* clone return 0 to child */
   tcb->cmn.xcp.regs[REG_RAX] = 0;
-
-  kmm_free(stack);
 
   sinfo("activate: new task=%d\n", tcb->cmn.pid);
   /* Then activate the task at the provided priority */
