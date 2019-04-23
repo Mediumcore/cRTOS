@@ -35,6 +35,8 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
   if(!(flags & CLONE_THREAD)) return -1;
   /* We don't handle copy on write */
   if(!child_stack) return -1;
+  /* We current only support sharing the Virtual Envieonment */
+  if(!(flags & CLONE_VM)) return -1;
 
   tcb = (FAR struct task_tcb_s *)kmm_zalloc(sizeof(struct task_tcb_s));
   if (!tcb)
@@ -52,7 +54,6 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
   }
 
   /* Check the flags */
-  /* Ignore CLONE_VM, we are on a flat address space */
   /* XXX: Ignore CLONE_FS */
   /* XXX: Ignore CLONE_FILES */
   /* XXX: Ignore CLONE_SIGHAND */
@@ -74,6 +75,10 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
   if(flags & CLONE_CHILD_CLEARTID){
     _tux_set_tid_address((struct tcb_s*)tcb, (int*)(ctid));
   }
+
+  /* Clone the VM */
+  tcb->cmn.xcp.vma = rtcb->xcp.vma;
+  tcb->cmn.xcp.pda = rtcb->xcp.pda;
 
   /* manual set the stack pointer */
   tcb->cmn.xcp.regs[REG_RSP] = (uint64_t)child_stack;
