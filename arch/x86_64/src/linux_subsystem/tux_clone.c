@@ -42,7 +42,7 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
 
   stack = kmm_zalloc(0x8000); //Kernel stack
 
-  ret = task_init((FAR struct tcb_s *)tcb, "clone_thread", 255,
+  ret = task_init((FAR struct tcb_s *)tcb, "clone_thread", rtcb->init_priority,
                   (uint32_t*)stack, 0x8000, NULL, NULL);
   if (ret < 0)
   {
