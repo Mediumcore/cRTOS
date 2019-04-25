@@ -17,12 +17,51 @@
 #define FUTEX_WAKE 0x1
 #define FUTEX_PRIVATE_FLAG 0x80
 
+#define TUX_O_ACCMODE	00000003
+#define TUX_O_RDONLY	00000000
+#define TUX_O_WRONLY	00000001
+#define TUX_O_RDWR		00000002
+#define TUX_O_CREAT		00000100
+#define TUX_O_EXCL		00000200
+#define TUX_O_NOCTTY	00000400
+#define TUX_O_TRUNC		00001000
+#define TUX_O_APPEND	00002000
+#define TUX_O_NONBLOCK	00004000
+#define TUX_O_DSYNC		00010000
+#define TUX_O_DIRECT	00040000
+#define TUX_O_LARGEFILE	00100000
+#define TUX_O_DIRECTORY	00200000
+#define TUX_O_NOFOLLOW	00400000
+#define TUX_O_NOATIME	01000000
+#define TUX_O_CLOEXEC	02000000
+#define TUX__O_SYNC	    04000000
+#define TUX_O_SYNC		    (TUX__O_SYNC|TUX_O_DSYNC)
+#define TUX_O_PATH		   010000000
+#define TUX__O_TMPFILE	    020000000
+#define TUX_O_TMPFILE       (TUX__O_TMPFILE | TUX_O_DIRECTORY)
+#define TUX_O_TMPFILE_MASK  (TUX__O_TMPFILE | TUX_O_DIRECTORY | TUX_O_CREAT)
+#define TUX_O_NDELAY	    O_NONBLOCK
+
 extern GRAN_HANDLE tux_mm_hnd;
 
 struct rlimit {
   unsigned long rlim_cur;  /* Soft limit */
   unsigned long rlim_max;  /* Hard limit (ceiling for rlim_cur) */
 };
+
+static inline uint64_t set_msr(unsigned long nbr){
+    uint32_t bitset = *((volatile uint32_t*)0xfb503280 + 4);
+    bitset |= (1 << 1);
+    *((volatile uint32_t*)0xfb503280 + 4) = bitset;
+    return 0;
+}
+
+static inline uint64_t unset_msr(unsigned long nbr){
+    uint32_t bitset = *((volatile uint32_t*)0xfb503280 + 4);
+    bitset &= ~(1 << 1);
+    *((volatile uint32_t*)0xfb503280 + 4) = bitset;
+    return 0;
+}
 
 typedef int (*syscall_t)(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,

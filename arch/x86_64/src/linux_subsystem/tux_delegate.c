@@ -9,6 +9,7 @@
 #include <nuttx/irq.h>
 #include <arch/io.h>
 #include <syscall.h>
+#include <fcntl.h>
 #include <semaphore.h>
 #include <errno.h>
 #include <poll.h>
@@ -109,10 +110,34 @@ int tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm6)
 {
   int ret;
+  uint64_t new_flags;
 
   svcinfo("Open/Socket syscall %d, path: %s\n", nbr, (char*)parm1);
 
-  ret = tux_local(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
+  // Nuttx has different Bit pattern in flags, we have to decode them
+  new_flags = 0;
+  if(parm2 & TUX_O_ACCMODE)     new_flags |= O_ACCMODE;
+  if(parm2 & TUX_O_RDONLY)      new_flags |= O_RDONLY;
+  if(parm2 & TUX_O_WRONLY)      new_flags |= O_WRONLY;
+  if(parm2 & TUX_O_RDWR)        new_flags |= O_RDWR;
+  if(parm2 & TUX_O_CREAT)       new_flags |= O_CREAT;
+  if(parm2 & TUX_O_EXCL)        new_flags |= O_EXCL;
+  if(parm2 & TUX_O_NOCTTY)      new_flags |= O_NOCTTY;
+  if(parm2 & TUX_O_TRUNC)       new_flags |= O_TRUNC;
+  if(parm2 & TUX_O_APPEND)      new_flags |= O_APPEND;
+  if(parm2 & TUX_O_NONBLOCK)    new_flags |= O_NONBLOCK;
+  if(parm2 & TUX_O_DSYNC)       new_flags |= O_DSYNC;
+  if(parm2 & TUX_O_SYNC)        new_flags |= O_SYNC;
+  if(parm2 & TUX_O_DIRECT)      new_flags |= O_DIRECT;
+  /*if(parm2 & TUX_O_LARGEFILE)   new_flags |= O_LARGEFILE;*/
+  /*if(parm2 & TUX_O_DIRECTORY)   new_flags |= O_DIRECTORY;*/
+  /*if(parm2 & TUX_O_NOFOLLOW)    new_flags |= O_NOFOLLOW;*/
+  /*if(parm2 & TUX_O_NOATIME)     new_flags |= O_NOATIME;*/
+  /*if(parm2 & TUX_O_CLOEXEC)     new_flags |= O_CLOEXEC;*/
+  if(parm2 & TUX_O_TMPFILE)     return -1;
+  if(parm2 & TUX_O_NDELAY)      new_flags |= O_NDELAY;
+
+  ret = tux_local(nbr, parm1, new_flags, parm3, parm4, parm5, parm6);
   if(ret < 0){
       svcinfo("%s\n", strerror(errno));
       ret = tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
