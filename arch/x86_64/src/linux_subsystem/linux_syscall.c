@@ -213,7 +213,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_no_impl, // SYS_modify_ldt,
     tux_no_impl, // SYS_pivot_root,
     tux_no_impl, // SYS__sysctl,
-    tux_no_impl, // SYS_prctl,
+    (syscall_t)tux_success_stub, // SYS_prctl,
     (syscall_t)tux_arch_prctl,
     tux_no_impl, // SYS_adjtimex,
     tux_no_impl, // SYS_setrlimit,
@@ -257,7 +257,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_no_impl, // SYS_lremovexattr,
     tux_no_impl, // SYS_fremovexattr,
     tux_no_impl, // SYS_tkill,
-    tux_no_impl, // SYS_time,
+    tux_delegate,//tux_no_impl, // SYS_time,
     (syscall_t)tux_futex,
     tux_no_impl, // SYS_sched_setaffinity, // Only if we expend to SMP
     tux_no_impl, // SYS_sched_getaffinity,
