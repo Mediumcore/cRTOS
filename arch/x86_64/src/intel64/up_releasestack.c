@@ -132,7 +132,11 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
     for(ptr = dtcb->xcp.vma; ptr; ptr = ptr->next) {
       if(ptr == &g_vm_full_map) continue;
       gran_free(tux_mm_hnd, (void*)(ptr->pa_start), ptr->va_end - ptr->va_start);
-      /*sched_kfree(ptr);*/
+#ifdef CONFIG_DEBUG_SYSCALL_INFO
+      if(ptr->_backing[0] != '[')
+          sched_kfree(ptr->_backing);
+#endif
+      sched_kfree(ptr);
     }
     for(ptr = dtcb->xcp.pda; ptr; ptr = ptr->next) {
       if(ptr == &g_vm_full_map) continue;

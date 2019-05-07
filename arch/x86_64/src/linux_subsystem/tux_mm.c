@@ -94,9 +94,9 @@ struct vma_s* make_vma_free(uint64_t va_start, uint64_t va_end) {
 
         ptr = ret;
       }
-    else if(va_start >= ptr->va_start && va_start < ptr->va_end)
+    else if(va_start > ptr->va_start && va_start < ptr->va_end)
       {
-        if(va_end <= ptr->va_end)
+        if(va_end < ptr->va_end)
           {
             // Break to 2
             svcinfo("Break2\n");
@@ -123,7 +123,7 @@ struct vma_s* make_vma_free(uint64_t va_start, uint64_t va_end) {
       }
     else if(va_end > ptr->va_start && va_end <= ptr->va_end)
       {
-        if(va_start < ptr->va_start)
+        if(va_start <= ptr->va_start)
           {
 
             svcinfo("Shrink Head\n");
@@ -340,10 +340,10 @@ void print_mapping(void) {
   uint64_t p = 0;
 
   svcinfo("Current Map: \n");
-  for(ptr = tcb->xcp.vma; ptr && p < 64; ptr = ptr->next, p++)
+  for(ptr = tcb->xcp.vma; ptr && p < 512; ptr = ptr->next, p++)
     {
       if(ptr == &g_vm_full_map) continue;
-      svcinfo("0x%llx - 0x%llx : backed by 0x%llx %s\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->_backing);
+      svcinfo("0x%08llx - 0x%08llx : backed by 0x%08llx 0x%08llx %s\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr), ptr->_backing);
     }
 
   p = 0;
@@ -351,14 +351,12 @@ void print_mapping(void) {
   for(ptr = tcb->xcp.pda; ptr && p < 64; ptr = ptr->next, p++)
     {
       if(ptr == &g_vm_full_map) continue;
-      svcinfo("0x%llx - 0x%llx : backed by 0x%llx %s\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->_backing);
+      svcinfo("0x%08llx - 0x%08llx : 0x%08llx 0x%08llx\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr));
     }
 
   gran_info(tux_mm_hnd, &grania);
   svcinfo("GRANDULE  BEFORE AFTER\n");
   svcinfo("======== ======== ========\n");
-  svcinfo("log2gran %8x %8x\n", granib.log2gran, grania.log2gran);
-  svcinfo("nGRAN    %8x %8x\n", granib.ngranules, grania.ngranules);
   svcinfo("nfree    %8x %8x\n", granib.nfree, grania.nfree);
   svcinfo("mxfree   %8x %8x\n", granib.mxfree, grania.mxfree);
   granib = grania;
@@ -422,17 +420,78 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
         }
     }
 
-  print_mapping();
-
   if(!(flags & MAP_ANONYMOUS))
     {
-      vma->_backing = "File";
+
+#ifdef CONFIG_DEBUG_SYSCALL_INFO
+      char proc_fs_path[64] = "/proc/self/fd/";
+      char tmp[64];
+      memset(tmp, 0, 64);
+
+      uint64_t t = fd - TUX_FD_OFFSET;
+      int k = 0;
+      while(t){
+          tmp[k++] = (t % 10) + '0';
+          t /= 10;
+      }
+      k--;
+
+      int l = 14;
+      while(k >= 0){
+          proc_fs_path[l++] = tmp[k--];
+      }
+      proc_fs_path[l] = 0;
+
+      char* file_path = kmm_zalloc(128);
+
+      l = tux_delegate(89, proc_fs_path, file_path, 127, 0, 0, 0);
+      if(l == -1)
+        {
+          revoke_vma(vma);
+          return (void*)-1;
+        }
+
+      if(l < 120){
+          t = offset;
+          k = 0;
+          tmp[0] = (t >> 28) & 0xf;
+          tmp[1] = (t >> 24) & 0xf;
+          tmp[2] = (t >> 20) & 0xf;
+          tmp[3] = (t >> 16) & 0xf;
+          tmp[4] = (t >> 12) & 0xf;
+          tmp[5] = (t >> 8) & 0xf;
+          tmp[6] = (t >> 4) & 0xf;
+          tmp[7] = (t >> 0) & 0xf;
+          for(k = 0; k < 8; k++){
+              if(tmp[k] <= 9) tmp[k] += '0';
+              else tmp[k] += 'a' - 10;
+          }
+
+          file_path[l++] = ' ';
+          file_path[l++] = ':';
+          file_path[l++] = ' ';
+          file_path[l++] = '0';
+          file_path[l++] = 'x';
+
+          _info("tmp: %s\n", tmp);
+          for(k = 0; k < 8; k++){
+              file_path[l++] = tmp[k];
+          }
+      }
+      file_path[l] = 0;
+
+      vma->_backing = file_path;
+#elif
+      vma->_backing = "[File]";
+#endif
       if(tux_delegate(nbr, (uint64_t)addr, length, prot, flags, fd - TUX_FD_OFFSET, offset) == -1)
         {
           revoke_vma(vma);
           return (void*)-1;
         }
     }
+
+  print_mapping();
 
   return addr;
 }
