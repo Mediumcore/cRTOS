@@ -119,7 +119,7 @@ void up_registerdump(uint64_t *regs)
   _alert("RCX: %016llx, RDX: %016llx\n", regs[REG_RCX], regs[REG_RDX]);
   _alert("RDI: %016llx, RSI: %016llx\n", regs[REG_RDI], regs[REG_RSI]);
   _alert("Dumping Stack (+-64 bytes):\n");
-  print_mem(regs[REG_RSP] - 64, 128);
+  print_mem(regs[REG_RSP] - 512, 1024);
 
 #ifdef CONFIG_DEBUG_NOOPT
   backtrace(regs[REG_RBP]);
