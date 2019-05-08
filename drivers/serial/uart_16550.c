@@ -1124,10 +1124,14 @@ static int u16550_ioctl(struct file *filep, int cmd, unsigned long arg)
 
     case TIOCMIWAIT:
       {
+        irqstate_t flags = enter_critical_section();
+
         priv->ier |= UART_IER_EDSSI;
         u16550_serialout(priv, UART_IER_OFFSET, priv->ier);
 
         sem_wait(&(priv->msisem));
+
+        leave_critical_section(flags);
       }
       break;
 
