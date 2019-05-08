@@ -642,7 +642,13 @@ static int u16550_setup(FAR struct uart_dev_s *dev)
 
   /* Set up the IER */
 
-  priv->ier = u16550_serialin(priv, UART_IER_OFFSET);
+  /*priv->ier = u16550_serialin(priv, UART_IER_OFFSET);*/
+
+  priv->ier = 0;
+  u16550_serialout(priv, UART_IER_OFFSET, priv->ier);
+
+  /* read the MSR to clear unwanted MSI */
+  uint32_t val = u16550_serialin(priv, UART_MSR_OFFSET);
 
   /* Set up the LCR */
 
