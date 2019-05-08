@@ -884,15 +884,17 @@ static int u16550_interrupt(int irq, FAR void *context, FAR void *arg)
               /* Read the modem status register (MSR) to clear */
 
               status = u16550_serialin(priv, UART_MSR_OFFSET);
-              sinfo("MSR: %02x\n", status);
 
-              priv->ier &= ~UART_IER_EDSSI;
-              u16550_serialout(priv, UART_IER_OFFSET, priv->ier);
-
-              sem_getvalue(&(priv->msisem), &svalue);
-              if(svalue < 0)
+              if(status & 0x1)
                 {
-                  sem_post(&(priv->msisem));
+                  priv->ier &= ~UART_IER_EDSSI;
+                  u16550_serialout(priv, UART_IER_OFFSET, priv->ier);
+
+                  sem_getvalue(&(priv->msisem), &svalue);
+                  if(svalue < 0)
+                    {
+                      sem_post(&(priv->msisem));
+                    }
                 }
               break;
             }
