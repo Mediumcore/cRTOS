@@ -34,6 +34,6 @@ void tux_set_tid_callback(int val, void* arg){
   {
     // According to man pages
     *(rtcb->xcp.clear_child_tid) = 0;
-    tux_futex(0, rtcb->xcp.clear_child_tid, FUTEX_WAKE, 1);
+    tux_futex(0, rtcb->xcp.clear_child_tid, FUTEX_WAKE, 1, 0, 0, 0);
   }
 }

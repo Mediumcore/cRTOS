@@ -15,7 +15,29 @@
 
 #define FUTEX_WAIT 0x0
 #define FUTEX_WAKE 0x1
+#define FUTEX_WAKE_OP 0x5
 #define FUTEX_PRIVATE_FLAG 0x80
+
+#define FUTEX_OP_SET        0  /* uaddr2 = oparg; */
+#define FUTEX_OP_ADD        1  /* uaddr2 += oparg; */
+#define FUTEX_OP_OR         2  /* uaddr2 |= oparg; */
+#define FUTEX_OP_ANDN       3  /* uaddr2 &= ~oparg; */
+#define FUTEX_OP_XOR        4  /* uaddr2 ^= oparg; */
+
+#define FUTEX_OP_ARG_SHIFT  8  /* Use (1 << oparg) as operand */
+
+#define FUTEX_GET_OP(x) ((x >> 28) & 0xf)
+#define FUTEX_GET_OPARG(x) ((int32_t)((x >> 12) & 0xfff) << 20 >> 20)
+
+#define FUTEX_OP_CMP_EQ     0  /* if (oldval == cmparg) wake */
+#define FUTEX_OP_CMP_NE     1  /* if (oldval != cmparg) wake */
+#define FUTEX_OP_CMP_LT     2  /* if (oldval < cmparg) wake */
+#define FUTEX_OP_CMP_LE     3  /* if (oldval <= cmparg) wake */
+#define FUTEX_OP_CMP_GT     4  /* if (oldval > cmparg) wake */
+#define FUTEX_OP_CMP_GE     5  /* if (oldval >= cmparg) wake */
+
+#define FUTEX_GET_CMP(x) ((x >> 24) & 0xf)
+#define FUTEX_GET_CMPARG(x) ((int32_t)(x & 0xfff) << 20 >> 20)
 
 #define TUX_O_ACCMODE	00000003
 #define TUX_O_RDONLY	00000000
@@ -128,6 +150,6 @@ void*   tux_brk         (unsigned long nbr, void* brk);
 
 int     tux_arch_prctl       (unsigned long nbr, int code, unsigned long addr);
 
-int     tux_futex       (unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val);
+int     tux_futex            (unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint32_t val2, int32_t* uaddr2, uint32_t val3);
 
 #endif//__LINUX_SUBSYSTEM_TUX_H
