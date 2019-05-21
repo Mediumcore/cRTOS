@@ -118,6 +118,10 @@ void up_registerdump(uint64_t *regs)
   _alert("RAX: %016llx, RBX: %016llx\n", regs[REG_RAX], regs[REG_RBX]);
   _alert("RCX: %016llx, RDX: %016llx\n", regs[REG_RCX], regs[REG_RDX]);
   _alert("RDI: %016llx, RSI: %016llx\n", regs[REG_RDI], regs[REG_RSI]);
+  _alert(" R8: %016llx,  R9: %016llx\n", regs[REG_R8] , regs[REG_R9]);
+  _alert("R10: %016llx, R11: %016llx\n", regs[REG_R10], regs[REG_R11]);
+  _alert("R12: %016llx, R13: %016llx\n", regs[REG_R12], regs[REG_R13]);
+  _alert("R14: %016llx, R15: %016llx\n", regs[REG_R14], regs[REG_R15]);
   _alert("Dumping Stack (+-64 bytes):\n");
   print_mem(regs[REG_RSP] - 512, 1024);
 
