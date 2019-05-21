@@ -25,7 +25,7 @@ int _tux_set_tid_address(struct tcb_s *rtcb, int* tidptr){
 int tux_set_tid_address(unsigned long nbr, int* tidptr){
   struct tcb_s *rtcb = this_task();
   _tux_set_tid_address(rtcb, tidptr);
-  return 0;
+  return rtcb->pid;
 }
 
 void tux_set_tid_callback(int val, void* arg){
