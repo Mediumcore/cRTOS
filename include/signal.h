@@ -59,7 +59,7 @@
 #define NULL_SIGNAL_SET ((sigset_t)0x00000000)
 #define ALL_SIGNAL_SET  ((sigset_t)0xffffffff)
 #define MIN_SIGNO       0
-#define MAX_SIGNO       31
+#define MAX_SIGNO       63
 #define GOOD_SIGNO(s)   ((((unsigned)(s))<=MAX_SIGNO))
 #define SIGNO2SET(s)    ((sigset_t)1 << (s))
 
@@ -275,7 +275,7 @@
  * special meaning in some circumstances (e.g., kill()).
  */
 
-typedef uint32_t sigset_t;   /* Bit set of 32 signals */
+typedef uint64_t sigset_t;   /* Bit set of 64 signals */
 #define __SIGSET_T_DEFINED 1
 
 /* Possibly volatile-qualified integer type of an object that can be accessed
