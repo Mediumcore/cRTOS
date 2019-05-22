@@ -335,7 +335,7 @@ char* retrive_path(int fd, off_t offset) {
       char tmp[64];
       memset(tmp, 0, 64);
 
-      uint64_t t = fd - TUX_FD_OFFSET;
+      uint64_t t = fd;
       int k = 0;
       while(t){
           tmp[k++] = (t % 10) + '0';
@@ -472,7 +472,7 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
       vma->_backing = retrive_path(fd, offset);
 
       /* Tell shadow process to fill the file data */
-      if(tux_delegate(nbr, (uint64_t)addr, length, prot, flags, fd - TUX_FD_OFFSET, offset) == -1)
+      if(tux_delegate(nbr, (uint64_t)addr, length, prot, flags, fd, offset) == -1)
         {
           revoke_vma(vma);
           return (void*)-1;

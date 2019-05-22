@@ -69,18 +69,14 @@ int tux_file_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm6)
 {
   int ret;
-  svcinfo("File related syscall %d, fd: %d\n", nbr, parm1);
+  svcinfo("Multiplexed File related syscall %d, fd: %d\n", nbr, parm1);
 
-  if(parm1 <= 2) { // stdin, stdout, stderr should be delegated
+  if(parm1 < CONFIG_TUX_FD_RESERVE) { // Lower parts should be delegated
     ret = tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
   }else{
     ret = -1;
     if(linux_syscall_number_table[nbr] != (uint64_t)-1){
       ret = tux_local(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
-    }
-    if(ret < 0){
-      svcinfo("%s\n", strerror(errno));
-      ret = tux_delegate(nbr, parm1 - TUX_FD_OFFSET, parm2, parm3, parm4, parm5, parm6);
     }
   }
 
@@ -94,12 +90,13 @@ int tux_poll_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
   int ret, i;
   svcinfo("Poll syscall %d, nfd: %d\n", nbr, parm2);
 
-  ret = -1;
   for(i = 0; i < parm2; i++)
     {
       svcinfo("Poll fd #%d: %d\n", i, ((struct pollfd*)parm1)[i].fd);
-      ((struct pollfd*)parm1)[i].fd -= TUX_FD_OFFSET;
+      if(((struct pollfd*)parm1)[i].fd >= CONFIG_TUX_FD_RESERVE)
+          return -1;
     }
+
   ret = tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
 
   return ret;
@@ -112,7 +109,7 @@ int tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
   int ret;
   uint64_t new_flags;
 
-  svcinfo("Open/Socket syscall %d, path: %s\n", nbr, (char*)parm1);
+  svcinfo("Open/Socket syscall %d, path: %s, flag: %llx\n", nbr, (char*)parm1, parm2);
 
   // Nuttx has different Bit pattern in flags, we have to decode them
   new_flags = 0;
@@ -127,25 +124,24 @@ int tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
   if(parm2 & TUX_O_APPEND)      new_flags |= O_APPEND;
   if(parm2 & TUX_O_NONBLOCK)    new_flags |= O_NONBLOCK;
   if(parm2 & TUX_O_DSYNC)       new_flags |= O_DSYNC;
-  if(parm2 & TUX_O_SYNC)        new_flags |= O_SYNC;
+  if(parm2 & TUX_O_SYNC == TUX_O_SYNC)        new_flags |= O_SYNC;
   if(parm2 & TUX_O_DIRECT)      new_flags |= O_DIRECT;
   /*if(parm2 & TUX_O_LARGEFILE)   new_flags |= O_LARGEFILE;*/
   /*if(parm2 & TUX_O_DIRECTORY)   new_flags |= O_DIRECTORY;*/
   /*if(parm2 & TUX_O_NOFOLLOW)    new_flags |= O_NOFOLLOW;*/
   /*if(parm2 & TUX_O_NOATIME)     new_flags |= O_NOATIME;*/
   /*if(parm2 & TUX_O_CLOEXEC)     new_flags |= O_CLOEXEC;*/
-  if(parm2 & TUX_O_TMPFILE)     return -1;
+  if(parm2 & TUX_O_TMPFILE == TUX_O_TMPFILE)     return -1;
   if(parm2 & TUX_O_NDELAY)      new_flags |= O_NDELAY;
 
   ret = tux_local(nbr, parm1, new_flags, parm3, parm4, parm5, parm6);
-  if(ret < 0){
-      svcinfo("%s\n", strerror(errno));
-      ret = tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
-      svcinfo("Open/Socket fd: %d\n", ret);
-  }else{
-      return ret;
+  if(ret >= 0){
+      return ret + CONFIG_TUX_FD_RESERVE;
   }
 
-  if(ret < 0) return ret;
-  return ret + TUX_FD_OFFSET;
+  svcinfo("%s\n", strerror(errno));
+  ret = tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
+  svcinfo("Open/Socket fd: %d\n", ret);
+
+  return ret;
 }

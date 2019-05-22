@@ -51,4 +51,7 @@ endif # ARCH_INTEL64_BROADWELK
 if ARCH_CHIP_BROADWELL
 source arch/x86_64/src/broadwell/Kconfig
 endif # ARCH_CHIP_BROADWELL
+
+source arch/x86_64/src/linux_subsystem/Kconfig
+
 endif # ARCH_X86_64
