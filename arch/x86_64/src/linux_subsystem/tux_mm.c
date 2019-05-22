@@ -502,7 +502,7 @@ int tux_munmap(unsigned long nbr, void* addr, size_t length){
   // Free page_table entries
   vma->va_start = addr;
   vma->va_end = addr + num_of_pages * PAGE_SIZE;
-  vma->pa_start = 0x0;
+  vma->pa_start = 0xffffffffffffffff;
 
   make_vma_free(vma);
   map_pages(vma);

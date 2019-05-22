@@ -131,6 +131,7 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
   if(dtcb->xcp.is_linux == 2) {
     for(ptr = dtcb->xcp.vma; ptr; ptr = ptr->next) {
       if(ptr == &g_vm_full_map) continue;
+      if(ptr->pa_start == 0xffffffffffffffff) continue;
       gran_free(tux_mm_hnd, (void*)(ptr->pa_start), ptr->va_end - ptr->va_start);
 #ifdef CONFIG_DEBUG_SYSCALL_INFO
       if(ptr->_backing[0] != '[')
