@@ -174,7 +174,7 @@ enum ioapic_trigger_mode {
 struct vma_s {
     uint64_t va_start;
     uint64_t va_end;
-    uint64_t pa_start;
+    uintptr_t pa_start;
     char* _backing;
     uint64_t proto;
 
