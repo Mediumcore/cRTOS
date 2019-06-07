@@ -79,7 +79,7 @@ int clock_getres(clockid_t clock_id, struct timespec *res)
         /* Form the timspec using clock resolution in nanoseconds */
 
         res->tv_sec  = 0;
-        res->tv_nsec = NSEC_PER_TICK;
+        res->tv_nsec = 1; // NSEC_PER_TICK;
 
         sinfo("Returning res=(%d,%d)\n", (int)res->tv_sec, (int)res->tv_nsec);
         break;
