@@ -978,7 +978,7 @@ struct pcie_dev_t pci_shadow_proc = {
     .vendor = VENDORID,
     .device = DEVICEID,
     .class_rev = (PCI_DEV_CLASS_OTHER << 24 |
-          0xffff << 8 | JAILHOUSE_IVSHMEM_REVERSION),
+          0xff00 << 8 | JAILHOUSE_IVSHMEM_REVERSION),
     .probe = shadow_proc_probe
 };
 
