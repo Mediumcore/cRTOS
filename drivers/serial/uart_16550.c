@@ -77,6 +77,7 @@ struct u16550_s
 #endif
   uart_datawidth_t ier;       /* Saved IER value */
   uint8_t          irq;       /* IRQ associated with this UART */
+  uint8_t          msr;
 #ifndef CONFIG_16550_SUPRESS_CONFIG
   uint8_t          parity;    /* 0=none, 1=odd, 2=even */
   uint8_t          bits;      /* Number of bits (7 or 8) */
@@ -648,7 +649,7 @@ static int u16550_setup(FAR struct uart_dev_s *dev)
   u16550_serialout(priv, UART_IER_OFFSET, priv->ier);
 
   /* read the MSR to clear unwanted MSI */
-  uint32_t val = u16550_serialin(priv, UART_MSR_OFFSET);
+  priv->msr = u16550_serialin(priv, UART_MSR_OFFSET);
 
   /* Set up the LCR */
 
@@ -883,9 +884,9 @@ static int u16550_interrupt(int irq, FAR void *context, FAR void *arg)
               int svalue;
               /* Read the modem status register (MSR) to clear */
 
-              status = u16550_serialin(priv, UART_MSR_OFFSET);
+              priv->msr = u16550_serialin(priv, UART_MSR_OFFSET);
 
-              if(status & 0x1)
+              if(priv->msr & 0x1)
                 {
                   priv->ier &= ~UART_IER_EDSSI;
                   u16550_serialout(priv, UART_IER_OFFSET, priv->ier);
@@ -1132,6 +1133,14 @@ static int u16550_ioctl(struct file *filep, int cmd, unsigned long arg)
         sem_wait(&(priv->msisem));
 
         leave_critical_section(flags);
+      }
+      break;
+
+    case TIOCMGET:
+      {
+        *(uint32_t *)arg = 0;
+        if(priv->msr & 0x10)
+            *(uint32_t *)arg |= TIOCM_CTS;
       }
       break;
 
