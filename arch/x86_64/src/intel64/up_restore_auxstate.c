@@ -78,7 +78,6 @@ void up_restore_auxstate(struct tcb_s *rtcb)
 {
   struct vma_s* ptr;
   uint64_t i, j;
-  register uint64_t rax asm("rax") = rtcb->pid;
   for(ptr = rtcb->xcp.pda; ptr; ptr = ptr->next) {
       if(ptr == &g_vm_full_map){
           for(j = 0, i = ptr->va_start; i < ptr->va_end; i += HUGE_PAGE_SIZE, j += PAGE_SIZE) {

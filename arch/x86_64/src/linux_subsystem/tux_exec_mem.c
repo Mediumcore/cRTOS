@@ -235,13 +235,7 @@ void exec_trampoline(void* entry, void* pstack, void* vstack) {
     tux_delegate(9, (((uint64_t)pstack) << 32) | (uint64_t)(124 * HUGE_PAGE_SIZE), 4 * HUGE_PAGE_SIZE,
                  0, MAP_ANONYMOUS, 0, 0);
 
-    register uint64_t sp asm("rsp");
-    register uint64_t rdi asm("rdi");
-    register uint64_t rsi asm("rsi");
-    register uint64_t rdx asm("rdx");
-    register uint64_t rcx asm("rcx");
-    register uint64_t r8 asm("r8");
-    register uint64_t r9 asm("r9");
+    uint64_t sp;
 
     // Set the stack pointer to user stack
     sp = 124 * HUGE_PAGE_SIZE + (uint64_t)vstack - (uint64_t)pstack;
@@ -249,14 +243,8 @@ void exec_trampoline(void* entry, void* pstack, void* vstack) {
     // Jump to the actual entry point, not using call to preserve stack
     // Clear the registers, otherwise the libc_main will
     // mistaken the trash value in registers as arguments
-    rdi = 0;
-    rsi = 0;
-    rdx = 0;
-    rcx = 0;
-    r8 = 0;
-    r9 = 0;
-
-    goto *entry;
+    //
+    asm volatile ("mov %0, %%rsp; xor %%rdi, %%rdi; xor %%rsi, %%rsi; xor %%rdx, %%rdx; xor %%rcx, %%rcx; xor %%r8, %%r8; xor %%r9, %%r9; jmpq %1"::"g"(sp), "g"(entry));
 
     _exit(255); // We should never end up here
 }
