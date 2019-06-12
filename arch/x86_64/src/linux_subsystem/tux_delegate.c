@@ -76,7 +76,7 @@ int tux_file_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
   }else{
     ret = -1;
     if(linux_syscall_number_table[nbr] != (uint64_t)-1){
-      ret = tux_local(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
+      ret = tux_local(nbr, parm1 - CONFIG_TUX_FD_RESERVE, parm2, parm3, parm4, parm5, parm6);
     }
   }
 
