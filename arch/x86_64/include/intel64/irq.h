@@ -48,6 +48,7 @@
 #  include <stdint.h>
 #  include <stdbool.h>
 #  include <arch/arch.h>
+#  include <semaphore.h>
 #endif
 
 /****************************************************************************
@@ -208,6 +209,7 @@ struct xcptcontext
   int32_t linux_sock;
   uint64_t linux_tcb;
   uint64_t syscall_ret;
+  sem_t syscall_lock;
 
   void* __brk;
   void* __min_brk;
@@ -280,9 +282,17 @@ static inline void up_irq_disable(void)
 
 /* Enable interrupts unconditionally */
 
+//struct shadow_proc_driver_s *aux_shadow;
+//bool shadow_proc_rx_avail(struct shadow_proc_driver_s*);
+
 static inline void up_irq_enable(void)
 {
   asm volatile("sti": : :"memory");
+  //if(aux_shadow && shadow_proc_rx_avail(aux_shadow)){
+
+    //_alert("lottery!\n");
+    //shadow_proc_interrupt(0, 0, aux_shadow);
+  //}
 }
 
 /* Disable interrupts, but return previous interrupt state */

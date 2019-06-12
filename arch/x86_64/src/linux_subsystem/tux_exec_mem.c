@@ -373,6 +373,7 @@ int execvs(void* pbase, void* vbase, int bsize,
     tcb->cmn.xcp.linux_sock = sock;
     _info("LINUX SOCK: %d\n", tcb->cmn.xcp.linux_sock);
     tcb->cmn.xcp.linux_tcb = shadow_tcb;
+    nxsem_init(&tcb->cmn.xcp.syscall_lock, 1, 0);
 
     add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
 

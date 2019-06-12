@@ -56,6 +56,7 @@
 #include <nuttx/net/netdev.h>
 
 #include <arch/io.h>
+#include <arch/irq.h>
 
 #include "virtio_ring.h"
 #include "sched/sched.h"
@@ -93,6 +94,7 @@
 
 #define SHADOW_PROC_VECTOR_STATE		0
 #define SHADOW_PROC_VECTOR_TX_RX		1
+#define SHADOW_PROC_VECTOR_OK		2
 
 #define SHADOW_PROC_NUM_VECTORS		2
 
@@ -119,6 +121,7 @@
         ___p1;\
      })
 
+/*struct shadow_proc_driver_s *aux_shadow = 0;*/
 
 /****************************************************************************
  * Private Types
@@ -211,7 +214,8 @@ static void shadow_proc_reply(struct shadow_proc_driver_s *priv);
 static void shadow_proc_receive(FAR struct shadow_proc_driver_s *priv, uint64_t *buf);
 static void shadow_proc_txdone(FAR struct shadow_proc_driver_s *priv);
 
-static int  shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg);
+int  shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg);
+int  shadow_proc_ok(int irq, FAR void *context, FAR void *arg);
 
 /* Watchdog timer expirations */
 
@@ -332,17 +336,17 @@ static int shadow_proc_calc_qsize(struct shadow_proc_driver_s *in)
 
 static void shadow_proc_notify_tx(struct shadow_proc_driver_s *in, unsigned int num)
 {
-    uint16_t evt, old, new;
+    /*uint16_t evt, old, new;*/
 
-    mb();
+    /*mb();*/
 
-    evt = READ_ONCE(vring_avail_event(&in->tx.vr));
-    old = in->tx.last_avail_idx - num;
-    new = in->tx.last_avail_idx;
+    /*evt = READ_ONCE(vring_avail_event(&in->tx.vr));*/
+    /*old = in->tx.last_avail_idx - num;*/
+    /*new = in->tx.last_avail_idx;*/
 
-    if (vring_need_event(evt, new, old)) {
-        in->ivshm_regs->doorbell = SHADOW_PROC_VECTOR_TX_RX;
-    }
+    /*if (vring_need_event(evt, new, old)) {*/
+    in->ivshm_regs->doorbell = SHADOW_PROC_VECTOR_TX_RX;
+    /*}*/
 }
 
 static void shadow_proc_enable_rx_irq(struct shadow_proc_driver_s *in)
@@ -355,15 +359,16 @@ static void shadow_proc_notify_rx(struct shadow_proc_driver_s *in, unsigned int 
 {
     uint16_t evt, old, new;
 
+    /*mb();*/
+
+    /*evt = vring_used_event(&in->rx.vr);*/
+    /*old = in->rx.last_used_idx - num;*/
+    /*new = in->rx.last_used_idx;*/
+
+    /*if (vring_need_event(evt, new, old)) {*/
+    in->ivshm_regs->doorbell = SHADOW_PROC_VECTOR_TX_RX;
     mb();
-
-    evt = vring_used_event(&in->rx.vr);
-    old = in->rx.last_used_idx - num;
-    new = in->rx.last_used_idx;
-
-    if (vring_need_event(evt, new, old)) {
-        in->ivshm_regs->doorbell = SHADOW_PROC_VECTOR_TX_RX;
-    }
+    /*}*/
 }
 
 static void shadow_proc_enable_tx_irq(struct shadow_proc_driver_s *in)
@@ -397,7 +402,7 @@ static struct vring_desc *shadow_proc_rx_desc(struct shadow_proc_driver_s *in)
     return &vr->desc[avail];
 }
 
-static bool shadow_proc_rx_avail(struct shadow_proc_driver_s *in)
+bool shadow_proc_rx_avail(struct shadow_proc_driver_s *in)
 {
     mb();
     return READ_ONCE(in->rx.vr.avail->idx) != in->rx.last_avail_idx;
@@ -644,7 +649,9 @@ static void shadow_proc_state_change(void *arg)
   case SHADOW_PROC_STATE_RUN:
     if (rstate >= SHADOW_PROC_STATE_READY) {
         shadow_proc_run(in);
+        /*aux_shadow = in;*/
     } else {
+        /*aux_shadow = 0;*/
         shadow_proc_do_stop(in);
     }
     break;
@@ -722,7 +729,7 @@ static uint64_t shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint
   shadow_proc_tx_clean(priv);
 
   shadow_proc_tx_frame(priv, buf, sizeof(buf));
-  up_block_task(rtcb, TSTATE_WAIT_SIG);
+  nxsem_wait(&rtcb->xcp.syscall_lock);
 
   return rtcb->xcp.syscall_ret;
 }
@@ -786,7 +793,7 @@ static void shadow_proc_receive(FAR struct shadow_proc_driver_s *priv, uint64_t 
  *
  ****************************************************************************/
 
-static int shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg)
+int shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct shadow_proc_driver_s *priv = (FAR struct shadow_proc_driver_s *)arg;
   uint64_t buf[3];
@@ -801,8 +808,15 @@ static int shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg)
 
   shadow_proc_enable_rx_irq(priv);
 
-  up_unblock_task(rtcb);
+  nxsem_post(&rtcb->xcp.syscall_lock);
 
+
+  return OK;
+}
+
+int shadow_proc_ok(int irq, FAR void *context, FAR void *arg)
+{
+  _info("RECV OK\n");
   return OK;
 }
 
@@ -938,10 +952,12 @@ int shadow_proc_probe(uint16_t bdf)
 
   _info("mapped the bars got position %d\n", priv->ivshm_regs->id);
 
-  (void)irq_attach(IRQ12, (xcpt_t)shadow_proc_state_handler, priv);
-  (void)irq_attach(IRQ13, (xcpt_t)shadow_proc_interrupt, priv);
-  pci_msix_set_vector(bdf, IRQ12, 0);
-  pci_msix_set_vector(bdf, IRQ13, 1);
+  (void)irq_attach(IRQ11, (xcpt_t)shadow_proc_state_handler, priv);
+  (void)irq_attach(IRQ12, (xcpt_t)shadow_proc_interrupt, priv);
+  (void)irq_attach(IRQ13, (xcpt_t)shadow_proc_ok, priv);
+  pci_msix_set_vector(bdf, IRQ11, 0);
+  pci_msix_set_vector(bdf, IRQ12, 1);
+  pci_msix_set_vector(bdf, IRQ13, 2);
   priv->peer_id = !priv->ivshm_regs->id;
 
   if (shadow_proc_calc_qsize(priv))
