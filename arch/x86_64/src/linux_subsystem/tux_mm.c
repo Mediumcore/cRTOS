@@ -306,26 +306,26 @@ void print_mapping(void) {
   struct vma_s* ptr;
   uint64_t p = 0;
 
-  svcinfo("Current Map: \n");
+  _alert("Current Map: \n");
   for(ptr = tcb->xcp.vma; ptr && p < 512; ptr = ptr->next, p++)
     {
       if(ptr == &g_vm_full_map) continue;
-      svcinfo("0x%08llx - 0x%08llx : backed by 0x%08llx 0x%08llx %s\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr), ptr->_backing);
+      _alert("0x%08llx - 0x%08llx : backed by 0x%08llx 0x%08llx %s\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr), ptr->_backing);
     }
 
   p = 0;
-  svcinfo("Current PDAS: \n");
+  _alert("Current PDAS: \n");
   for(ptr = tcb->xcp.pda; ptr && p < 64; ptr = ptr->next, p++)
     {
       if(ptr == &g_vm_full_map) continue;
-      svcinfo("0x%08llx - 0x%08llx : 0x%08llx 0x%08llx\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr));
+      _alert("0x%08llx - 0x%08llx : 0x%08llx 0x%08llx\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr));
     }
 
   gran_info(tux_mm_hnd, &grania);
-  svcinfo("GRANDULE  BEFORE AFTER\n");
-  svcinfo("======== ======== ========\n");
-  svcinfo("nfree    %8x %8x\n", granib.nfree, grania.nfree);
-  svcinfo("mxfree   %8x %8x\n", granib.mxfree, grania.mxfree);
+  _alert("GRANDULE  BEFORE AFTER\n");
+  _alert("======== ======== ========\n");
+  _alert("nfree    %8x %8x\n", granib.nfree, grania.nfree);
+  _alert("mxfree   %8x %8x\n", granib.mxfree, grania.mxfree);
   granib = grania;
 }
 
@@ -479,7 +479,7 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
         }
     }
 
-  print_mapping();
+  /*print_mapping();*/
 
   return addr;
 }
@@ -507,7 +507,7 @@ int tux_munmap(unsigned long nbr, void* addr, size_t length){
   make_vma_free(vma);
   map_pages(vma);
 
-  print_mapping();
+  /*print_mapping();*/
 
   return 0;
 

@@ -125,6 +125,8 @@ void up_registerdump(uint64_t *regs)
   _alert("Dumping Stack (+-64 bytes):\n");
   print_mem(regs[REG_RSP] - 512, 1024);
 
+  print_mapping();
+
 #ifdef CONFIG_DEBUG_NOOPT
   backtrace(regs[REG_RBP]);
 #endif
