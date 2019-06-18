@@ -363,7 +363,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_no_impl, // SYS_open_by_handle_at,
     tux_no_impl, // SYS_clock_adjtime,
     tux_no_impl, // SYS_syncfs,
-    tux_no_impl, // SYS_sendmmsg,
+    tux_file_delegate, // SYS_sendmmsg,
     tux_no_impl, // SYS_setns,
     tux_no_impl, // SYS_getcpu,
     tux_no_impl, // SYS_process_vm_readv,
