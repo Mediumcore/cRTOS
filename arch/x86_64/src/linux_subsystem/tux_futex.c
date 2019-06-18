@@ -2,6 +2,7 @@
 
 #include "tux.h"
 #include "up_internal.h"
+#include "sched/sched.h"
 
 #define FUTEX_HT_SIZE 256
 
@@ -13,9 +14,11 @@ struct futex_q{
 struct futex_q futex_hash_table[FUTEX_HT_SIZE];
 
 int tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint32_t val2, int32_t* uaddr2, uint32_t val3){
+  struct tcb_s *tcb = this_task();
   uint32_t s_head = (uint64_t)uaddr % FUTEX_HT_SIZE;
+  uint32_t s_head2 = (uint64_t)uaddr2 % FUTEX_HT_SIZE;
   uint32_t hv = s_head;
-  uint32_t hv2 = s_head;
+  uint32_t hv2 = s_head2;
   int ret;
   irqstate_t flags;
   if(!uaddr) return -1;
@@ -25,6 +28,7 @@ int tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint3
 
   switch(opcode){
     case FUTEX_WAIT:
+      svcinfo("T: %d FUTEX_WAIT at %llx\n", tcb->pid, uaddr);
       while((futex_hash_table[hv].key != 0) && (futex_hash_table[hv].key != (uint64_t)uaddr)){
           hv++;
           hv %= FUTEX_HT_SIZE;
@@ -46,10 +50,14 @@ int tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint3
 
       break;
     case FUTEX_WAKE:
+      svcinfo("T: %d FUTEX_WAKE at %llx\n", tcb->pid, uaddr);
       while(futex_hash_table[hv].key != (uint64_t)uaddr){
           hv++;
           hv %= FUTEX_HT_SIZE;
-          if(hv == s_head) return 0; // ? No such key, wake no one
+          if(hv == s_head) {
+            svcinfo("No such key: %llx\n", uaddr);
+            return 0; // ? No such key, wake no one
+          }
       }
 
       int svalue;
@@ -72,23 +80,16 @@ int tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint3
 
       break;
     case FUTEX_WAKE_OP:
-      while(futex_hash_table[hv].key != (uint64_t)uaddr){
-          hv++;
-          hv %= FUTEX_HT_SIZE;
-          if(hv == s_head) return 0; // ? No such key, wake no one
-      }
-
-      while(futex_hash_table[hv2].key != (uint64_t)uaddr2){
-          hv2++;
-          hv2 %= FUTEX_HT_SIZE;
-          if(hv2 == s_head) return 0; // ? No such key, wake no one
-      }
+      svcinfo("T: %d FUTEX_WAKE_OP at %llx and %llx\n", tcb->pid, uaddr, uaddr2);
 
       int32_t oparg = FUTEX_GET_OPARG(val3);
       if(FUTEX_GET_OP(val3) & FUTEX_OP_ARG_SHIFT)
           if(oparg < 0 || oparg > 31)
               oparg &= 31;
           oparg <<= 1;
+
+      svcinfo("op: 0x%x, arg: 0x%x\n", FUTEX_GET_OP(val3), oparg);
+      svcinfo("cmp: 0x%x, arg: 0x%x\n", FUTEX_GET_CMP(val3), FUTEX_GET_CMPARG(val3));
 
       flags = enter_critical_section();
 
@@ -142,7 +143,7 @@ int tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint3
 
       break;
     default:
-      _info("Futex got unfriendly opcode: %d\n", opcode);
+      _alert("Futex got unfriendly opcode: %d\n", opcode);
       PANIC();
     }
 }
