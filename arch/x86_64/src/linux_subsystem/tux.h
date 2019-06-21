@@ -152,4 +152,7 @@ int     tux_arch_prctl       (unsigned long nbr, int code, unsigned long addr);
 
 int     tux_futex            (unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint32_t val2, int32_t* uaddr2, uint32_t val3);
 
+static inline int     tux_sched_get_priority_max(unsigned long nbr, uint64_t p) { return sched_get_priority_max(p); };
+static inline int     tux_sched_get_priority_min(unsigned long nbr, uint64_t p) { return sched_get_priority_min(p); };
+
 #endif//__LINUX_SUBSYSTEM_TUX_H
