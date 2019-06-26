@@ -76,7 +76,7 @@ syscall_handler(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
   uint64_t ret;
 
   svcinfo("SYSCALL Entry nbr: %llu\n", nbr);
-  svcinfo("SYSCALL SRC: %016llx\n", __builtin_return_address(1));
+  svcinfo("SYSCALL Task: %d SRC: %016llx\n", this_task()->pid, __builtin_return_address(1));
   svcinfo("SYSCALL JMP: %016llx\n", g_stublookup[nbr]);
   svcinfo("  PARAM: %016llx %016llx %016llx\n",
           parm1,  parm2,  parm3);

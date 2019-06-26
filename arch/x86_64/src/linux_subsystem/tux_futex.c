@@ -23,13 +23,16 @@ int tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint3
   irqstate_t flags;
   if(!uaddr) return -1;
 
+  // XXX: At the mean time only per process futex
+  if(!(opcode & FUTEX_PRIVATE_FLAG)) return -1;
+
   // Discard the private flag
   opcode &= ~FUTEX_PRIVATE_FLAG;
 
   switch(opcode){
     case FUTEX_WAIT:
       svcinfo("T: %d FUTEX_WAIT at %llx\n", tcb->pid, uaddr);
-      while((futex_hash_table[hv].key != 0) && (futex_hash_table[hv].key != (uint64_t)uaddr)){
+      while((futex_hash_table[hv].key != 0) && (futex_hash_table[hv].key != (((uint64_t)tcb->pid << 32) | (uint64_t)uaddr))){
           hv++;
           hv %= FUTEX_HT_SIZE;
           if(hv == s_head) return -1; // Out of free futex
@@ -40,7 +43,7 @@ int tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint3
       if(*uaddr == val){
         if(futex_hash_table[hv].key == 0) sem_init(&(futex_hash_table[hv].sem), 0, 0);
 
-        futex_hash_table[hv].key = (uint64_t)uaddr;
+        futex_hash_table[hv].key = (((uint64_t)tcb->pid << 32) | (uint64_t)uaddr);
         sem_wait(&(futex_hash_table[hv].sem));
       }
 
@@ -51,7 +54,7 @@ int tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint3
       break;
     case FUTEX_WAKE:
       svcinfo("T: %d FUTEX_WAKE at %llx\n", tcb->pid, uaddr);
-      while(futex_hash_table[hv].key != (uint64_t)uaddr){
+      while(futex_hash_table[hv].key != (((uint64_t)tcb->pid << 32) | (uint64_t)uaddr)){
           hv++;
           hv %= FUTEX_HT_SIZE;
           if(hv == s_head) {

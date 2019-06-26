@@ -5,7 +5,8 @@
 #include "up_internal.h"
 #include "sched/sched.h"
 
-int _tux_set_tid_address(struct tcb_s *rtcb, int* tidptr){
+int* _tux_set_tid_address(struct tcb_s *rtcb, int* tidptr){
+  int* orig_val;
   irqstate_t flags;
 
   flags = enter_critical_section();
@@ -16,10 +17,11 @@ int _tux_set_tid_address(struct tcb_s *rtcb, int* tidptr){
     // on_exit only in effect on group's last exit
     add_remote_on_exit(rtcb, tux_set_tid_callback, NULL);
   }
+  orig_val = rtcb->xcp.clear_child_tid;
   rtcb->xcp.clear_child_tid = tidptr;
 
   leave_critical_section(flags);
-  return 0;
+  return orig_val;
 }
 
 int tux_set_tid_address(unsigned long nbr, int* tidptr){

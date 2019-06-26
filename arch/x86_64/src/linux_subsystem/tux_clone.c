@@ -8,6 +8,12 @@
 #include "up_internal.h"
 #include "sched/sched.h"
 
+#include <arch/irq.h>
+#include <sys/mman.h>
+
+#define STR(x) #x
+#define XSTR(s) STR(s)
+
 # define CSIGNAL       0x000000ff /* Signal mask to be sent at exit.  */
 # define CLONE_VM      0x00000100 /* Set if VM shared between processes.  */
 # define CLONE_FS      0x00000200 /* Set if fs info shared between processes.  */
@@ -22,6 +28,39 @@
 # define CLONE_CHILD_SETTID 0x01000000 /* Store TID in userlevel buffer in
 					  the child.  */
 
+static inline void* new_memory_block(uint64_t size, void** virt) {
+    void* ret;
+    ret = gran_alloc(tux_mm_hnd, size);
+    *virt = temp_map_at_0xc0000000(ret, ret + size);
+    memset(*virt, 0, size);
+    return ret;
+}
+
+void clone_trampoline(void* regs) {
+    uint64_t regs_on_stack[16];
+    _info("Entering Clone Trampoline\n");
+
+    struct tcb_s *rtcb = this_task();
+    struct vma_s *ptr;
+    for(ptr = rtcb->xcp.vma; ptr; ptr = ptr->next){
+        tux_delegate(9, (((uint64_t)ptr->pa_start) << 32) | (uint64_t)(ptr->va_start), VMA_SIZE(ptr),
+                     0, MAP_ANONYMOUS, 0, 0);
+    }
+
+    // Jump to the actual entry point, not using call to preserve stack
+    // Clear the registers, otherwise the libc_main will
+    // mistaken the trash value in registers as arguments
+    _info("%llx\n", regs);
+    print_mem(regs, sizeof(uint64_t) * 16);
+
+    // Move the regs onto the stack and free the memory
+    memcpy(regs_on_stack, regs, sizeof(uint64_t) * 16);
+    kmm_free(regs);
+
+    fork_kickstart(regs_on_stack);
+    _exit(255); // We should never end up here
+}
+
 int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
               void *ptid, void *ctid,
               unsigned long tls){
@@ -30,19 +69,24 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
   struct task_tcb_s *tcb;
   struct tcb_s *rtcb = this_task();
   void* stack;
+  struct vma_s *ptr, *ptr2, *pptr, *pda_ptr;
+  uint64_t mapping_count;
+  uint64_t i;
+  void* virt_mem;
+  uint64_t *regs;
 
-  /* we only handle CLONE_THREAD */
-  if(!(flags & CLONE_THREAD)) return -1;
-  /* We don't handle copy on write */
-  if(!child_stack) return -1;
-  /* We current only support sharing the Virtual Envieonment */
-  if(!(flags & CLONE_VM)) return -1;
+  int* orig_child_tid_ptr;
+  int orig_tid;
 
   tcb = (FAR struct task_tcb_s *)kmm_zalloc(sizeof(struct task_tcb_s));
   if (!tcb)
     return -1;
 
   stack = kmm_zalloc(0x8000); //Kernel stack
+  if(!stack)
+    return -1;
+
+  _info("kstack addrs: orig: 0x%llx, new: 0x%llx\n", rtcb->adj_stack_ptr, stack);
 
   ret = task_init((FAR struct tcb_s *)tcb, "clone_thread", rtcb->init_priority,
                   (uint32_t*)stack, 0x8000, NULL, NULL);
@@ -64,31 +108,136 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
     tcb->cmn.xcp.fs_base = (uint64_t)tls;
   }
 
-  if(flags & CLONE_PARENT_SETTID){
-    *(uint32_t*)(ptid) = rtcb->pid;
-  }
-
   if(flags & CLONE_CHILD_SETTID){
+    orig_tid = *(uint32_t*)(ctid);
     *(uint32_t*)(ctid) = tcb->cmn.pid;
   }
 
   if(flags & CLONE_CHILD_CLEARTID){
-    _tux_set_tid_address((struct tcb_s*)tcb, (int*)(ctid));
+    orig_child_tid_ptr = _tux_set_tid_address((struct tcb_s*)tcb, (int*)(ctid));
   }
 
   /* Clone the VM */
-  tcb->cmn.xcp.vma = rtcb->xcp.vma;
-  tcb->cmn.xcp.pda = rtcb->xcp.pda;
+  if(flags & CLONE_VM){
+      tcb->cmn.xcp.vma = rtcb->xcp.vma;
+      tcb->cmn.xcp.pda = rtcb->xcp.pda;
 
-  /* manual set the stack pointer */
-  tcb->cmn.xcp.regs[REG_RSP] = (uint64_t)child_stack;
+      /* manual set the stack pointer */
+      tcb->cmn.xcp.regs[REG_RSP] = (uint64_t)child_stack;
 
-  /* manual set the instruction pointer */
-  tcb->cmn.xcp.regs[REG_RIP] = (uint64_t)(__builtin_return_address(3)); // Directly leaves the syscall
+      /* manual set the instruction pointer */
+      tcb->cmn.xcp.regs[REG_RIP] = *((uint64_t*)(get_kernel_stack_ptr()) - 2); // Directly leaves the syscall
+  }else{
 
-  svcinfo("Cloned a task with RIP=0x%llx, RSP=0x%llx\n",
+    /* copy our mapped memory, including stack, to the new process */
+    mapping_count = 0;
+
+    for(ptr = rtcb->xcp.vma; ptr; ptr = ptr->next){
+        if(ptr->pa_start != 0xffffffff)
+            mapping_count++;
+    }
+
+    struct vma_s* mapping = kmm_zalloc(sizeof(struct vma_s) * mapping_count);
+
+    for(i = 0; i < mapping_count - 1; i++){
+        mapping[i].next = mapping + i + 1;
+    }
+
+    tcb->cmn.xcp.vma = mapping;
+    mapping[i].next = NULL;
+
+    _info("Copy mappings\n");
+    for(ptr = rtcb->xcp.vma, i = 0; ptr; ptr = ptr->next, i++){
+        if(ptr->pa_start == 0xffffffff){
+            i--;
+            continue;
+        }
+
+        mapping[i].va_start = ptr->va_start;
+        mapping[i].va_end = ptr->va_end;
+        mapping[i].proto = ptr->proto;
+
+        mapping[i]._backing = kmm_zalloc(strlen(ptr->_backing) + 1);
+        strcpy(mapping[i]._backing, ptr->_backing);
+
+        mapping[i].pa_start = new_memory_block(VMA_SIZE(ptr), &virt_mem);
+        memcpy(virt_mem, ptr->va_start, VMA_SIZE(ptr));
+
+        _info("Mapping: %llx - %llx: %llx %s\n", ptr->va_start, ptr->va_end, mapping[i].pa_start, mapping[i]._backing);
+    }
+
+    _info("Copy pdas\n");
+    tcb->cmn.xcp.pda = pda_ptr = kmm_zalloc(sizeof(struct vma_s));
+
+    for(ptr = tcb->cmn.xcp.vma; ptr;){
+        // Scan hole with continuous addressing and same proto
+        for(pptr = ptr, ptr2 = ptr->next; ptr2 && (((pptr->va_end + HUGE_PAGE_SIZE - 1) & HUGE_PAGE_MASK) >= (ptr2->va_start & HUGE_PAGE_MASK)) && (pptr->proto == ptr2->proto); pptr = ptr2, ptr2 = ptr2->next){
+            _info("Merge: %llx - %llx and %llx - %llx\n", pptr->va_start, pptr->va_end, ptr2->va_start, ptr2->va_end);
+            _info("Boundary: %llx and %llx\n", ((pptr->va_end + HUGE_PAGE_SIZE - 1) & HUGE_PAGE_MASK), (ptr2->va_start & HUGE_PAGE_MASK));
+
+        }
+
+        _info("PDA Mapping: %llx - %llx\n", ptr->va_start, pptr->va_end);
+
+        pda_ptr->va_start = ptr->va_start & HUGE_PAGE_MASK;
+        pda_ptr->va_end = (pptr->va_end + HUGE_PAGE_SIZE - 1) & HUGE_PAGE_MASK; //Align up
+        pda_ptr->proto = ptr->proto; // All proto are the same
+        pda_ptr->_backing = "";
+
+        pda_ptr->pa_start = new_memory_block(VMA_SIZE(pda_ptr) / HUGE_PAGE_SIZE * PAGE_SIZE, &virt_mem);
+        do{
+            for(i = ptr->va_start; i < ptr->va_end; i += PAGE_SIZE){
+                ((uint64_t*)(virt_mem))[((i - pda_ptr->va_start) >> 12) & 0x3ffff] = (ptr->pa_start + i - ptr->va_start) | ptr->proto;
+            }
+            ptr = ptr->next;
+        }while(ptr != pptr->next);
+
+        if(ptr){
+            pda_ptr->next = kmm_zalloc(sizeof(struct vma_s));
+            pda_ptr = pda_ptr->next;
+        }
+    }
+
+    _info("All mapped\n");
+
+    // set brk
+    tcb->cmn.xcp.__min_brk = rtcb->xcp.__min_brk;
+    tcb->cmn.xcp.__brk = rtcb->xcp.__brk;
+
+    if(!(flags & CLONE_SETTLS)) {
+        tcb->cmn.xcp.fs_base_set = rtcb->xcp.fs_base_set;
+        tcb->cmn.xcp.fs_base = rtcb->xcp.fs_base;
+    }
+
+    /* manual set the instruction pointer */
+    print_mem((uint64_t*)(get_kernel_stack_ptr() - 128), 128);
+    regs = kmm_zalloc(sizeof(uint64_t) * 16);
+    memcpy(regs, (uint64_t*)(get_kernel_stack_ptr()) - 16, sizeof(uint64_t) * 16);
+    tcb->cmn.xcp.regs[REG_RDI] = regs;
+    tcb->cmn.xcp.regs[REG_RIP] = clone_trampoline; // We need to manage the memory mapping
+    /* stack is the new kernel stack */
+
+    tcb->cmn.xcp.linux_tcb = tux_delegate(57, 0, 0, 0, 0, 0, 0); // Get a new shadow process
+  }
+
+  /* set it after copying the memory to child */
+  if(flags & CLONE_PARENT_SETTID){
+    *(uint32_t*)(ptid) = rtcb->pid;
+  }
+
+  /* restore the parent memory */
+  if((flags & CLONE_CHILD_SETTID) && !(flags & CLONE_VM)){
+    *(uint32_t*)(ctid) = orig_tid;
+  }
+
+  if((flags & CLONE_CHILD_CLEARTID) && !(flags & CLONE_VM)){
+    _tux_set_tid_address((struct tcb_s*)tcb, orig_child_tid_ptr);
+  }
+
+  svcinfo("Cloned a task with RIP=0x%llx, RSP=0x%llx, kstack=0x%llx\n",
           tcb->cmn.xcp.regs[REG_RIP],
-          tcb->cmn.xcp.regs[REG_RSP]);
+          tcb->cmn.xcp.regs[REG_RSP],
+          stack);
 
   /* clone return 0 to child */
   tcb->cmn.xcp.regs[REG_RAX] = 0;

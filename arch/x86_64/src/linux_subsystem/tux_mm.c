@@ -144,25 +144,6 @@ void make_vma_free(struct vma_s* ret) {
   return;
 }
 
-uint64_t* temp_map_at_0xc0000000(uintptr_t start, uintptr_t end)
-{
-  uintptr_t k;
-  uintptr_t lsb = start & ~HUGE_PAGE_MASK;
-  start &= HUGE_PAGE_MASK;
-
-  svcinfo("Temp map %llx - %llx at 0xc0000000\n", start, end);
-
-  // Temporary map the new pdas at high memory 0xc000000 ~
-  for(k = start; k < end; k += HUGE_PAGE_SIZE)
-    {
-      pd[((0xc0000000 + k - start) >> 21) & 0x7ffffff] = k | 0x9b; // No cache
-    }
-
-  up_invalid_TLB(start, end);
-
-  return (uint64_t*)(0xc0000000 + lsb);
-}
-
 int map_pages(struct vma_s* vma){
   struct tcb_s *tcb = this_task();
   uint64_t i, j, k;
@@ -502,7 +483,7 @@ int tux_munmap(unsigned long nbr, void* addr, size_t length){
   // Free page_table entries
   vma->va_start = addr;
   vma->va_end = addr + num_of_pages * PAGE_SIZE;
-  vma->pa_start = 0xffffffffffffffff;
+  vma->pa_start = 0xffffffff;
 
   make_vma_free(vma);
   map_pages(vma);

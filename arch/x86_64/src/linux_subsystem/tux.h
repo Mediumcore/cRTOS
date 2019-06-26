@@ -9,6 +9,8 @@
 
 #include <sys/time.h>
 
+#include <arch/io.h>
+
 #define TUX_FD_OFFSET (CONFIG_NFILE_DESCRIPTORS + CONFIG_NSOCKET_DESCRIPTORS + 16)
 
 #define PAGE_SLOT_SIZE 0x1000000
@@ -85,6 +87,25 @@ static inline uint64_t unset_msr(unsigned long nbr){
     return 0;
 }
 
+static inline uint64_t* temp_map_at_0xc0000000(uintptr_t start, uintptr_t end)
+{
+  uintptr_t k;
+  uintptr_t lsb = start & ~HUGE_PAGE_MASK;
+  start &= HUGE_PAGE_MASK;
+
+  svcinfo("Temp map %llx - %llx at 0xc0000000\n", start, end);
+
+  // Temporary map the new pdas at high memory 0xc000000 ~
+  for(k = start; k < end; k += HUGE_PAGE_SIZE)
+    {
+      pd[((0xc0000000 + k - start) >> 21) & 0x7ffffff] = k | 0x9b; // No cache
+    }
+
+  up_invalid_TLB(start, end);
+
+  return (uint64_t*)(0xc0000000 + lsb);
+}
+
 typedef int (*syscall_t)(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6);
@@ -142,7 +163,7 @@ int     tux_munmap      (unsigned long nbr, void* addr, size_t length);
 
 int     tux_getrlimit   (unsigned long nbr, int resource, struct rlimit *rlim);
 
-int     _tux_set_tid_address    (struct tcb_s *rtcb, int* tidptr);
+int*    _tux_set_tid_address    (struct tcb_s *rtcb, int* tidptr);
 int     tux_set_tid_address     (unsigned long nbr, int* tidptr);
 void    tux_set_tid_callback    (int val, void* arg);
 
