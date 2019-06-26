@@ -12,8 +12,8 @@ void* tux_brk(unsigned long nbr, void* brk){
   if((brk > rtcb->xcp.__min_brk))
   {
     rtcb->xcp.__brk = brk;
-    if(rtcb->xcp.__brk >= rtcb->xcp.__min_brk + 0x800000)
-      rtcb->xcp.__brk = rtcb->xcp.__min_brk + 0x800000;
+    if(rtcb->xcp.__brk >= rtcb->xcp.__min_brk + 0x200000)
+      rtcb->xcp.__brk = rtcb->xcp.__min_brk + 0x200000;
   }
   return rtcb->xcp.__brk;
 }

@@ -229,10 +229,15 @@ void* execvs_setupargs(struct task_tcb_s* tcb, uint64_t pstack,
     return sp - sizeof(uint64_t);
 }
 
-void exec_trampoline(void* entry, void* pstack, void* vstack) {
+void exec_trampoline(void* entry, void* pstack, void* vstack, void* pheap) {
     _info("Entering Trampoline\n");
 
+    //stack
     tux_delegate(9, (((uint64_t)pstack) << 32) | (uint64_t)(124 * HUGE_PAGE_SIZE), 4 * HUGE_PAGE_SIZE,
+                 0, MAP_ANONYMOUS, 0, 0);
+
+    //heap
+    tux_delegate(9, (((uint64_t)pheap) << 32) | (uint64_t)(123 * HUGE_PAGE_SIZE), 1 * HUGE_PAGE_SIZE,
                  0, MAP_ANONYMOUS, 0, 0);
 
     uint64_t sp;
@@ -256,6 +261,7 @@ int execvs(void* pbase, void* vbase, int bsize,
 {
     struct task_tcb_s *tcb;
     uint64_t stack, kstack, vstack;
+    uint64_t heap;
     uint64_t ret;
     uint64_t i;
     int sock = open("/dev/shadow0", O_RDWR);
@@ -280,9 +286,11 @@ int execvs(void* pbase, void* vbase, int bsize,
 
     //Stack is allocated and will be placed at the high mem of the task
     stack = (uint64_t)gran_alloc(tux_mm_hnd, 0x800000);
+    heap = (uint64_t)gran_alloc(tux_mm_hnd, 0x200000);
 
     //First we need to clean the user stack
     memset(stack, 0, 0x800000);
+    memset(heap, 0, 0x800000);
 
     // Setup a 8k kernel stack
     kstack = kmm_zalloc(0x8000);
@@ -315,6 +323,8 @@ int execvs(void* pbase, void* vbase, int bsize,
     struct vma_s* program_mapping_pda = kmm_malloc(sizeof(struct vma_s));
     struct vma_s* stack_mapping = kmm_malloc(sizeof(struct vma_s));
     struct vma_s* stack_mapping_pda = kmm_malloc(sizeof(struct vma_s));
+    struct vma_s* heap_mapping = kmm_malloc(sizeof(struct vma_s));
+    struct vma_s* heap_mapping_pda = kmm_malloc(sizeof(struct vma_s));
 
     tcb->cmn.xcp.vma = program_mapping;
     tcb->cmn.xcp.pda = program_mapping_pda;
@@ -335,8 +345,27 @@ int execvs(void* pbase, void* vbase, int bsize,
         ((uint64_t*)(program_mapping_pda->pa_start))[((i - program_mapping_pda->va_start) >> 12) & 0x3ffff] = (program_mapping->pa_start + i - program_mapping->va_start) | program_mapping->proto;
     }
 
-    program_mapping->next = stack_mapping;
-    program_mapping_pda->next = stack_mapping_pda;
+    program_mapping->next = heap_mapping;
+    program_mapping_pda->next = heap_mapping_pda;
+
+    heap_mapping->va_start = 123 * HUGE_PAGE_SIZE;
+    heap_mapping->va_end = 124 * HUGE_PAGE_SIZE;
+    heap_mapping->pa_start = heap;
+    heap_mapping->proto = 3;
+    heap_mapping->_backing = "[Heap]";
+
+    heap_mapping_pda->va_start = 123 * HUGE_PAGE_SIZE;
+    heap_mapping_pda->va_end = 124 * HUGE_PAGE_SIZE;
+    heap_mapping_pda->pa_start = (void*)gran_alloc(tux_mm_hnd, PAGE_SIZE * (heap_mapping_pda->va_end - heap_mapping_pda->va_start) / HUGE_PAGE_SIZE);
+    heap_mapping_pda->proto = 0x3;
+    heap_mapping_pda->_backing = "[Heap]";
+    memset(heap_mapping_pda->pa_start, 0, PAGE_SIZE * (heap_mapping_pda->va_end - heap_mapping_pda->va_start) / HUGE_PAGE_SIZE);
+    for(i = heap_mapping->va_start; i < heap_mapping->va_end; i += PAGE_SIZE){
+        ((uint64_t*)(heap_mapping_pda->pa_start))[((i - heap_mapping_pda->va_start) >> 12) & 0x3ffff] = (heap_mapping->pa_start + i - heap_mapping->va_start) | heap_mapping->proto;
+    }
+
+    heap_mapping->next = stack_mapping;
+    heap_mapping_pda->next = stack_mapping_pda;
 
     stack_mapping->va_start = 124 * HUGE_PAGE_SIZE;
     stack_mapping->va_end = 128 * HUGE_PAGE_SIZE;
@@ -358,7 +387,7 @@ int execvs(void* pbase, void* vbase, int bsize,
     stack_mapping_pda->next = NULL;
 
     // set brk
-    tcb->cmn.xcp.__min_brk = (void*)kmm_zalloc(0x800000);
+    tcb->cmn.xcp.__min_brk = (void*)(heap_mapping->va_start);
     tcb->cmn.xcp.__brk = tcb->cmn.xcp.__min_brk;
     sinfo("Set min_brk at: %llx\n", tcb->cmn.xcp.__min_brk);
 
@@ -366,6 +395,7 @@ int execvs(void* pbase, void* vbase, int bsize,
     tcb->cmn.xcp.regs[REG_RDI] = (uint64_t)entry;
     tcb->cmn.xcp.regs[REG_RSI] = (uint64_t)stack;
     tcb->cmn.xcp.regs[REG_RDX] = (uint64_t)vstack;
+    tcb->cmn.xcp.regs[REG_RCX] = (uint64_t)heap;
     tcb->cmn.xcp.regs[REG_RIP] = (uint64_t)exec_trampoline;
 
     /* setup some linux handlers */
