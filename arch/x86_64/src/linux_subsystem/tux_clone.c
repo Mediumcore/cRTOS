@@ -38,7 +38,7 @@ static inline void* new_memory_block(uint64_t size, void** virt) {
 
 void clone_trampoline(void* regs) {
     uint64_t regs_on_stack[16];
-    _info("Entering Clone Trampoline\n");
+    svcinfo("Entering Clone Trampoline\n");
 
     struct tcb_s *rtcb = this_task();
     struct vma_s *ptr;
@@ -47,17 +47,14 @@ void clone_trampoline(void* regs) {
                      0, MAP_ANONYMOUS, 0, 0);
     }
 
-    // Jump to the actual entry point, not using call to preserve stack
-    // Clear the registers, otherwise the libc_main will
-    // mistaken the trash value in registers as arguments
-    _info("%llx\n", regs);
-    print_mem(regs, sizeof(uint64_t) * 16);
-
     // Move the regs onto the stack and free the memory
     memcpy(regs_on_stack, regs, sizeof(uint64_t) * 16);
     kmm_free(regs);
 
+    // Call a stub to jump to the actual entry point
+    // It loads the same registers as the original task
     fork_kickstart(regs_on_stack);
+
     _exit(255); // We should never end up here
 }
 
@@ -85,8 +82,6 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
   stack = kmm_zalloc(0x8000); //Kernel stack
   if(!stack)
     return -1;
-
-  _info("kstack addrs: orig: 0x%llx, new: 0x%llx\n", rtcb->adj_stack_ptr, stack);
 
   ret = task_init((FAR struct tcb_s *)tcb, "clone_thread", rtcb->init_priority,
                   (uint32_t*)stack, 0x8000, NULL, NULL);
@@ -146,7 +141,7 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
     tcb->cmn.xcp.vma = mapping;
     mapping[i].next = NULL;
 
-    _info("Copy mappings\n");
+    svcinfo("Copy mappings\n");
     for(ptr = rtcb->xcp.vma, i = 0; ptr; ptr = ptr->next, i++){
         if(ptr->pa_start == 0xffffffff){
             i--;
@@ -163,21 +158,21 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
         mapping[i].pa_start = new_memory_block(VMA_SIZE(ptr), &virt_mem);
         memcpy(virt_mem, ptr->va_start, VMA_SIZE(ptr));
 
-        _info("Mapping: %llx - %llx: %llx %s\n", ptr->va_start, ptr->va_end, mapping[i].pa_start, mapping[i]._backing);
+        svcinfo("Mapping: %llx - %llx: %llx %s\n", ptr->va_start, ptr->va_end, mapping[i].pa_start, mapping[i]._backing);
     }
 
-    _info("Copy pdas\n");
+    svcinfo("Copy pdas\n");
     tcb->cmn.xcp.pda = pda_ptr = kmm_zalloc(sizeof(struct vma_s));
 
     for(ptr = tcb->cmn.xcp.vma; ptr;){
         // Scan hole with continuous addressing and same proto
         for(pptr = ptr, ptr2 = ptr->next; ptr2 && (((pptr->va_end + HUGE_PAGE_SIZE - 1) & HUGE_PAGE_MASK) >= (ptr2->va_start & HUGE_PAGE_MASK)) && (pptr->proto == ptr2->proto); pptr = ptr2, ptr2 = ptr2->next){
-            _info("Merge: %llx - %llx and %llx - %llx\n", pptr->va_start, pptr->va_end, ptr2->va_start, ptr2->va_end);
-            _info("Boundary: %llx and %llx\n", ((pptr->va_end + HUGE_PAGE_SIZE - 1) & HUGE_PAGE_MASK), (ptr2->va_start & HUGE_PAGE_MASK));
+            svcinfo("Boundary: %llx and %llx\n", ((pptr->va_end + HUGE_PAGE_SIZE - 1) & HUGE_PAGE_MASK), (ptr2->va_start & HUGE_PAGE_MASK));
+            svcinfo("Merge: %llx - %llx and %llx - %llx\n", pptr->va_start, pptr->va_end, ptr2->va_start, ptr2->va_end);
 
         }
 
-        _info("PDA Mapping: %llx - %llx\n", ptr->va_start, pptr->va_end);
+        svcinfo("PDA Mapping: %llx - %llx\n", ptr->va_start, pptr->va_end);
 
         pda_ptr->va_start = ptr->va_start & HUGE_PAGE_MASK;
         pda_ptr->va_end = (pptr->va_end + HUGE_PAGE_SIZE - 1) & HUGE_PAGE_MASK; //Align up
@@ -198,7 +193,7 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
         }
     }
 
-    _info("All mapped\n");
+    svcinfo("All mapped\n");
 
     // set brk
     tcb->cmn.xcp.__min_brk = rtcb->xcp.__min_brk;
@@ -210,7 +205,6 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
     }
 
     /* manual set the instruction pointer */
-    print_mem((uint64_t*)(get_kernel_stack_ptr() - 128), 128);
     regs = kmm_zalloc(sizeof(uint64_t) * 16);
     memcpy(regs, (uint64_t*)(get_kernel_stack_ptr()) - 16, sizeof(uint64_t) * 16);
     tcb->cmn.xcp.regs[REG_RDI] = regs;
