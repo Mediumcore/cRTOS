@@ -804,12 +804,13 @@ int shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg)
   shadow_proc_receive(priv, buf);
 
   rtcb = (struct tcb_s *)buf[2];
-  rtcb->xcp.syscall_ret = buf[0];
 
   shadow_proc_enable_rx_irq(priv);
 
-  nxsem_post(&rtcb->xcp.syscall_lock);
-
+  if(rtcb){
+    rtcb->xcp.syscall_ret = buf[0];
+    nxsem_post(&rtcb->xcp.syscall_lock);
+  }
 
   return OK;
 }
