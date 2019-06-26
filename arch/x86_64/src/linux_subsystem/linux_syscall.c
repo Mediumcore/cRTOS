@@ -117,7 +117,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_no_impl, // sys_vfrok
     tux_no_impl, // sys_execve
     (syscall_t)exit, // SYS_exit,
-    tux_no_impl, // sys_wait4
+    tux_local, // sys_wait4
     tux_local, // SYS_kill,
     tux_local, // SYS_uname,
     tux_no_impl, // SYS_semget,
@@ -455,7 +455,7 @@ uint64_t linux_syscall_number_table[500] = {
     -1, // sys_vfrok
     -1, // sys_execve
     SYS_exit,
-    -1, // sys_wait4
+    SYS_waitpid, // sys_wait4
     SYS_kill,
     SYS_uname,
     -1, // SYS_semget,
