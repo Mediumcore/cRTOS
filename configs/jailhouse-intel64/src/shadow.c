@@ -58,9 +58,10 @@
 #include <arch/io.h>
 #include <arch/irq.h>
 
-#include "virtio_ring.h"
 #include "sched/sched.h"
-#include "jailhouse_ivshmem.h"
+#include <arch/board/jailhouse_ivshmem.h>
+#include <arch/board/shadow.h>
+#include <arch/board/virtio_ring.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -74,13 +75,6 @@
 
 #define SHADOW_PROC_RSTATE_WRITE_ENABLE	(1ULL << 0)
 #define SHADOW_PROC_RSTATE_WRITE_REGION1	(1ULL << 1)
-
-#define SHADOW_PROC_STATE_RESET		0
-#define SHADOW_PROC_STATE_INIT		1
-#define SHADOW_PROC_STATE_READY		2
-#define SHADOW_PROC_STATE_RUN		3
-
-#define SHADOW_PROC_FLAG_RUN	0
 
 #define SHADOW_PROC_MTU_MIN 256
 #define SHADOW_PROC_MTU_DEF 16384
@@ -98,145 +92,13 @@
 
 #define SHADOW_PROC_NUM_VECTORS		2
 
-#define WRITE_ONCE(var, val) \
-        (*((volatile typeof(val) *)(&(var))) = (val))
-
-#define READ_ONCE(var) (*((volatile typeof(var) *)(&(var))))
-
-#define mb() asm volatile("mfence":::"memory")
-#define rmb()asm volatile("lfence":::"memory")
-#define wmb()asm volatile("sfence" ::: "memory")
-#define barrier()asm volatile("" ::: "memory")
-
-#define virt_store_release(p, v)\
-    do {\
-        barrier();\
-        WRITE_ONCE(*p, v);\
-    } while (0)
-
-#define virt_load_acquire(p)\
-    ({\
-        typeof(*p) ___p1 = READ_ONCE(*p);\
-        barrier();\
-        ___p1;\
-     })
-
 /*struct shadow_proc_driver_s *aux_shadow = 0;*/
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-struct ivshmem_regs {
-    uint32_t id;
-    uint32_t doorbell;
-    uint32_t lstate;
-    uint32_t rstate;
-    uint32_t rstate_write_lo;
-    uint32_t rstate_write_hi;
-};
-
-/* Abstracted vring structure */
-
-struct shadow_proc_queue {
-  struct vring vr;
-  uint32_t free_head;
-  uint32_t num_free;
-  uint32_t num_added;
-  uint16_t last_avail_idx;
-  uint16_t last_used_idx;
-
-  void *data;
-  void *end;
-  uint32_t size;
-  uint32_t head;
-  uint32_t tail;
-};
-
-/* The shadow_proc_driver_s encapsulates all state information for a single hardware
- * interface
- */
-
-struct shadow_proc_driver_s
-{
-  /* Nuttx stuff */
-  struct work_s sk_irqwork;    /* For deferring interrupt work to the work queue */
-
-  /* driver specific */
-  struct work_s sk_statework;    /* For deferring interrupt work to the work queue */
-
-  uint32_t bdf;
-
-  struct shadow_proc_queue rx;
-  struct shadow_proc_queue tx;
-
-  uint32_t vrsize;
-  uint32_t qlen;
-  uint32_t qsize;
-
-  uint32_t lstate;
-  uint32_t *rstate, last_rstate;
-
-  unsigned long flags;
-
-  struct ivshmem_regs *ivshm_regs;
-  void *shm[2];
-  size_t shmlen;
-  uint32_t peer_id;
-};
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/* Driver state structure */
-
-static struct shadow_proc_driver_s g_shadow_proc[1];
-
-/****************************************************************************
- * Private Function Prototypes
- ****************************************************************************/
-
-/* ivshm-net */
-
-static void shadow_proc_state_change(void *in);
-static void shadow_proc_set_state(struct shadow_proc_driver_s *in, uint32_t state);
-static void shadow_proc_check_state(struct shadow_proc_driver_s *in);
-
-/* Common TX logic */
-
-static uint64_t  shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint64_t *buf);
-static int  shadow_proc_txpoll(FAR struct net_driver_s *dev);
-
-/* Interrupt handling */
-
-static void shadow_proc_reply(struct shadow_proc_driver_s *priv);
-static void shadow_proc_receive(FAR struct shadow_proc_driver_s *priv, uint64_t *buf);
-static void shadow_proc_txdone(FAR struct shadow_proc_driver_s *priv);
-
-int  shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg);
-int  shadow_proc_ok(int irq, FAR void *context, FAR void *arg);
-
-/* Watchdog timer expirations */
-
-static void shadow_proc_txtimeout_work(FAR void *arg);
-static void shadow_proc_txtimeout_expiry(int argc, wdparm_t arg, ...);
-
-static void shadow_proc_poll_work(FAR void *arg);
-static void shadow_proc_poll_expiry(int argc, wdparm_t arg, ...);
-
-/* NuttX callback functions */
-
-static int  shadow_proc_ifup(FAR struct net_driver_s *dev);
-static int  shadow_proc_ifdown(FAR struct net_driver_s *dev);
-
-static void shadow_proc_txavail_work(FAR void *arg);
 
 /*****************************************
  *  ivshmem-net vring support functions  *
  *****************************************/
 
-static void *shadow_proc_desc_data(
+void *shadow_proc_desc_data(
         struct shadow_proc_driver_s *in, struct shadow_proc_queue *q,
         unsigned int region,  struct vring_desc *desc,
         uint32_t *len)
@@ -265,7 +127,7 @@ static void *shadow_proc_desc_data(
     return data;
 }
 
-static void shadow_proc_init_queue(
+void shadow_proc_init_queue(
         struct shadow_proc_driver_s *in, struct shadow_proc_queue *q,
         void *mem, unsigned int len)
 {
@@ -277,7 +139,7 @@ static void shadow_proc_init_queue(
     q->size = in->qsize;
 }
 
-static void shadow_proc_init_queues(struct shadow_proc_driver_s *in)
+void shadow_proc_init_queues(struct shadow_proc_driver_s *in)
 {
     void *tx;
     void *rx;
@@ -302,7 +164,7 @@ static void shadow_proc_init_queues(struct shadow_proc_driver_s *in)
         in->tx.vr.desc[i].next = i + 1;
 }
 
-static int shadow_proc_calc_qsize(struct shadow_proc_driver_s *in)
+int shadow_proc_calc_qsize(struct shadow_proc_driver_s *in)
 {
     unsigned int vrsize;
     unsigned int qsize;
@@ -334,7 +196,7 @@ static int shadow_proc_calc_qsize(struct shadow_proc_driver_s *in)
  *  ivshmem-net IRQ support functions  *
  *****************************************/
 
-static void shadow_proc_notify_tx(struct shadow_proc_driver_s *in, unsigned int num)
+void shadow_proc_notify_tx(struct shadow_proc_driver_s *in, unsigned int num)
 {
     /*uint16_t evt, old, new;*/
 
@@ -349,13 +211,13 @@ static void shadow_proc_notify_tx(struct shadow_proc_driver_s *in, unsigned int 
     /*}*/
 }
 
-static void shadow_proc_enable_rx_irq(struct shadow_proc_driver_s *in)
+void shadow_proc_enable_rx_irq(struct shadow_proc_driver_s *in)
 {
     vring_avail_event(&in->rx.vr) = in->rx.last_avail_idx;
     wmb();
 }
 
-static void shadow_proc_notify_rx(struct shadow_proc_driver_s *in, unsigned int num)
+void shadow_proc_notify_rx(struct shadow_proc_driver_s *in, unsigned int num)
 {
     uint16_t evt, old, new;
 
@@ -371,17 +233,23 @@ static void shadow_proc_notify_rx(struct shadow_proc_driver_s *in, unsigned int 
     /*}*/
 }
 
-static void shadow_proc_enable_tx_irq(struct shadow_proc_driver_s *in)
+void shadow_proc_enable_tx_irq(struct shadow_proc_driver_s *in)
 {
     vring_used_event(&in->tx.vr) = in->tx.last_used_idx;
     wmb();
+}
+
+void shadow_proc_set_prio(struct shadow_proc_driver_s *in, uint64_t prio)
+{
+  *((volatile uint64_t*)(in->shm[SHADOW_PROC_REGION_TX] + in->shmlen)) = prio;
+  wmb();
 }
 
 /*************************************
  *  ivshmem-net vring syntax sugars  *
  *************************************/
 
-static struct vring_desc *shadow_proc_rx_desc(struct shadow_proc_driver_s *in)
+struct vring_desc *shadow_proc_rx_desc(struct shadow_proc_driver_s *in)
 {
     struct shadow_proc_queue *rx = &in->rx;
     struct vring *vr = &rx->vr;
@@ -408,7 +276,7 @@ bool shadow_proc_rx_avail(struct shadow_proc_driver_s *in)
     return READ_ONCE(in->rx.vr.avail->idx) != in->rx.last_avail_idx;
 }
 
-static void shadow_proc_rx_finish(struct shadow_proc_driver_s *in, struct vring_desc *desc)
+void shadow_proc_rx_finish(struct shadow_proc_driver_s *in, struct vring_desc *desc)
 {
     struct shadow_proc_queue *rx = &in->rx;
     struct vring *vr = &rx->vr;
@@ -422,7 +290,7 @@ static void shadow_proc_rx_finish(struct shadow_proc_driver_s *in, struct vring_
     virt_store_release(&vr->used->idx, rx->last_used_idx);
 }
 
-static size_t shadow_proc_tx_space(struct shadow_proc_driver_s *in)
+size_t shadow_proc_tx_space(struct shadow_proc_driver_s *in)
 {
     struct shadow_proc_queue *tx = &in->tx;
     uint32_t tail = tx->tail;
@@ -437,13 +305,13 @@ static size_t shadow_proc_tx_space(struct shadow_proc_driver_s *in)
     return space;
 }
 
-static bool shadow_proc_tx_ok(struct shadow_proc_driver_s *in, unsigned int mtu)
+bool shadow_proc_tx_ok(struct shadow_proc_driver_s *in, unsigned int mtu)
 {
     return in->tx.num_free >= 2 &&
         shadow_proc_tx_space(in) >= 2 * SHADOW_PROC_FRAME_SIZE(mtu);
 }
 
-static uint32_t shadow_proc_tx_advance(struct shadow_proc_queue *q, uint32_t *pos, uint32_t len)
+uint32_t shadow_proc_tx_advance(struct shadow_proc_queue *q, uint32_t *pos, uint32_t len)
 {
     uint32_t p = *pos;
 
@@ -456,7 +324,7 @@ static uint32_t shadow_proc_tx_advance(struct shadow_proc_queue *q, uint32_t *po
     return p;
 }
 
-static int shadow_proc_tx_frame(struct shadow_proc_driver_s *in, void* data, int len)
+int shadow_proc_tx_frame(struct shadow_proc_driver_s *in, void* data, int len)
 {
     struct shadow_proc_queue *tx = &in->tx;
     struct vring *vr = &tx->vr;
@@ -498,7 +366,7 @@ static int shadow_proc_tx_frame(struct shadow_proc_driver_s *in, void* data, int
     return 0;
 }
 
-static void shadow_proc_tx_clean(struct shadow_proc_driver_s *in)
+void shadow_proc_tx_clean(struct shadow_proc_driver_s *in)
 {
     struct shadow_proc_queue *tx = &in->tx;
     struct vring_used_elem *used;
@@ -575,7 +443,7 @@ static void shadow_proc_tx_clean(struct shadow_proc_driver_s *in)
  *  ivshmem-net support functions  *
  *****************************************/
 
-static void shadow_proc_run(struct shadow_proc_driver_s *in)
+void shadow_proc_run(struct shadow_proc_driver_s *in)
 {
   irqstate_t flags;
 
@@ -601,7 +469,7 @@ static void shadow_proc_run(struct shadow_proc_driver_s *in)
   return;
 }
 
-static void shadow_proc_do_stop(struct shadow_proc_driver_s *in)
+void shadow_proc_do_stop(struct shadow_proc_driver_s *in)
 {
   irqstate_t flags;
 
@@ -625,7 +493,7 @@ static void shadow_proc_do_stop(struct shadow_proc_driver_s *in)
  * State Machine
  ****************************************************************************/
 
-static void shadow_proc_state_change(void *arg)
+void shadow_proc_state_change(void *arg)
 {
   struct shadow_proc_driver_s *in = (struct shadow_proc_driver_s*)arg;
   uint32_t rstate = READ_ONCE(*in->rstate);
@@ -661,14 +529,14 @@ static void shadow_proc_state_change(void *arg)
   WRITE_ONCE(in->last_rstate, rstate);
 }
 
-static void shadow_proc_set_state(struct shadow_proc_driver_s *in, uint32_t state)
+void shadow_proc_set_state(struct shadow_proc_driver_s *in, uint32_t state)
 {
   wmb();
   WRITE_ONCE(in->lstate, state);
   WRITE_ONCE(in->ivshm_regs->lstate,  state);
 }
 
-static void shadow_proc_check_state(struct shadow_proc_driver_s *in)
+void shadow_proc_check_state(struct shadow_proc_driver_s *in)
 {
   irqstate_t flags;
 
@@ -682,11 +550,26 @@ static void shadow_proc_check_state(struct shadow_proc_driver_s *in)
   leave_critical_section(flags);
 }
 
+void shadow_proc_write_curr_prio(void *in, uint64_t prio)
+{
+  struct shadow_proc_driver_s *priv = in;
+  irqstate_t flags;
+
+  /* test_bit */
+  flags = enter_critical_section();
+
+  *(volatile uint64_t*)(priv->shm[SHADOW_PROC_REGION_TX] + priv->shmlen) = prio;
+
+  wmb();
+
+  leave_critical_section(flags);
+}
+
 /****************************************************************************
  * State IRQ Handlers
  ****************************************************************************/
 
-static int shadow_proc_state_handler(int irq, uint32_t *regs, void *arg)
+int shadow_proc_state_handler(int irq, uint32_t *regs, void *arg)
 {
   struct shadow_proc_driver_s *priv = arg;
 
@@ -713,7 +596,7 @@ static int shadow_proc_state_handler(int irq, uint32_t *regs, void *arg)
  *
  ****************************************************************************/
 
-static uint64_t shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint64_t *data)
+uint64_t shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint64_t *data)
 {
   /* Verify that the hardware is ready to send another packet.  If we get
    * here, then we are committed to sending a packet; Higher level logic
@@ -724,7 +607,8 @@ static uint64_t shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint
 
   memcpy(buf, data, sizeof(uint64_t) * 7);
   buf[7] = (uint64_t)rtcb;
-  buf[8] = rtcb->xcp.linux_tcb;
+  buf[8] = rtcb->sched_priority;
+  buf[9] = rtcb->xcp.linux_tcb;
 
   shadow_proc_tx_clean(priv);
 
@@ -751,7 +635,7 @@ static uint64_t shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint
  *
  ****************************************************************************/
 
-static void shadow_proc_receive(FAR struct shadow_proc_driver_s *priv, uint64_t *buf)
+void shadow_proc_receive(FAR struct shadow_proc_driver_s *priv, uint64_t *buf)
 {
   struct vring_desc *desc;
   void *data;
@@ -858,7 +742,23 @@ static int shadow_proc_close(file_t *filep)
 
 static int shadow_proc_ioctl(file_t *filep, int cmd, unsigned long arg)
 {
+    struct inode              *inode;
+    struct shadow_proc_driver_s   *priv;
+    int                        size;
+    uint64_t ret;
+
+    if(cmd != 0) return -1;
+
+    DEBUGASSERT(filep);
+    inode = filep->f_inode;
+
+    DEBUGASSERT(inode && inode->i_private);
+    priv  = (struct shadow_proc_driver_s *)inode->i_private;
+
+    shadow_proc_write_curr_prio(priv, arg);
+
     return 0;
+
 }
 
 static off_t shadow_proc_seek(file_t *filep, off_t offset, int whence)
@@ -942,6 +842,7 @@ int shadow_proc_probe(uint16_t bdf)
     }
 
   priv->shmlen = shmlen[0] < shmlen[1] ? shmlen[0] : shmlen[1];
+  priv->shmlen -= PAGE_SIZE;
 
   priv->ivshm_regs = (struct ivshmem_regs *)pci_alloc_mem_region(PAGE_SIZE);
   bar2mem = pci_alloc_mem_region(PAGE_SIZE);
@@ -987,6 +888,9 @@ int shadow_proc_probe(uint16_t bdf)
     _info("SHADOW %s register failed with errno=%d\n", buf, ret);
     PANIC();
   };
+
+  gshadow = priv;
+  shadow_proc_set_prio(priv, this_task()->sched_priority);
 
   return OK;
 }

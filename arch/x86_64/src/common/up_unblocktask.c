@@ -51,6 +51,8 @@
 #include "clock/clock.h"
 #include "up_internal.h"
 
+#include <arch/board/shadow.h>
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -78,6 +80,8 @@ void up_unblock_task(struct tcb_s *tcb)
 
   ASSERT((tcb->task_state >= FIRST_BLOCKED_STATE) &&
          (tcb->task_state <= LAST_BLOCKED_STATE));
+
+  up_checktasks();
 
   /* Remove the task from the blocked task list */
 
@@ -114,6 +118,7 @@ void up_unblock_task(struct tcb_s *tcb)
 
           rtcb = this_task();
           up_restore_auxstate(rtcb);
+          shadow_proc_set_prio(gshadow, rtcb->sched_priority);
 
           /* Update scheduler parameters */
 
@@ -141,6 +146,7 @@ void up_unblock_task(struct tcb_s *tcb)
 
           rtcb = this_task();
           up_restore_auxstate(rtcb);
+          shadow_proc_set_prio(gshadow, rtcb->sched_priority);
 
 #ifdef CONFIG_ARCH_ADDRENV
          /* Make sure that the address environment for the previously

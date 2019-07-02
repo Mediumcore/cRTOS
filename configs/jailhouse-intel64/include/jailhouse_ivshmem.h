@@ -26,4 +26,15 @@ void up_ivshmem(void);
 
 int ivshmnet_initialize(int intf);
 
+struct ivshmem_regs {
+    uint32_t id;
+    uint32_t doorbell;
+    uint32_t lstate;
+    uint32_t rstate;
+    uint32_t rstate_write_lo;
+    uint32_t rstate_write_hi;
+};
+
+
+
 #endif /* __JAILHOUSE_INCLUDE_IVSHMEM_H */

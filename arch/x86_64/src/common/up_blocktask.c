@@ -50,6 +50,8 @@
 #include "group/group.h"
 #include "up_internal.h"
 
+#include <arch/board/shadow.h>
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -82,6 +84,8 @@ void up_block_task(struct tcb_s *tcb, tstate_t task_state)
 
   ASSERT((tcb->task_state >= FIRST_READY_TO_RUN_STATE) &&
          (tcb->task_state <= LAST_READY_TO_RUN_STATE));
+
+  up_checktasks();
 
   /* Remove the tcb task from the ready-to-run list.  If we
    * are blocking the task at the head of the task list (the
@@ -129,6 +133,7 @@ void up_block_task(struct tcb_s *tcb, tstate_t task_state)
 
           rtcb = this_task();
           up_restore_auxstate(rtcb);
+          shadow_proc_set_prio(gshadow, rtcb->sched_priority);
 
           /* Reset scheduler parameters */
 
@@ -154,6 +159,7 @@ void up_block_task(struct tcb_s *tcb, tstate_t task_state)
 
           rtcb = this_task();
           up_restore_auxstate(rtcb);
+          shadow_proc_set_prio(gshadow, rtcb->sched_priority);
 
 #ifdef CONFIG_ARCH_ADDRENV
          /* Make sure that the address environment for the previously

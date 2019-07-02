@@ -48,6 +48,8 @@
 #include "group/group.h"
 #include "up_internal.h"
 
+#include <arch/board/shadow.h>
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -68,6 +70,8 @@ void up_release_pending(void)
   struct tcb_s *rtcb = this_task();
 
   /*sinfo("From TCB=%p\n", rtcb);*/
+
+  up_checktasks();
 
   /* Merge the g_pendingtasks list into the ready-to-run task list */
 
@@ -98,6 +102,7 @@ void up_release_pending(void)
 
           rtcb = this_task();
           up_restore_auxstate(rtcb);
+          shadow_proc_set_prio(gshadow, rtcb->sched_priority);
 
           /* Update scheduler parameters */
 
@@ -124,6 +129,7 @@ void up_release_pending(void)
 
           rtcb = this_task();
           up_restore_auxstate(rtcb);
+          shadow_proc_set_prio(gshadow, rtcb->sched_priority);
 
 #ifdef CONFIG_ARCH_ADDRENV
           /* Make sure that the address environment for the previously

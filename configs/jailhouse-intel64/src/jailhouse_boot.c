@@ -45,13 +45,13 @@
 #include <nuttx/board.h>
 #include <arch/arch.h>
 #include <arch/board/board.h>
+#include <arch/board/shadow.h>
+#include <arch/board/jailhouse_ivshmem.h>
 
 #include "up_arch.h"
 #include "up_internal.h"
 
 #include "broadwell.h"
-
-#include "jailhouse_ivshmem.h"
 
 #include <net/if.h>
 #include <netinet/in.h>

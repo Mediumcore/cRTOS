@@ -171,4 +171,28 @@ static inline int vring_need_event(__u16 event_idx, __u16 new_idx, __u16 old)
 	return (__u16)(new_idx - event_idx - 1) < (__u16)(new_idx - old);
 }
 
+#define WRITE_ONCE(var, val) \
+        (*((volatile typeof(val) *)(&(var))) = (val))
+
+#define READ_ONCE(var) (*((volatile typeof(var) *)(&(var))))
+
+#define mb() asm volatile("mfence":::"memory")
+#define rmb()asm volatile("lfence":::"memory")
+#define wmb()asm volatile("sfence" ::: "memory")
+#define barrier()asm volatile("" ::: "memory")
+
+#define virt_store_release(p, v)\
+    do {\
+        barrier();\
+        WRITE_ONCE(*p, v);\
+    } while (0)
+
+#define virt_load_acquire(p)\
+    ({\
+        typeof(*p) ___p1 = READ_ONCE(*p);\
+        barrier();\
+        ___p1;\
+     })
+
+
 #endif /* _UAPI_LINUX_VIRTIO_RING_H */

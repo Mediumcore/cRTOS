@@ -50,6 +50,8 @@
 #include "group/group.h"
 #include "up_internal.h"
 
+#include <arch/board/shadow.h>
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -96,6 +98,8 @@ void up_reprioritize_rtr(struct tcb_s *tcb, uint8_t priority)
       bool switch_needed;
 
       sinfo("TCB=%p PRI=%d\n", tcb, priority);
+
+      up_checktasks();
 
       /* Remove the tcb task from the ready-to-run list.
        * sched_removereadytorun will return true if we just
@@ -152,6 +156,7 @@ void up_reprioritize_rtr(struct tcb_s *tcb, uint8_t priority)
 
               rtcb = this_task();
               up_restore_auxstate(rtcb);
+              shadow_proc_set_prio(gshadow, rtcb->sched_priority);
 
               /* Update scheduler parameters */
 
@@ -177,6 +182,7 @@ void up_reprioritize_rtr(struct tcb_s *tcb, uint8_t priority)
 
               rtcb = this_task();
               up_restore_auxstate(rtcb);
+              shadow_proc_set_prio(gshadow, rtcb->sched_priority);
 
 #ifdef CONFIG_ARCH_ADDRENV
               /* Make sure that the address environment for the previously

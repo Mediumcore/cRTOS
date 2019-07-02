@@ -59,8 +59,8 @@
 
 #include <arch/io.h>
 
-#include "virtio_ring.h"
-#include "jailhouse_ivshmem.h"
+#include <arch/board/virtio_ring.h>
+#include <arch/board/jailhouse_ivshmem.h>
 
 #ifdef CONFIG_NET_PKT
 #  include <nuttx/net/pkt.h>
@@ -146,42 +146,9 @@
 
 #define IVSHM_NET_NUM_VECTORS		2
 
-#define WRITE_ONCE(var, val) \
-        (*((volatile typeof(val) *)(&(var))) = (val))
-
-#define READ_ONCE(var) (*((volatile typeof(var) *)(&(var))))
-
-#define mb() asm volatile("mfence":::"memory")
-#define rmb()asm volatile("lfence":::"memory")
-#define wmb()asm volatile("sfence" ::: "memory")
-#define barrier()asm volatile("" ::: "memory")
-
-#define virt_store_release(p, v)\
-    do {\
-        barrier();\
-        WRITE_ONCE(*p, v);\
-    } while (0)
-
-#define virt_load_acquire(p)\
-    ({\
-        typeof(*p) ___p1 = READ_ONCE(*p);\
-        barrier();\
-        ___p1;\
-     })
-
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
-
-struct ivshmem_regs {
-    uint32_t id;
-    uint32_t doorbell;
-    uint32_t lstate;
-    uint32_t rstate;
-    uint32_t rstate_write_lo;
-    uint32_t rstate_write_hi;
-};
 
 /* Abstracted vring structure */
 

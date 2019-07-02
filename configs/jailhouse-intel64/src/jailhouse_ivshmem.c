@@ -12,7 +12,7 @@
 #include <arch/io.h>
 #include <nuttx/pcie/pcie.h>
 
-#include "jailhouse_ivshmem.h"
+#include <arch/board/jailhouse_ivshmem.h>
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
