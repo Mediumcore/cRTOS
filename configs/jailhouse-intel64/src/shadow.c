@@ -602,7 +602,7 @@ uint64_t shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint64_t *d
    * here, then we are committed to sending a packet; Higher level logic
    * must have assured that there is no transmission in progress.
    */
-  uint64_t buf[9];
+  uint64_t buf[10];
   struct tcb_s *rtcb = (struct tcb_s *)this_task();
 
   memcpy(buf, data, sizeof(uint64_t) * 7);
