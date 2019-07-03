@@ -145,4 +145,6 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
       sched_kfree(ptr);
     }
   }
+
+  timer_delete(dtcb->xcp.alarm_timer);
 }
