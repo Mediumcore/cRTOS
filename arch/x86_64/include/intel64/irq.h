@@ -204,6 +204,8 @@ struct xcptcontext
 
   uint64_t saved_rip;
   uint64_t saved_rflags;
+  uint64_t saved_rsp;
+  uint64_t saved_kstack;
 #endif
 
   uint32_t is_linux;

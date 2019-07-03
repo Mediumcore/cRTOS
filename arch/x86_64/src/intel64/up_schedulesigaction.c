@@ -100,6 +100,7 @@
 void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
 {
   irqstate_t flags;
+  uint64_t curr_rsp, new_rsp, kstack;
 
   sinfo("tcb=0x%p sigdeliver=0x%p\n", tcb, sigdeliver);
 
@@ -127,7 +128,29 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
             {
               /* In this case just deliver the signal now. */
 
-              sigdeliver(tcb);
+              asm volatile("mov %%rsp, %0":"=m"(curr_rsp));
+
+              /* if already in kernel stack, we need to prevent an overwrite*/
+              /* possible BUG, if the compiler use rsp to address local varible, we are doomed */
+              kstack = (uint64_t)tcb->adj_stack_ptr;
+              if((curr_rsp < kstack) && (curr_rsp > kstack - tcb->adj_stack_size) && tcb->xcp.is_linux) {
+                  tcb->xcp.saved_rsp = curr_rsp;
+                  tcb->xcp.saved_kstack = kstack;
+
+                  new_rsp = *((uint64_t*)tcb->adj_stack_ptr - 1) - 8;
+                  tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
+
+                  asm volatile("mov %%rsp, %%r12   \t\n\
+                                mov %0, %%rsp    \t\n\
+                                mov %1, %%rdi    \t\n\
+                                call *%2  \t\n\
+                                mov %%r12, %%rsp"::"g"(new_rsp), "g"(tcb), "g"(sigdeliver):"r12","rdi");
+
+                  tcb->adj_stack_ptr = (void*)tcb->xcp.saved_kstack;
+                  tcb->xcp.saved_rsp = 0;
+              }else{
+                  sigdeliver(tcb);
+              }
             }
 
           /* CASE 2:  We are in an interrupt handler AND the interrupted task
@@ -151,6 +174,16 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
               tcb->xcp.sigdeliver       = sigdeliver;
               tcb->xcp.saved_rip        = g_current_regs[REG_RIP];
               tcb->xcp.saved_rflags     = g_current_regs[REG_RFLAGS];
+
+              /* if already in kernel stack, we need to prevent an overwrite*/
+              kstack = (uint64_t)tcb->adj_stack_ptr;
+              if((g_current_regs[REG_RSP] < kstack) && (g_current_regs[REG_RSP] > kstack - tcb->adj_stack_size) && tcb->xcp.is_linux) {
+                  curr_rsp = g_current_regs[REG_RSP];
+                  tcb->xcp.saved_rsp = curr_rsp;
+                  tcb->xcp.saved_kstack = kstack;
+                  g_current_regs[REG_RSP] = *((uint64_t*)tcb->adj_stack_ptr - 1) - 8;
+                  tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
+              }
 
               /* Then set up to vector to the trampoline with interrupts
                * disabled
@@ -183,6 +216,22 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
           tcb->xcp.sigdeliver       = sigdeliver;
           tcb->xcp.saved_rip        = tcb->xcp.regs[REG_RIP];
           tcb->xcp.saved_rflags     = tcb->xcp.regs[REG_RFLAGS];
+
+          /* if already in kernel stack, we need to prevent an overwrite*/
+          kstack = (uint64_t)tcb->adj_stack_ptr;
+          if((tcb->xcp.regs[REG_RSP] < kstack) && (tcb->xcp.regs[REG_RSP] > kstack - tcb->adj_stack_size) && tcb->xcp.is_linux) {
+              curr_rsp = tcb->xcp.regs[REG_RSP];
+
+              /* preserve thje values */
+              tcb->xcp.saved_rsp = curr_rsp;
+              tcb->xcp.saved_kstack = kstack;
+
+              /* Move to User Stack */
+              tcb->xcp.regs[REG_RSP] = *((uint64_t*)tcb->adj_stack_ptr - 1) - 8;
+
+              /* move the kstack starting point to somewhere unused */
+              tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
+          }
 
           /* Then set up to vector to the trampoline with interrupts
            * disabled

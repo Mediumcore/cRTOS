@@ -83,9 +83,9 @@
 void up_sigdeliver(void)
 {
   struct tcb_s *rtcb = this_task();
-  uint64_t regs_area[XCPTCONTEXT_REGS + 8];
+  uint64_t regs_area[XCPTCONTEXT_REGS + 2];
   uint64_t* regs;
-  regs = (uint64_t*)((uint64_t)(regs_area + 0x8)& (-(uint64_t)16)); // align regs to 16byte boundary for SSE instrucitons
+  regs = (uint64_t*)(((uint64_t)(regs_area) + 15) & (~(uint64_t)15)); // align regs to 16byte boundary for SSE instrucitons
   sig_deliver_t sigdeliver;
 
   /* Save the errno.  This must be preserved throughout the signal handling
@@ -131,6 +131,12 @@ void up_sigdeliver(void)
   sinfo("Resuming\n");
   (void)up_irq_save();
   rtcb->pterrno = saved_errno;
+
+  if(rtcb->xcp.saved_rsp){
+    regs[REG_RSP]      = rtcb->xcp.saved_rsp;
+    rtcb->adj_stack_ptr = rtcb->xcp.saved_kstack;
+    rtcb->xcp.saved_rsp = 0;
+  }
 
   /* Then restore the correct state for this thread of execution. */
 
