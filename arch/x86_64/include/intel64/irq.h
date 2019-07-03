@@ -49,6 +49,7 @@
 #  include <stdbool.h>
 #  include <arch/arch.h>
 #  include <semaphore.h>
+#  include <time.h>
 #endif
 
 /****************************************************************************
@@ -213,6 +214,8 @@ struct xcptcontext
 
   void* __brk;
   void* __min_brk;
+
+  timer_t alarm_timer;
 
   uint64_t fs_base_set;
   uint64_t fs_base;

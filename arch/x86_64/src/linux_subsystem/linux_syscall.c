@@ -69,7 +69,7 @@ syscall_t linux_syscall_action_table[500] = {
     (syscall_t)tux_success_stub, // XXX: SYS_mprotect Missing logic, how to protect flat memory space
     (syscall_t)tux_munmap,
     (syscall_t)tux_brk,
-    tux_local,
+    (syscall_t)tux_rt_sigaction, // SYS_re_sigaction
     tux_local,
     tux_no_impl, // SYS_sigreturn,
     tux_file_delegate, // SYS_ioctl,
@@ -78,8 +78,8 @@ syscall_t linux_syscall_action_table[500] = {
     tux_file_delegate, // sys_readv
     tux_file_delegate, // sys_writev
     tux_delegate, // sys_access
-    tux_file_delegate, // sys_pipe
-    tux_file_delegate, // sys_select
+    (syscall_t)tux_pipe, // sys_pipe
+    tux_select_delegate, // sys_select
     tux_local,
     tux_no_impl, // sys_mremap
     (syscall_t)tux_success_stub, // sys_msync
@@ -93,7 +93,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_no_impl, // SYS_pause,
     (syscall_t)tux_nanosleep,
     tux_no_impl, // SYS_getitimer,
-    tux_no_impl, // SYS_alarm,
+    (syscall_t)tux_alarm, // SYS_alarm,
     tux_no_impl, // SYS_setitimer,
     tux_local, // SYS_getpid,
     tux_file_delegate, // SYS_sendfile,
@@ -116,7 +116,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_no_impl, // sys_fork
     tux_no_impl, // sys_vfrok
     tux_no_impl, // sys_execve
-    (syscall_t)exit, // SYS_exit,
+    tux_local, // SYS_exit,
     tux_local, // sys_wait4
     tux_local, // SYS_kill,
     tux_local, // SYS_uname,
@@ -243,19 +243,19 @@ syscall_t linux_syscall_action_table[500] = {
     tux_no_impl, // SYS_tuxcall,
     tux_no_impl, // SYS_security,
     tux_local, // SYS_getpid, // Fake get tid to get pid, not a different in our world heh?
-    tux_no_impl, // SYS_readahead,
-    tux_no_impl, // SYS_setxattr,
-    tux_no_impl, // SYS_lsetxattr,
-    tux_no_impl, // SYS_fsetxattr,
-    tux_no_impl, // SYS_getxattr,
-    tux_no_impl, // SYS_lgetxattr,
-    tux_no_impl, // SYS_fgetxattr,
-    tux_no_impl, // SYS_listxattr,
-    tux_no_impl, // SYS_llistxattr,
-    tux_no_impl, // SYS_flistxattr,
-    tux_no_impl, // SYS_removexattr,
-    tux_no_impl, // SYS_lremovexattr,
-    tux_no_impl, // SYS_fremovexattr,
+    tux_delegate, // SYS_readahead,
+    tux_delegate, // SYS_setxattr,
+    tux_delegate, // SYS_lsetxattr,
+    tux_delegate, // SYS_fsetxattr,
+    tux_delegate, // SYS_getxattr,
+    tux_delegate, // SYS_lgetxattr,
+    tux_delegate, // SYS_fgetxattr,
+    tux_delegate, // SYS_listxattr,
+    tux_delegate, // SYS_llistxattr,
+    tux_delegate, // SYS_flistxattr,
+    tux_delegate, // SYS_removexattr,
+    tux_delegate, // SYS_lremovexattr,
+    tux_delegate, // SYS_fremovexattr,
     tux_no_impl, // SYS_tkill,
     tux_delegate,//tux_no_impl, // SYS_time,
     (syscall_t)tux_futex,
@@ -287,7 +287,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_local, // SYS_clock_gettime,
     tux_local, // SYS_clock_getres,
     tux_local, // SYS_clock_nanosleep,
-    (syscall_t)exit,
+    tux_local, //sys_exit_group
     tux_delegate, // SYS_epoll_wait,
     tux_delegate, // SYS_epoll_ctl,
     tux_no_impl, // SYS_tgkill,
@@ -309,9 +309,9 @@ syscall_t linux_syscall_action_table[500] = {
     tux_no_impl, // SYS_keyctl,
     tux_no_impl, // SYS_ioprio_set,
     tux_no_impl, // SYS_ioprio_get,
-    tux_no_impl, // SYS_inotify_init,
-    tux_no_impl, // SYS_inotify_add_watch,
-    tux_no_impl, // SYS_inotify_rm_watch,
+    tux_delegate, // SYS_inotify_init,
+    tux_delegate, // SYS_inotify_add_watch,
+    tux_delegate, // SYS_inotify_rm_watch,
     tux_no_impl, // SYS_migrate_pages,
     tux_delegate, // SYS_openat,
     tux_delegate, // SYS_mkdirat,
@@ -349,7 +349,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_delegate, // SYS_eventfd2,
     tux_delegate, // SYS_epoll_create1,
     tux_delegate, // SYS_dup3,
-    tux_file_delegate, // SYS_pipe2,
+    (syscall_t)tux_pipe, // SYS_pipe2,
     tux_no_impl, // SYS_inotify_init1,
     tux_delegate, // SYS_preadv,
     tux_delegate, // SYS_pwritev,
@@ -385,12 +385,9 @@ syscall_t linux_syscall_action_table[500] = {
     tux_no_impl, // SYS_copy_file_range,
     tux_delegate, // SYS_preadv2,
     tux_delegate, // SYS_pwritev2,
-    tux_no_impl, // SYS_pkey_mprotect,
-    tux_no_impl, // SYS_pkey_alloc,
-    tux_no_impl, // SYS_pkey_free,
-    tux_no_impl, // SYS_statx,
-    tux_no_impl, // SYS_io_pgetevents,
-    tux_no_impl // SYS_rseq,
+    tux_delegate, // SYS_pkey_mprotect,
+    tux_delegate, // SYS_pkey_alloc,
+    tux_delegate, // SYS_pkey_free,
 };
 
 uint64_t linux_syscall_number_table[500] = {
