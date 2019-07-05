@@ -163,10 +163,6 @@ int tux_poll_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6);
 
-int tux_select_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
-                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
-                          uintptr_t parm6);
-
 int tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6);
@@ -195,8 +191,10 @@ int     tux_arch_prctl       (unsigned long nbr, int code, unsigned long addr);
 
 int     tux_futex            (unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint32_t val2, int32_t* uaddr2, uint32_t val3);
 
-int     tux_rt_sigaction(unsigned long nbr, int sig, const struct tux_sigaction* act, struct tux_sigaction* old_act, uint64_t set_size);
-int     tux_alarm(unsigned long nbr, unsigned int second);
+int     tux_rt_sigaction     (unsigned long nbr, int sig, const struct tux_sigaction* act, struct tux_sigaction* old_act, uint64_t set_size);
+int     tux_alarm            (unsigned long nbr, unsigned int second);
+
+int     tux_select           (unsigned long nbr, int fd, struct tux_fd_set *r, struct tux_fd_set *w, struct tux_fd_set *e, struct timeval *timeout);
 
 static inline int     tux_sched_get_priority_max(unsigned long nbr, uint64_t p) { return sched_get_priority_max(p); };
 static inline int     tux_sched_get_priority_min(unsigned long nbr, uint64_t p) { return sched_get_priority_min(p); };

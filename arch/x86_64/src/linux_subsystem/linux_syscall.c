@@ -79,7 +79,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_file_delegate, // sys_writev
     tux_delegate, // sys_access
     (syscall_t)tux_pipe, // sys_pipe
-    tux_select_delegate, // sys_select
+    (syscall_t)tux_select, // sys_select
     tux_local,
     tux_no_impl, // sys_mremap
     (syscall_t)tux_success_stub, // sys_msync

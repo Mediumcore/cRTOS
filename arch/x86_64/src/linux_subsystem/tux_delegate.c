@@ -85,136 +85,6 @@ int tux_file_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
   return ret;
 }
 
-int tux_select_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
-                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
-                          uintptr_t parm6)
-{
-  int ret, i, flag, j;
-  struct tux_fd_set *r, *w, *e;
-  r = (struct tux_fd_set *)parm2;
-  w = (struct tux_fd_set *)parm3;
-  e = (struct tux_fd_set *)parm4;
-
-  fd_set lr;
-  fd_set lw;
-  fd_set le;
-
-  FD_ZERO(&lr);
-  FD_ZERO(&lw);
-  FD_ZERO(&le);
-
-  svcinfo("Select syscall %d, fd: %d\n", nbr, parm1);
-
-  flag = 0;
-  for(i = 0; i < CONFIG_TUX_FD_RESERVE / TUX_NFDBITS; i++)
-    {
-      if(r && (r->__fds_bits[i]))
-          flag = 1;
-      if(w && (w->__fds_bits[i]))
-          flag = 1;
-      if(e && (e->__fds_bits[i]))
-          flag = 1;
-    }
-
-  for(j = 0; j < CONFIG_TUX_FD_RESERVE % TUX_NFDBITS; j++)
-    {
-      if(r && ((r->__fds_bits[i] >> j) & 0x1))
-          flag = 1;
-      if(w && ((w->__fds_bits[i] >> j) & 0x1))
-          flag = 1;
-      if(e && ((e->__fds_bits[i] >> j) & 0x1))
-          flag = 1;
-    }
-
-
-  for(; j < TUX_NFDBITS; j++)
-    {
-      if(r && ((r->__fds_bits[i] >> j) & 0x1)){
-        if(flag)
-          return -1; // Do not support mixing the fds of 2 realms
-        _info("rlocal: %d\n", (TUX_NFDBITS * i + j));
-        FD_SET((TUX_NFDBITS * i + j) - CONFIG_TUX_FD_RESERVE, &lr);
-      }
-      if(w && ((w->__fds_bits[i] >> j) & 0x1)){
-        if(flag)
-          return -1; // Do not support mixing the fds of 2 realms
-        _info("wlocal: %d\n", (TUX_NFDBITS * i + j));
-        FD_SET((TUX_NFDBITS * i + j) - CONFIG_TUX_FD_RESERVE, &lw);
-      }
-      if(e && ((e->__fds_bits[i] >> j) & 0x1)){
-        if(flag)
-          return -1; // Do not support mixing the fds of 2 realms
-        _info("elocal: %d\n", (TUX_NFDBITS * i + j));
-        FD_SET((TUX_NFDBITS * i + j) - CONFIG_TUX_FD_RESERVE, &le);
-      }
-    }
-
-  for(i++; i < (CONFIG_TUX_FD_RESERVE + FD_SETSIZE) / TUX_NFDBITS; i++)
-    {
-      if(r && ((r->__fds_bits[i]) & 0x1)){
-        if(flag)
-          return -1; // Do not support mixing the fds of 2 realms
-        for(j = 0; j < TUX_NFDBITS; j++){
-            if(((r->__fds_bits[i] >> j) & 0x1)){
-              _info("rlocal: %d\n", (TUX_NFDBITS * i + j));
-              FD_SET((TUX_NFDBITS * i + j) - CONFIG_TUX_FD_RESERVE, &lr);
-            }
-        }
-      }
-      if(w && ((w->__fds_bits[i]) & 0x1)){
-        if(flag)
-          return -1; // Do not support mixing the fds of 2 realms
-        for(j = 0; j < TUX_NFDBITS; j++){
-            if(((w->__fds_bits[i] >> j) & 0x1)){
-              _info("wlocal: %d\n", (TUX_NFDBITS * i + j));
-              FD_SET((TUX_NFDBITS * i + j) - CONFIG_TUX_FD_RESERVE, &lw);
-            }
-        }
-      }
-      if(e && ((e->__fds_bits[i]) & 0x1)){
-        if(flag)
-          return -1; // Do not support mixing the fds of 2 realms
-        for(j = 0; j < TUX_NFDBITS; j++){
-            if(((e->__fds_bits[i] >> j) & 0x1)){
-              _info("elocal: %d\n", (TUX_NFDBITS * i + j));
-              FD_SET((TUX_NFDBITS * i + j) - CONFIG_TUX_FD_RESERVE, &le);
-            }
-        }
-      }
-    }
-  for(j = 0; j < (CONFIG_TUX_FD_RESERVE + FD_SETSIZE) % TUX_NFDBITS; j++)
-    {
-      if(r && ((r->__fds_bits[i] >> j) & 0x1)){
-        if(flag)
-          return -1; // Do not support mixing the fds of 2 realms
-        _info("rlocal: %d\n", (TUX_NFDBITS * i + j));
-        FD_SET((TUX_NFDBITS * i + j) - CONFIG_TUX_FD_RESERVE, &lr);
-      }
-      if(w && ((w->__fds_bits[i] >> j) & 0x1)){
-        if(flag)
-          return -1; // Do not support mixing the fds of 2 realms
-        _info("wlocal: %d\n", (TUX_NFDBITS * i + j));
-        FD_SET((TUX_NFDBITS * i + j) - CONFIG_TUX_FD_RESERVE, &lw);
-      }
-      if(e && ((e->__fds_bits[i] >> j) & 0x1)){
-        if(flag)
-          return -1; // Do not support mixing the fds of 2 realms
-        _info("elocal: %d\n", (TUX_NFDBITS * i + j));
-        FD_SET((TUX_NFDBITS * i + j) - CONFIG_TUX_FD_RESERVE, &le);
-      }
-    }
-
-  _info("Issuing select\n");
-
-  if(flag){
-    ret = tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
-  }else{
-    ret = tux_local(nbr, parm1 - CONFIG_TUX_FD_RESERVE, &lr, &lw, &le, parm5, parm6);
-  }
-
-  return ret;
-}
-
 int tux_poll_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6)
@@ -233,6 +103,7 @@ int tux_poll_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
 
   return ret;
 }
+
 
 int tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
