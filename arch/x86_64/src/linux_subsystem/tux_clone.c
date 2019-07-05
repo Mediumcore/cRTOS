@@ -67,7 +67,6 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
   struct tcb_s *rtcb = this_task();
   void* stack;
   struct vma_s *ptr, *ptr2, *pptr, *pda_ptr;
-  uint64_t mapping_count;
   uint64_t i;
   void* virt_mem;
   uint64_t *regs;
@@ -125,40 +124,39 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
   }else{
 
     /* copy our mapped memory, including stack, to the new process */
-    mapping_count = 0;
+
+    struct vma_s* mapping = NULL;
+    struct vma_s* curr;
 
     for(ptr = rtcb->xcp.vma; ptr; ptr = ptr->next){
-        if(ptr->pa_start != 0xffffffff)
-            mapping_count++;
-    }
-
-    struct vma_s* mapping = kmm_zalloc(sizeof(struct vma_s) * mapping_count);
-
-    for(i = 0; i < mapping_count - 1; i++){
-        mapping[i].next = mapping + i + 1;
+        if(ptr->pa_start != 0xffffffff) {
+            curr = kmm_zalloc(sizeof(struct vma_s));
+            curr->next = mapping;
+            mapping = curr;
+        }
     }
 
     tcb->cmn.xcp.vma = mapping;
-    mapping[i].next = NULL;
 
     svcinfo("Copy mappings\n");
-    for(ptr = rtcb->xcp.vma, i = 0; ptr; ptr = ptr->next, i++){
+    for(ptr = rtcb->xcp.vma, curr = tcb->cmn.xcp.vma; ptr; ptr = ptr->next){
         if(ptr->pa_start == 0xffffffff){
-            i--;
             continue;
         }
 
-        mapping[i].va_start = ptr->va_start;
-        mapping[i].va_end = ptr->va_end;
-        mapping[i].proto = ptr->proto;
+        curr->va_start = ptr->va_start;
+        curr->va_end = ptr->va_end;
+        curr->proto = ptr->proto;
 
-        mapping[i]._backing = kmm_zalloc(strlen(ptr->_backing) + 1);
-        strcpy(mapping[i]._backing, ptr->_backing);
+        curr->_backing = kmm_zalloc(strlen(ptr->_backing) + 1);
+        strcpy(curr->_backing, ptr->_backing);
 
-        mapping[i].pa_start = new_memory_block(VMA_SIZE(ptr), &virt_mem);
+        curr->pa_start = new_memory_block(VMA_SIZE(ptr), &virt_mem);
         memcpy(virt_mem, ptr->va_start, VMA_SIZE(ptr));
 
-        svcinfo("Mapping: %llx - %llx: %llx %s\n", ptr->va_start, ptr->va_end, mapping[i].pa_start, mapping[i]._backing);
+        svcinfo("Mapping: %llx - %llx: %llx %s\n", ptr->va_start, ptr->va_end, curr->pa_start, curr->_backing);
+
+        curr = curr->next;
     }
 
     svcinfo("Copy pdas\n");
@@ -212,7 +210,9 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
     /* stack is the new kernel stack */
 
     tcb->cmn.xcp.linux_tcb = tux_delegate(57, 0, 0, 0, 0, 0, 0); // Get a new shadow process
-    tcb->cmn.xcp.is_linux  = 2; /* This is the head of threads, responsible to scrap the addrenv */
+    tcb->cmn.xcp.is_linux = 2; /* This is the head of threads, responsible to scrap the addrenv */
+    nxsem_init(&tcb->cmn.xcp.syscall_lock, 1, 0);
+    nxsem_setprotocol(&tcb->cmn.xcp.syscall_lock, SEM_PRIO_NONE);
   }
 
   /* set it after copying the memory to child */
