@@ -33,7 +33,6 @@ int tux_alarm(unsigned long nbr, unsigned int second){
 
     ti.it_value.tv_sec = second;
     ti.it_value.tv_nsec = 0;
-    _info("ALARM IN\n");
 
     if(second == 0){
         ti.it_value.tv_sec = 0;
