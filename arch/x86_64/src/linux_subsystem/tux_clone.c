@@ -213,6 +213,8 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
     tcb->cmn.xcp.is_linux = 2; /* This is the head of threads, responsible to scrap the addrenv */
     nxsem_init(&tcb->cmn.xcp.syscall_lock, 1, 0);
     nxsem_setprotocol(&tcb->cmn.xcp.syscall_lock, SEM_PRIO_NONE);
+
+    add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
   }
 
   /* set it after copying the memory to child */

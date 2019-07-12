@@ -72,6 +72,23 @@
 #define TUX_FD_ELT(d)   ((d) / TUX_NFDBITS)
 #define TUX_FD_MASK(d)  ((long int) (1UL << ((d) % TUX_NFDBITS)))
 
+#define TUX_IPC_CREAT	01000		/* create key if key does not exist. */
+#define TUX_IPC_EXCL	02000		/* fail if key exists.  */
+
+#define TUX_IPC_RMID 0     /* remove resource */
+#define TUX_IPC_SET  1     /* set ipc_perm options */
+#define TUX_IPC_STAT 2     /* get ipc_perm options */
+#define TUX_IPC_INFO 3     /* see ipcs */
+
+#define TUX_SHM_LOCK 11
+
+#define TUX_SEM_GETVAL		12		/* get semval */
+#define TUX_SEM_GETALL		13		/* get all semval's */
+#define TUX_SEM_SETVAL		16		/* set semval */
+#define TUX_SEM_SETALL		17		/* set all semval's */
+
+#define TUX_SEM_UNDO        0x1000          /* undo the operation on exit */
+
 extern GRAN_HANDLE tux_mm_hnd;
 
 struct rlimit {
@@ -89,6 +106,58 @@ struct tux_sigaction{
 struct tux_fd_set
 {
     long int __fds_bits[TUX_FD_SETSIZE / TUX_NFDBITS];
+};
+
+struct ipc_perm {
+   uint32_t       __key;    /* Key supplied to shmget(2) */
+   uint64_t       uid;      /* Effective UID of owner */
+   uint64_t       gid;      /* Effective GID of owner */
+   uint64_t       cuid;     /* Effective UID of creator */
+   uint64_t       cgid;     /* Effective GID of creator */
+   unsigned short mode;     /* Permissions + SHM_DEST and
+                               SHM_LOCKED flags */
+   unsigned short __seq;    /* Sequence number */
+};
+
+struct shmid_ds
+{
+    struct ipc_perm shm_perm;		/* operation permission struct */
+    uint64_t shm_segsz;			/* size of segment in bytes */
+    uint64_t shm_atime;			/* time of last shmat() */
+    uint64_t shm_dtime;			/* time of last shmdt() */
+    uint64_t shm_ctime;			/* time of last change by shmctl() */
+    uint32_t shm_cpid;			/* pid of creator */
+    uint32_t shm_lpid;			/* pid of last shmop */
+    uint64_t shm_nattch;		/* number of current attaches */
+    uint64_t __glibc_reserved4;
+    uint64_t __glibc_reserved5;
+};
+
+struct semid_ds
+{
+    struct ipc_perm sem_perm;		/* operation permission struct */
+    uint64_t sem_otime;			/* last semop() time */
+    uint64_t __glibc_reserved1;
+    uint64_t sem_ctime;			/* last time changed by semctl() */
+    uint64_t __glibc_reserved2;
+    uint64_t sem_nsems;		/* number of semaphores in set */
+    uint64_t __glibc_reserved3;
+    uint64_t __glibc_reserved4;
+};
+
+union semun {
+    int val;			/* value for SETVAL */
+    struct semid_ds *buf;	/* buffer for IPC_STAT & IPC_SET */
+    unsigned short *array;	/* array for GETALL & SETALL */
+    struct seminfo *__buf;	/* buffer for IPC_INFO */
+    void *__pad;
+};
+
+struct sembuf
+{
+  unsigned short int sem_num;	/* semaphore number */
+  short int sem_op;		/* semaphore operation */
+  short int sem_flg;		/* operation flag */
 };
 
 static inline uint64_t set_msr(unsigned long nbr){
@@ -168,6 +237,7 @@ int tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm6);
 
 void add_remote_on_exit(struct tcb_s* tcb, void (*func)(int, void *), void *arg);
+void tux_on_exit(int val, void* arg);
 
 int     tux_nanosleep   (unsigned long nbr, const struct timespec *rqtp, struct timespec *rmtp);
 int     tux_gettimeofday   (unsigned long nbr, struct timeval *tv, struct timezone *tz);
@@ -178,6 +248,16 @@ int     tux_clone       (unsigned long nbr, unsigned long flags, void *child_sta
 void    tux_mm_init     (void);
 void*   tux_mmap        (unsigned long nbr, void* addr, size_t length, int prot, int flags, int fd, off_t offset);
 int     tux_munmap      (unsigned long nbr, void* addr, size_t length);
+
+int     tux_shmget      (unsigned long nbr, uint32_t key, uint32_t size, uint32_t flags);
+int     tux_shmctl      (unsigned long nbr, int hv, uint32_t cmd, struct shmid_ds* buf);
+void*   tux_shmat       (unsigned long nbr, int hv, void* addr, int flags);
+int     tux_shmdt       (unsigned long nbr, void* addr);
+
+int     tux_semget      (unsigned long nbr, uint32_t key, int nsems, uint32_t flags);
+int     tux_semctl      (unsigned long nbr, int hv, int semnum, int cmd, union semun arg);
+int     tux_semop       (unsigned long nbr, int hv, struct sembuf *tsops, unsigned int nops);
+int     tux_semtimedop  (unsigned long nbr, int hv, struct sembuf *tsops, unsigned int nops, const struct timespec* timeout);
 
 int     tux_getrlimit   (unsigned long nbr, int resource, struct rlimit *rlim);
 
