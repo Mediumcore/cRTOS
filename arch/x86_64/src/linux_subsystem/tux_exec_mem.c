@@ -402,7 +402,11 @@ int execvs(void* pbase, void* vbase, int bsize,
     tcb->cmn.xcp.is_linux = 2;
     tcb->cmn.xcp.linux_sock = sock;
     _info("LINUX SOCK: %d\n", tcb->cmn.xcp.linux_sock);
-    tcb->cmn.xcp.linux_tcb = shadow_tcb;
+
+    tcb->cmn.xcp.linux_tcb = ~(0xffffULL << 48) & shadow_tcb;
+    tcb->cmn.xcp.linux_pid = (0xffff & (shadow_tcb >> 48));
+    _info("LINUX TCB %lx, PID %lx\n", tcb->cmn.xcp.linux_tcb, tcb->cmn.xcp.linux_pid);
+
     nxsem_init(&tcb->cmn.xcp.syscall_lock, 1, 0);
     nxsem_setprotocol(&tcb->cmn.xcp.syscall_lock, SEM_PRIO_NONE);
 

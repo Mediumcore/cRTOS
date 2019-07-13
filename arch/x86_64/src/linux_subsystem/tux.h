@@ -276,6 +276,11 @@ int     tux_alarm            (unsigned long nbr, unsigned int second);
 
 int     tux_select           (unsigned long nbr, int fd, struct tux_fd_set *r, struct tux_fd_set *w, struct tux_fd_set *e, struct timeval *timeout);
 
+int     tux_getppid     (unsigned long nbr);
+int     tux_getpgid     (unsigned long nbr, int pid);
+int     tux_setpgid     (unsigned long nbr, int pid, int pgid);
+int     tux_getsid      (unsigned long nbr, int pid);
+
 static inline int     tux_sched_get_priority_max(unsigned long nbr, uint64_t p) { return sched_get_priority_max(p); };
 static inline int     tux_sched_get_priority_min(unsigned long nbr, uint64_t p) { return sched_get_priority_min(p); };
 

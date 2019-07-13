@@ -210,6 +210,8 @@ int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
     /* stack is the new kernel stack */
 
     tcb->cmn.xcp.linux_tcb = tux_delegate(57, 0, 0, 0, 0, 0, 0); // Get a new shadow process
+    tcb->cmn.xcp.linux_pid = (0xffff & (tcb->cmn.xcp.linux_tcb >> 48));
+    tcb->cmn.xcp.linux_tcb &= ~(0xffffULL << 48);
     tcb->cmn.xcp.is_linux = 2; /* This is the head of threads, responsible to scrap the addrenv */
     nxsem_init(&tcb->cmn.xcp.syscall_lock, 1, 0);
     nxsem_setprotocol(&tcb->cmn.xcp.syscall_lock, SEM_PRIO_NONE);
