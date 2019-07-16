@@ -115,7 +115,7 @@ syscall_t linux_syscall_action_table[500] = {
     (syscall_t)tux_clone,
     tux_no_impl, // sys_fork
     tux_no_impl, // sys_vfrok
-    tux_no_impl, // sys_execve
+    (syscall_t)tux_exec, // sys_execve
     tux_local, // SYS_exit,
     tux_local, // sys_wait4
     tux_local, // SYS_kill,

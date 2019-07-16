@@ -1,6 +1,9 @@
 #ifndef __LINUX_SUBSYSTEM_TUX_H
 #define __LINUX_SUBSYSTEM_TUX_H
 
+#include <unistd.h>
+#include <fcntl.h>
+
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
 #include <nuttx/mm/gran.h>
@@ -11,10 +14,6 @@
 #include <sched/sched.h>
 
 #include <arch/io.h>
-
-#define TUX_FD_OFFSET (CONFIG_NFILE_DESCRIPTORS + CONFIG_NSOCKET_DESCRIPTORS + 16)
-
-#define PAGE_SLOT_SIZE 0x1000000
 
 #define FUTEX_WAIT 0x0
 #define FUTEX_WAKE 0x1
@@ -281,11 +280,14 @@ int     tux_getpgid     (unsigned long nbr, int pid);
 int     tux_setpgid     (unsigned long nbr, int pid, int pgid);
 int     tux_getsid      (unsigned long nbr, int pid);
 
+int     tux_exec        (unsigned long nbr, const char* path, char *argv[], char* envp[]);
+int     _tux_exec       (char* path, char *argv[], char* envp[]);
+
 static inline int     tux_sched_get_priority_max(unsigned long nbr, uint64_t p) { return sched_get_priority_max(p); };
 static inline int     tux_sched_get_priority_min(unsigned long nbr, uint64_t p) { return sched_get_priority_min(p); };
 
 static inline int tux_pipe(unsigned long nbr, int pipefd[2], int flags){
-    int ret = pipe2(pipefd, PAGE_SIZE);
+    int ret = pipe(pipefd);
     pipefd[0] += CONFIG_TUX_FD_RESERVE;
     pipefd[1] += CONFIG_TUX_FD_RESERVE;
     return ret;
