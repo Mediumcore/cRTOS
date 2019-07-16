@@ -192,22 +192,22 @@ static inline uint64_t* temp_map_at_0xc0000000(uintptr_t start, uintptr_t end)
   return (uint64_t*)(0xc0000000 + lsb);
 }
 
-typedef int (*syscall_t)(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+typedef long (*syscall_t)(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6);
 
 void*   find_free_slot(void);
 void    release_slot(void* slot);
 
-static inline int tux_success_stub(void){
+static inline long tux_success_stub(void){
     return 0;
 }
 
-static inline int tux_fail_stub(void){
+static inline long tux_fail_stub(void){
     return -1;
 }
 
-static inline int tux_no_impl(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+static inline long tux_no_impl(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                               uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                               uintptr_t parm6){
     _alert("Not implemented Linux syscall %d\n", nbr);
@@ -215,78 +215,78 @@ static inline int tux_no_impl(unsigned long nbr, uintptr_t parm1, uintptr_t parm
     return -1;
 }
 
-int tux_local(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+long tux_local(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6);
 
-int tux_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+long tux_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6);
 
-int tux_file_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+long tux_file_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6);
 
-int tux_poll_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+long tux_poll_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6);
 
-int tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+long tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6);
 
 void add_remote_on_exit(struct tcb_s* tcb, void (*func)(int, void *), void *arg);
 void tux_on_exit(int val, void* arg);
 
-int     tux_nanosleep   (unsigned long nbr, const struct timespec *rqtp, struct timespec *rmtp);
-int     tux_gettimeofday   (unsigned long nbr, struct timeval *tv, struct timezone *tz);
+long     tux_nanosleep   (unsigned long nbr, const struct timespec *rqtp, struct timespec *rmtp);
+long     tux_gettimeofday   (unsigned long nbr, struct timeval *tv, struct timezone *tz);
 
-int     tux_clone       (unsigned long nbr, unsigned long flags, void *child_stack,
+long     tux_clone       (unsigned long nbr, unsigned long flags, void *child_stack,
                          void *ptid, void *ctid, unsigned long tls);
 
 void    tux_mm_init     (void);
 void*   tux_mmap        (unsigned long nbr, void* addr, size_t length, int prot, int flags, int fd, off_t offset);
-int     tux_munmap      (unsigned long nbr, void* addr, size_t length);
+long     tux_munmap      (unsigned long nbr, void* addr, size_t length);
 
-int     tux_shmget      (unsigned long nbr, uint32_t key, uint32_t size, uint32_t flags);
-int     tux_shmctl      (unsigned long nbr, int hv, uint32_t cmd, struct shmid_ds* buf);
+long     tux_shmget      (unsigned long nbr, uint32_t key, uint32_t size, uint32_t flags);
+long     tux_shmctl      (unsigned long nbr, int hv, uint32_t cmd, struct shmid_ds* buf);
 void*   tux_shmat       (unsigned long nbr, int hv, void* addr, int flags);
-int     tux_shmdt       (unsigned long nbr, void* addr);
+long     tux_shmdt       (unsigned long nbr, void* addr);
 
-int     tux_semget      (unsigned long nbr, uint32_t key, int nsems, uint32_t flags);
-int     tux_semctl      (unsigned long nbr, int hv, int semnum, int cmd, union semun arg);
-int     tux_semop       (unsigned long nbr, int hv, struct sembuf *tsops, unsigned int nops);
-int     tux_semtimedop  (unsigned long nbr, int hv, struct sembuf *tsops, unsigned int nops, const struct timespec* timeout);
+long     tux_semget      (unsigned long nbr, uint32_t key, int nsems, uint32_t flags);
+long     tux_semctl      (unsigned long nbr, int hv, int semnum, int cmd, union semun arg);
+long     tux_semop       (unsigned long nbr, int hv, struct sembuf *tsops, unsigned int nops);
+long     tux_semtimedop  (unsigned long nbr, int hv, struct sembuf *tsops, unsigned int nops, const struct timespec* timeout);
 
-int     tux_getrlimit   (unsigned long nbr, int resource, struct rlimit *rlim);
+long     tux_getrlimit   (unsigned long nbr, int resource, struct rlimit *rlim);
 
 int*    _tux_set_tid_address    (struct tcb_s *rtcb, int* tidptr);
-int     tux_set_tid_address     (unsigned long nbr, int* tidptr);
+long     tux_set_tid_address     (unsigned long nbr, int* tidptr);
 void    tux_set_tid_callback    (int val, void* arg);
 
 void*   tux_brk         (unsigned long nbr, void* brk);
 
-int     tux_arch_prctl       (unsigned long nbr, int code, unsigned long addr);
+long     tux_arch_prctl       (unsigned long nbr, int code, unsigned long addr);
 
-int     tux_futex            (unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint32_t val2, int32_t* uaddr2, uint32_t val3);
+long     tux_futex            (unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint32_t val2, int32_t* uaddr2, uint32_t val3);
 
-int     tux_rt_sigaction     (unsigned long nbr, int sig, const struct tux_sigaction* act, struct tux_sigaction* old_act, uint64_t set_size);
-int     tux_alarm            (unsigned long nbr, unsigned int second);
+long     tux_rt_sigaction     (unsigned long nbr, int sig, const struct tux_sigaction* act, struct tux_sigaction* old_act, uint64_t set_size);
+long     tux_alarm            (unsigned long nbr, unsigned int second);
 
-int     tux_select           (unsigned long nbr, int fd, struct tux_fd_set *r, struct tux_fd_set *w, struct tux_fd_set *e, struct timeval *timeout);
+long     tux_select           (unsigned long nbr, int fd, struct tux_fd_set *r, struct tux_fd_set *w, struct tux_fd_set *e, struct timeval *timeout);
 
-int     tux_getppid     (unsigned long nbr);
-int     tux_getpgid     (unsigned long nbr, int pid);
-int     tux_setpgid     (unsigned long nbr, int pid, int pgid);
-int     tux_getsid      (unsigned long nbr, int pid);
+long     tux_getppid     (unsigned long nbr);
+long     tux_getpgid     (unsigned long nbr, int pid);
+long     tux_setpgid     (unsigned long nbr, int pid, int pgid);
+long     tux_getsid      (unsigned long nbr, int pid);
 
-int     tux_exec        (unsigned long nbr, const char* path, char *argv[], char* envp[]);
-int     _tux_exec       (char* path, char *argv[], char* envp[]);
+long     tux_exec        (unsigned long nbr, const char* path, char *argv[], char* envp[]);
+long     _tux_exec       (char* path, char *argv[], char* envp[]);
 
-static inline int     tux_sched_get_priority_max(unsigned long nbr, uint64_t p) { return sched_get_priority_max(p); };
-static inline int     tux_sched_get_priority_min(unsigned long nbr, uint64_t p) { return sched_get_priority_min(p); };
+static inline long     tux_sched_get_priority_max(unsigned long nbr, uint64_t p) { return sched_get_priority_max(p); };
+static inline long     tux_sched_get_priority_min(unsigned long nbr, uint64_t p) { return sched_get_priority_min(p); };
 
-static inline int tux_pipe(unsigned long nbr, int pipefd[2], int flags){
+static inline long tux_pipe(unsigned long nbr, int pipefd[2], int flags){
     int ret = pipe(pipefd);
     pipefd[0] += CONFIG_TUX_FD_RESERVE;
     pipefd[1] += CONFIG_TUX_FD_RESERVE;

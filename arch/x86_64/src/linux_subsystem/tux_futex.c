@@ -13,7 +13,7 @@ struct futex_q{
 
 struct futex_q futex_hash_table[FUTEX_HT_SIZE];
 
-int tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint32_t val2, int32_t* uaddr2, uint32_t val3){
+long tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint32_t val2, int32_t* uaddr2, uint32_t val3){
   struct tcb_s *tcb = this_task();
   uint32_t s_head = (uint64_t)uaddr % FUTEX_HT_SIZE;
   uint32_t s_head2 = (uint64_t)uaddr2 % FUTEX_HT_SIZE;

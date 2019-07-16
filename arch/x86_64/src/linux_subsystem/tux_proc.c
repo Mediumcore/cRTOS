@@ -8,7 +8,7 @@
 #include <group/group.h>
 #include <task/task.h>
 
-int get_linux_pid(int lpid) {
+long get_linux_pid(int lpid) {
     struct tcb_s *rtcb;
     int rpid;
 
@@ -17,7 +17,7 @@ int get_linux_pid(int lpid) {
     return rtcb->xcp.linux_pid;
 }
 
-int tux_getppid(unsigned long nbr){
+long tux_getppid(unsigned long nbr){
     struct task_group_s *pgrp;
     struct task_group_s *ppgrp;
     struct tcb_s *tcb;
@@ -41,7 +41,7 @@ int tux_getppid(unsigned long nbr){
     return ppgrp->tg_task;
 };
 
-int tux_getpgid (unsigned long nbr, int pid) {
+long tux_getpgid (unsigned long nbr, int pid) {
     int rpid;
 
     rpid = 0;
@@ -53,7 +53,7 @@ int tux_getpgid (unsigned long nbr, int pid) {
     return tux_delegate(nbr, rpid, NULL, NULL, NULL, NULL, NULL);
 }
 
-int tux_setpgid (unsigned long nbr, int pid, int pgid) {
+long tux_setpgid (unsigned long nbr, int pid, int pgid) {
     int rpid;
     int rpgid;
 
@@ -72,7 +72,7 @@ int tux_setpgid (unsigned long nbr, int pid, int pgid) {
     return tux_delegate(nbr, rpid, rpgid, NULL, NULL, NULL, NULL);
 }
 
-int tux_getsid (unsigned long nbr, int pid) {
+long tux_getsid (unsigned long nbr, int pid) {
     int rpid;
 
     rpid = 0;

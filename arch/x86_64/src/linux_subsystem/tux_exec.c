@@ -127,7 +127,7 @@ void* exec_setupargs(uint64_t stack, int argc, char* argv[], int envc, char* env
     return sp - sizeof(uint64_t);
 }
 
-int _tux_exec(char* path, char *argv[], char* envp[]){
+long _tux_exec(char* path, char *argv[], char* envp[]){
     int argc, envc;
     int i, j;
     int ret;
@@ -376,7 +376,7 @@ err_close:
 };
 
 
-int tux_exec(unsigned long nbr, const char* path, char *argv[], char* envp[]){
+long tux_exec(unsigned long nbr, const char* path, char *argv[], char* envp[]){
     int i;
     int argc, envc;
 

@@ -160,7 +160,7 @@ void make_vma_free(struct vma_s* ret) {
   return;
 }
 
-int map_pages(struct vma_s* vma){
+long map_pages(struct vma_s* vma){
   struct tcb_s *tcb = this_task();
   uint64_t i, j, k;
   uint64_t prev_end;
@@ -478,7 +478,7 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
   return addr;
 }
 
-int tux_munmap(unsigned long nbr, void* addr, size_t length){
+long tux_munmap(unsigned long nbr, void* addr, size_t length){
   struct tcb_s *tcb = this_task();
   struct vma_s* vma;
 

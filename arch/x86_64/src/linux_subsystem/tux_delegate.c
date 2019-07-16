@@ -177,7 +177,7 @@ void tux_errno_sanitaizer(int *ret){
 }
 
 
-int tux_local(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+long tux_local(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6)
 {
@@ -198,7 +198,7 @@ int tux_local(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
   return ret;
 }
 
-int tux_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+long tux_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6)
 {
@@ -226,7 +226,7 @@ int tux_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
   return params[0];
 }
 
-int tux_file_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+long tux_file_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6)
 {
@@ -245,7 +245,7 @@ int tux_file_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
   return ret;
 }
 
-int tux_poll_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+long tux_poll_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6)
 {
@@ -265,7 +265,7 @@ int tux_poll_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
 }
 
 
-int tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+long tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6)
 {

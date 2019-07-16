@@ -98,7 +98,7 @@ int fd_set_tux_merge(struct tux_fd_set* out, fd_set *in){
     return 0;
 }
 
-int tux_select (unsigned long nbr, int fd, struct tux_fd_set *r, struct tux_fd_set *w, struct tux_fd_set *e, struct timeval *timeout)
+long tux_select (unsigned long nbr, int fd, struct tux_fd_set *r, struct tux_fd_set *w, struct tux_fd_set *e, struct timeval *timeout)
 {
   int ret;
   int rr, wr, er;

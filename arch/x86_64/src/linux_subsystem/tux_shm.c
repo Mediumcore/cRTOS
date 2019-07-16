@@ -14,7 +14,7 @@ struct shm_q{
 
 struct shm_q shm_hash_table[SHM_HT_SIZE];
 
-int tux_shmget(unsigned long nbr, uint32_t key, uint32_t size, uint32_t flags){
+long tux_shmget(unsigned long nbr, uint32_t key, uint32_t size, uint32_t flags){
   struct tcb_s *tcb = this_task();
   uint32_t s_head = (uint64_t)key % SHM_HT_SIZE;
   uint32_t hv = s_head;
@@ -69,7 +69,7 @@ int tux_shmget(unsigned long nbr, uint32_t key, uint32_t size, uint32_t flags){
 }
 
 
-int tux_shmctl(unsigned long nbr, int hv, uint32_t cmd, struct shmid_ds* buf){
+long tux_shmctl(unsigned long nbr, int hv, uint32_t cmd, struct shmid_ds* buf){
     if(!(shm_hash_table[hv].info.shm_perm.__key)) return -EINVAL;
 
     if(cmd != TUX_IPC_STAT && cmd != TUX_SHM_LOCK) return -EINVAL; // Only IPC_STAT and SHM_LOCK is available
@@ -92,7 +92,7 @@ void *tux_shmat(unsigned long nbr, int hv, void* addr, int flags){
     return (void*)shm_hash_table[hv].addr;
 }
 
-int tux_shmdt(unsigned long nbr, void* addr){
+long tux_shmdt(unsigned long nbr, void* addr){
     uint32_t hv = 0;
     irqstate_t irqflags;
 

@@ -15,7 +15,7 @@ struct sem_q{
 
 struct sem_q sem_hash_table[SEM_HT_SIZE];
 
-int tux_semget(unsigned long nbr, uint32_t key, int nsems, uint32_t flags){
+long tux_semget(unsigned long nbr, uint32_t key, int nsems, uint32_t flags){
   struct tcb_s *tcb = this_task();
   uint32_t s_head = (uint64_t)key % SEM_HT_SIZE;
   uint32_t hv = s_head;
@@ -72,7 +72,7 @@ int tux_semget(unsigned long nbr, uint32_t key, int nsems, uint32_t flags){
 }
 
 
-int tux_semctl(unsigned long nbr, int hv, int semnum, int cmd, union semun arg){
+long tux_semctl(unsigned long nbr, int hv, int semnum, int cmd, union semun arg){
     int ret;
     int i;
     int sval;
@@ -125,7 +125,7 @@ int tux_semctl(unsigned long nbr, int hv, int semnum, int cmd, union semun arg){
     return ret;
 }
 
-int tux_semtimedop(unsigned long nbr, int hv, struct sembuf *tsops, unsigned int nops, const struct timespec* timeout){
+long tux_semtimedop(unsigned long nbr, int hv, struct sembuf *tsops, unsigned int nops, const struct timespec* timeout){
     int i, j;
     int ret = 0;
     int svalue;
@@ -194,7 +194,7 @@ int tux_semtimedop(unsigned long nbr, int hv, struct sembuf *tsops, unsigned int
 }
 
 
-int tux_semop(unsigned long nbr, int hv, struct sembuf *tsops, unsigned int nops){
+long tux_semop(unsigned long nbr, int hv, struct sembuf *tsops, unsigned int nops){
     int i, j;
     int ret;
     int svalue;

@@ -58,7 +58,7 @@ void clone_trampoline(void* regs) {
     _exit(255); // We should never end up here
 }
 
-int tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
+long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
               void *ptid, void *ctid,
               unsigned long tls){
 

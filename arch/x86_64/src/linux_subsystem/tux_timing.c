@@ -8,10 +8,10 @@
 #include "up_internal.h"
 #include "sched/sched.h"
 
-int tux_nanosleep(unsigned long nbr, const struct timespec *rqtp, struct timespec *rmtp){
+long tux_nanosleep(unsigned long nbr, const struct timespec *rqtp, struct timespec *rmtp){
   return nanosleep(rqtp, rmtp);
 }
 
-int tux_gettimeofday(unsigned long nbr, struct timeval *tv, struct timezone *tz){
+long tux_gettimeofday(unsigned long nbr, struct timeval *tv, struct timezone *tz){
   return gettimeofday(tv, tz);
 }

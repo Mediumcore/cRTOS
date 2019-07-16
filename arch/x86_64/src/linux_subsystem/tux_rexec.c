@@ -312,7 +312,7 @@ void rexec_trampoline(const char* path, char *argv[], char* envp[]) {
     /*_exit(255);  We should never end up here*/
 }
 
-int rexec(const char* path, int priority,
+long rexec(const char* path, int priority,
            char* argv[], char* envp[], uint64_t shadow_tcb)
 {
     struct task_tcb_s *tcb;

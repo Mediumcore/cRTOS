@@ -48,7 +48,7 @@ enum __rlimit_resource
   __RLIM_NLIMITS = __RLIMIT_NLIMITS
 };
 
-int tux_getrlimit(unsigned long nbr, int resource, struct rlimit *rlim){
+long tux_getrlimit(unsigned long nbr, int resource, struct rlimit *rlim){
   switch(resource){
     case RLIMIT_STACK:
       rlim->rlim_cur = 0x800000;

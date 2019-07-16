@@ -24,7 +24,7 @@ static inline void translate_to_tux_sigaction(struct tux_sigaction *out, const s
     out->sa_mask = in->sa_mask;
 }
 
-int tux_alarm(unsigned long nbr, unsigned int second){
+long tux_alarm(unsigned long nbr, unsigned int second){
     int ret;
     struct itimerspec ti;
     struct itimerspec tip;
@@ -56,7 +56,7 @@ int tux_alarm(unsigned long nbr, unsigned int second){
     return ret;
 };
 
-int tux_rt_sigaction(unsigned long nbr, int sig, const struct tux_sigaction* act, struct tux_sigaction* old_act, uint64_t set_size){
+long tux_rt_sigaction(unsigned long nbr, int sig, const struct tux_sigaction* act, struct tux_sigaction* old_act, uint64_t set_size){
     int ret;
 
     struct sigaction lact;
