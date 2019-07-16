@@ -36,7 +36,7 @@ static inline void* new_memory_block(uint64_t size, void** virt) {
     return ret;
 }
 
-void clone_trampoline(void* regs) {
+void clone_trampoline(void* regs, uint32_t* ctid) {
     uint64_t regs_on_stack[16];
     svcinfo("Entering Clone Trampoline\n");
 
@@ -45,6 +45,11 @@ void clone_trampoline(void* regs) {
     for(ptr = rtcb->xcp.vma; ptr; ptr = ptr->next){
         tux_delegate(9, (((uint64_t)ptr->pa_start) << 32) | (uint64_t)(ptr->va_start), VMA_SIZE(ptr),
                      0, MAP_ANONYMOUS, 0, 0);
+    }
+
+    if(ctid) {
+        _info("APPLYING TID %d\n", this_task()->xcp.linux_tid);
+        *ctid = this_task()->xcp.linux_tid;
     }
 
     // Move the regs onto the stack and free the memory
@@ -102,25 +107,30 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
     tcb->cmn.xcp.fs_base = (uint64_t)tls;
   }
 
-  if(flags & CLONE_CHILD_SETTID){
-    orig_tid = *(uint32_t*)(ctid);
-    *(uint32_t*)(ctid) = tcb->cmn.pid;
-  }
-
-  if(flags & CLONE_CHILD_CLEARTID){
-    orig_child_tid_ptr = _tux_set_tid_address((struct tcb_s*)tcb, (int*)(ctid));
-  }
 
   /* Clone the VM */
   if(flags & CLONE_VM){
-      tcb->cmn.xcp.vma = rtcb->xcp.vma;
-      tcb->cmn.xcp.pda = rtcb->xcp.pda;
+    tcb->cmn.xcp.vma = rtcb->xcp.vma;
+    tcb->cmn.xcp.pda = rtcb->xcp.pda;
 
-      /* manual set the stack pointer */
-      tcb->cmn.xcp.regs[REG_RSP] = (uint64_t)child_stack;
+    /* manual set the stack pointer */
+    tcb->cmn.xcp.regs[REG_RSP] = (uint64_t)child_stack;
 
-      /* manual set the instruction pointer */
-      tcb->cmn.xcp.regs[REG_RIP] = *((uint64_t*)(get_kernel_stack_ptr()) - 2); // Directly leaves the syscall
+    /* manual set the instruction pointer */
+    tcb->cmn.xcp.regs[REG_RIP] = *((uint64_t*)(get_kernel_stack_ptr()) - 2); // Directly leaves the syscall
+
+    tcb->cmn.xcp.linux_tid = tux_delegate(56, 0, 0, 0, 0, 0, 0);
+
+    insert_proc_node(tcb->cmn.pid, tcb->cmn.xcp.linux_tid);
+
+    if(flags & CLONE_CHILD_SETTID){
+      *(uint32_t*)(ctid) = tcb->cmn.xcp.linux_tid;
+    }
+
+    if(flags & CLONE_CHILD_CLEARTID){
+      _tux_set_tid_address((struct tcb_s*)tcb, (int*)(ctid));
+    }
+
   }else{
 
     /* copy our mapped memory, including stack, to the new process */
@@ -202,35 +212,35 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
         tcb->cmn.xcp.fs_base = rtcb->xcp.fs_base;
     }
 
+    tcb->cmn.xcp.linux_tcb = tux_delegate(57, 0, 0, 0, 0, 0, 0); // Get a new shadow process
+    tcb->cmn.xcp.linux_pid = (0xffff & (tcb->cmn.xcp.linux_tcb >> 48));
+    tcb->cmn.xcp.linux_tid = tcb->cmn.xcp.linux_pid;
+    tcb->cmn.xcp.linux_tcb &= ~(0xffffULL << 48);
+
+    tcb->cmn.xcp.is_linux = 2; /* This is the head of threads, responsible to scrap the addrenv */
+
+    insert_proc_node(tcb->cmn.pid, tcb->cmn.xcp.linux_pid);
+
+    add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
+
     /* manual set the instruction pointer */
     regs = kmm_zalloc(sizeof(uint64_t) * 16);
     memcpy(regs, (uint64_t*)(get_kernel_stack_ptr()) - 16, sizeof(uint64_t) * 16);
     tcb->cmn.xcp.regs[REG_RDI] = regs;
+    tcb->cmn.xcp.regs[REG_RSI] = 0;
     tcb->cmn.xcp.regs[REG_RIP] = clone_trampoline; // We need to manage the memory mapping
     /* stack is the new kernel stack */
 
-    tcb->cmn.xcp.linux_tcb = tux_delegate(57, 0, 0, 0, 0, 0, 0); // Get a new shadow process
-    tcb->cmn.xcp.linux_pid = (0xffff & (tcb->cmn.xcp.linux_tcb >> 48));
-    tcb->cmn.xcp.linux_tcb &= ~(0xffffULL << 48);
-    tcb->cmn.xcp.is_linux = 2; /* This is the head of threads, responsible to scrap the addrenv */
-    nxsem_init(&tcb->cmn.xcp.syscall_lock, 1, 0);
-    nxsem_setprotocol(&tcb->cmn.xcp.syscall_lock, SEM_PRIO_NONE);
-
-    add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
+    /* Let the trampoline handle it */
+    if(flags & CLONE_CHILD_SETTID){
+        _info("FORK SETTID!\n");
+         tcb->cmn.xcp.regs[REG_RSI] = ctid;
+    }
   }
 
   /* set it after copying the memory to child */
   if(flags & CLONE_PARENT_SETTID){
-    *(uint32_t*)(ptid) = rtcb->pid;
-  }
-
-  /* restore the parent memory */
-  if((flags & CLONE_CHILD_SETTID) && !(flags & CLONE_VM)){
-    *(uint32_t*)(ctid) = orig_tid;
-  }
-
-  if((flags & CLONE_CHILD_CLEARTID) && !(flags & CLONE_VM)){
-    _tux_set_tid_address((struct tcb_s*)tcb, orig_child_tid_ptr);
+    *(uint32_t*)(ptid) = tcb->cmn.xcp.linux_tid;
   }
 
   svcinfo("Cloned a task with RIP=0x%llx, RSP=0x%llx, kstack=0x%llx\n",
@@ -251,7 +261,7 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
     goto errout_with_tcbinit;
   }
 
-  return tcb->cmn.pid;
+  return rtcb->xcp.linux_pid == tcb->cmn.xcp.linux_pid ? tcb->cmn.pid : tcb->cmn.xcp.linux_pid;
 
 errout_with_tcbinit:
     sched_releasetcb(&tcb->cmn, TCB_FLAG_TTYPE_TASK);

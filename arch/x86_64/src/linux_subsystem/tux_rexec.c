@@ -298,7 +298,10 @@ long rexec(const char* path, int priority,
 
     tcb->cmn.xcp.linux_tcb = ~(0xffffULL << 48) & shadow_tcb;
     tcb->cmn.xcp.linux_pid = (0xffff & (shadow_tcb >> 48));
+    tcb->cmn.xcp.linux_tid = tcb->cmn.xcp.linux_pid;
     _info("LINUX TCB %lx, PID %lx\n", tcb->cmn.xcp.linux_tcb, tcb->cmn.xcp.linux_pid);
+
+    insert_proc_node(tcb->cmn.pid, tcb->cmn.xcp.linux_pid);
 
     nxsem_init(&tcb->cmn.xcp.syscall_lock, 1, 0);
     nxsem_setprotocol(&tcb->cmn.xcp.syscall_lock, SEM_PRIO_NONE);

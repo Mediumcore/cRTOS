@@ -192,6 +192,9 @@ static inline uint64_t* temp_map_at_0xc0000000(uintptr_t start, uintptr_t end)
   return (uint64_t*)(0xc0000000 + lsb);
 }
 
+int insert_proc_node(int lpid, int rpid);
+int delete_proc_node(int rpid);
+
 typedef long (*syscall_t)(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6);
@@ -275,10 +278,13 @@ long     tux_alarm            (unsigned long nbr, unsigned int second);
 
 long     tux_select           (unsigned long nbr, int fd, struct tux_fd_set *r, struct tux_fd_set *w, struct tux_fd_set *e, struct timeval *timeout);
 
+long     tux_getpid      (unsigned long nbr);
+long     tux_gettid      (unsigned long nbr);
 long     tux_getppid     (unsigned long nbr);
 long     tux_getpgid     (unsigned long nbr, int pid);
 long     tux_setpgid     (unsigned long nbr, int pid, int pgid);
 long     tux_getsid      (unsigned long nbr, int pid);
+long     tux_pidhook     (unsigned long nbr, int pid, uintptr_t param2, uintptr_t param3, uintptr_t param4, uintptr_t param5, uintptr_t param6);
 
 long     tux_exec        (unsigned long nbr, const char* path, char *argv[], char* envp[]);
 long     _tux_exec       (char* path, char *argv[], char* envp[]);

@@ -212,6 +212,7 @@ struct xcptcontext
   int32_t linux_sock;
   uint64_t linux_tcb;
   uint16_t linux_pid;
+  uint16_t linux_tid;
   uint64_t syscall_ret;
   sem_t syscall_lock;
 

@@ -125,6 +125,10 @@ void up_initial_state(struct tcb_s *tcb)
           xcp->is_linux = 1;
           xcp->linux_sock = rtcb->xcp.linux_sock;
           xcp->linux_tcb = rtcb->xcp.linux_tcb;
+          xcp->linux_pid = rtcb->xcp.linux_pid;
+
+          nxsem_init(&xcp->syscall_lock, 1, 0);
+          nxsem_setprotocol(&xcp->syscall_lock, SEM_PRIO_NONE);
         }
       else
         {
