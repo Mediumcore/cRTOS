@@ -7,15 +7,12 @@
 #include <nuttx/mm/gran.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/mman.h>
 
 #include "up_internal.h"
 #include "arch/io.h"
 #include "tux.h"
 #include "sched/sched.h"
-
-#define MAP_FIXED 0x10
-#define MAP_ANONYMOUS 0x20
-#define MAP_NONRESERVE 0x4000
 
 GRAN_HANDLE tux_mm_hnd;
 
@@ -48,18 +45,31 @@ void get_free_vma(struct vma_s* ret, uint64_t size) {
 
   ret->next = NULL;
 
-  // Should always exist at least 2 entries, start from the second one
-  for(pptr = tcb->xcp.vma, ptr = tcb->xcp.vma->next; ptr; pptr = ptr, ptr = ptr->next) {
-    if(ptr->va_start - pptr->va_end >= size)
-      {
-        // Find a large enough hole
-        ret->next = ptr;
-        break;
+  if(tcb->xcp.vma == NULL)
+    {
+      tcb->xcp.vma = ret;
+      ret->va_start = PAGE_SIZE;
+    }
+  else if (tcb->xcp.vma->next == NULL)
+    {
+    tcb->xcp.vma->next = ret;
+    ret->va_start = tcb->xcp.vma->va_end;
+    }
+  else
+    {
+      for(pptr = tcb->xcp.vma, ptr = tcb->xcp.vma->next; ptr; pptr = ptr, ptr = ptr->next) {
+        if(ptr->va_start - pptr->va_end >= size)
+          {
+            // Find a large enough hole
+            ret->next = ptr;
+            break;
+          }
       }
-  }
 
-  pptr->next = ret;
-  ret->va_start = pptr->va_end;
+      pptr->next = ret;
+      ret->va_start = pptr->va_end;
+    }
+
   ret->va_end = ret->va_start + size;
   return;
 }
@@ -69,12 +79,14 @@ void make_vma_free(struct vma_s* ret) {
   struct vma_s* ptr;
   struct vma_s** pptr;
   uint64_t prev_end = 0;
+  int linked = 0;
 
   ret->next = NULL;
 
   for(prev_end = 0, pptr = &tcb->xcp.vma, ptr = tcb->xcp.vma; ptr; prev_end = ptr->va_end, pptr = &(ptr->next), ptr = ptr->next) {
     if(ptr == &g_vm_full_map) continue;
     if(ptr == ret) continue;
+
     if(ret->va_start <= ptr->va_start && ret->va_end >= ptr->va_end)
       {
         // Whole covered, remove this mapping
@@ -87,6 +99,8 @@ void make_vma_free(struct vma_s* ret) {
         kmm_free(ptr);
 
         ptr = ret;
+
+        linked = 1;
       }
     else if(ret->va_start > ptr->va_start && ret->va_start < ptr->va_end)
       {
@@ -113,6 +127,8 @@ void make_vma_free(struct vma_s* ret) {
             ptr->va_end = ret->va_start;
             ret->next = ptr->next;
             ptr->next = ret;
+
+            linked = 1;
           }
       }
     else if(ret->va_end > ptr->va_start && ret->va_end <= ptr->va_end)
@@ -139,7 +155,7 @@ void make_vma_free(struct vma_s* ret) {
       }
   }
 
-  if(!ret->next) *pptr = ret;
+  if(!linked) *pptr = ret;
 
   return;
 }
@@ -378,12 +394,17 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
   int i, j;
   struct vma_s* vma;
 
+  /* Round to page boundary */
+  /* adjust length to accomdate change in size */
+  length += (uintptr_t)addr - ((uintptr_t)addr & PAGE_MASK);
+  addr = (void*)((uintptr_t)addr & PAGE_MASK);
+
   // Calculate page to be mapped
   uint64_t num_of_pages = (uint64_t)(length + PAGE_SIZE - 1) / PAGE_SIZE;
 
   svcinfo("TUX: mmap with flags: %x\n", flags);
 
-  if(((flags & MAP_NONRESERVE)) && (prot == 0)) return (void*)-1; // Why glibc require large amount of non accessible memory?
+  if(((flags & MAP_NORESERVE)) && (prot == 0)) return (void*)-1; // Why glibc require large amount of non accessible memory?
 
   vma = kmm_malloc(sizeof(struct vma_s));
   if(!vma) return (void*)-1;
@@ -403,14 +424,6 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
   else
     {
       svcinfo("TUX: mmap try to fix position at %llx\n", addr);
-
-      /* Round to page boundary */
-      /* Not supporting fixing at 0, that's NULL */
-      if((uint64_t)addr & ~PAGE_MASK)
-        {
-          kmm_free(vma);
-          return (void*)-1;
-        }
 
       // Free page_table entries
       vma->va_start = addr;
