@@ -85,105 +85,12 @@ void tux_on_exit(int val, void* arg){
     write(rtcb->xcp.linux_sock, params, sizeof(params));
     close(rtcb->xcp.linux_sock);
 
+    delete_proc_node(rtcb->xcp.linux_pid);
+
   } else {
     _err("Non-linux process calling linux syscall or invalid sock fd %d, %d\n", rtcb->xcp.is_linux, rtcb->xcp.linux_sock);
     PANIC();
   }
-}
-
-void* execvs_setupargs(struct task_tcb_s* tcb, uint64_t pstack,
-    int argc, char* argv[], int envc, char* envv[]){
-    // Now we have to organize the stack as Linux exec will do
-    // ---------
-    // argv
-    // ---------
-    // NULL
-    // ---------
-    // envv
-    // ---------
-    // NULL
-    // ---------
-    // auxv
-    // ---------
-    // a_type = AT_NULL(0)
-    // ---------
-    // Stack_top
-    // ---------
-
-    Elf64_auxv_t* auxptr;
-    uint64_t argv_size, envv_size, total_size;
-    uint64_t done;
-    char** argv_ptr, ** envv_ptr;
-    void* sp;
-
-    argv_size = 0;
-    for(int i = 0; i < argc; i++){
-        argv_size += strlen(argv[i]) + 1;
-    }
-    envv_size = 0;
-    for(int i = 0; i < envc; i++){
-        envv_size += strlen(envv[i]) + 1;
-    }
-    total_size = argv_size + envv_size;
-
-    total_size += sizeof(uint64_t);         // argc
-    total_size += sizeof(char*) * (argc + 1); // argvs + NULL
-    total_size += sizeof(char*) * (envc + 1); // envp + NULL
-    total_size += sizeof(Elf64_auxv_t) * 6; // 6 aux vectors
-    total_size += sizeof(uint64_t);         // AT_RANDOM
-
-    sp = pstack + 0x800000 - total_size;
-    if (!sp) return -ENOMEM;
-
-    sinfo("Setting up stack args at %p\n", sp);
-
-    *((uint64_t*)sp) = argc;
-    sp += sizeof(uint64_t);
-
-    sinfo("Setting up stack argc is %d\n", *(((uint64_t*)sp) - 1));
-
-    done = 0;
-    argv_ptr = ((char**)sp);
-    for(int i = 0; i < argc; i++){
-        argv_ptr[i] = (char*)(sp + total_size - argv_size - envv_size + done);
-        strcpy(argv_ptr[i], argv[i]);
-        done += strlen(argv[i]) + 1;
-
-        argv_ptr[i] += -pstack + 124 * HUGE_PAGE_SIZE;
-    }
-
-    done = 0;
-    envv_ptr = ((char**)sp + (argc + 1));
-    for(int i = 0; i < envc; i++){
-        envv_ptr[i] = (char*)(sp + total_size - envv_size + done);
-        strcpy(envv_ptr[i], envv[i]);
-        done += strlen(envv[i]) + 1;
-
-        envv_ptr[i] += -pstack + 124 * HUGE_PAGE_SIZE;
-    }
-
-    auxptr = (Elf64_auxv_t*)(sp + (argc + 1 + envc + 1) * sizeof(char*));
-
-    auxptr[0].a_type = 6; //AT_PAGESZ
-    auxptr[0].a_un.a_val = 0x1000;
-
-    auxptr[1].a_type = 25; //AT_RANDOM
-    auxptr[1].a_un.a_val = (uint64_t)(sp + total_size - argv_size - envv_size - 8 - pstack + 124 * HUGE_PAGE_SIZE);
-    _info("AT_RANDOM: %llx\n", auxptr[1].a_un.a_val);
-
-    auxptr[2].a_type = 33; //AT_SYSINFO_EHDR
-    auxptr[2].a_un.a_val = 0x0;
-
-    auxptr[3].a_type = 0; //AT_NULL
-    auxptr[3].a_un.a_val = 0x0;
-
-    auxptr[4].a_type = 0; //AT_NULL
-    auxptr[4].a_un.a_val = 0x0;
-
-    auxptr[5].a_type = 0; //AT_NULL
-    auxptr[5].a_un.a_val = 0x0;
-
-    return sp - sizeof(uint64_t);
 }
 
 void rexec_trampoline(const char* path, char *argv[], char* envp[]) {
