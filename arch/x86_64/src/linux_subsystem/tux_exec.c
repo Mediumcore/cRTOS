@@ -229,11 +229,13 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
         // Put the interpreter string on to the stack
         tmp_ptr = strdup(interpreter);
 
-        // INsert the interpreter as argv[0]
+        // Insert the interpreter as argv[0]
         argv = kmm_realloc(argv, sizeof(char*) * (argc + 2));
         argv[argc + 1] = NULL;
         for(i = argc; i > 0; i--)
             argv[i] = argv[i - 1];
+        kmm_free(argv[1]);
+        argv[1] = path;
         argv[0] = tmp_ptr;
 
         // We will never return, clear the resource now
