@@ -64,11 +64,15 @@ long tux_rt_sigaction(unsigned long nbr, int sig, const struct tux_sigaction* ac
 
     if(set_size != sizeof(((struct tux_sigaction*)0)->sa_mask)) return -EINVAL;
 
-    translate_from_tux_sigaction(&lact, act);
+    if(act) {
+        translate_from_tux_sigaction(&lact, act);
+        ret = sigaction(sig, &lact, &lold_act);
+    } else {
+        ret = sigaction(sig, NULL, &lold_act);
+    }
 
-    ret = sigaction(sig, &lact, &lold_act);
 
-    if(!ret)
+    if(!ret && old_act)
         translate_to_tux_sigaction(old_act, &lold_act);
 
     if(ret < 0) ret = -errno;
