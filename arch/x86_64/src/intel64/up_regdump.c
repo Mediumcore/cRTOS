@@ -123,7 +123,10 @@ void up_registerdump(uint64_t *regs)
   _alert("R12: %016llx, R13: %016llx\n", regs[REG_R12], regs[REG_R13]);
   _alert("R14: %016llx, R15: %016llx\n", regs[REG_R14], regs[REG_R15]);
   _alert("Dumping Stack (+-64 bytes):\n");
-  print_mem(regs[REG_RSP] - 512, 128 * 0x200000 - regs[REG_RSP] + 512);
+  if(regs[REG_RSP] > 0 && regs[REG_RSP] < 0x1000000)
+      print_mem(regs[REG_RSP] - 512, 128 * 0x200000 - regs[REG_RSP] + 512);
+  else
+      print_mem(regs[REG_RSP] - 512, 1024);
 
   print_mapping();
 
