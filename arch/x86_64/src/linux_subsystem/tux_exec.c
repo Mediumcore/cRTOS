@@ -133,11 +133,54 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
     int ret;
     void* tmp_ptr;
 
+    struct tcb_s *rtcb = this_task();
+    struct vma_s *ptr, *to_free;
+
     for(i = 0; argv[i] != NULL; i++);
     argc = i;
 
     for(i = 0; envp[i] != NULL; i++);
     envc = i;
+
+    /* first free all the resource of the previous task */
+    /* fds we assume 4096 is the max
+     * let stdin, stdout, stderr and shadow process retain*/
+    /* Skip Linux part, we do it in a single execve call */
+    for(i = 4; i < _POSIX_OPEN_MAX; i++)
+        close(i);
+
+    /* memory */
+    svcinfo("Wiping Memory Map: \n");
+    ptr = rtcb->xcp.vma;
+    while(ptr) {
+        if(ptr == &g_vm_full_map) continue;
+
+        _alert("0x%08llx - 0x%08llx : backed by 0x%08llx 0x%08llx %s\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr), ptr->_backing);
+
+        to_free = ptr;
+        ptr = ptr->next;
+
+        gran_free(tux_mm_hnd, (void*)(to_free->pa_start), VMA_SIZE(to_free));
+        kmm_free(to_free);
+    }
+    rtcb->xcp.vma = NULL;
+
+    svcinfo("Wiping PDAs: \n");
+    ptr = rtcb->xcp.pda;
+    while(ptr) {
+        if(ptr == &g_vm_full_map) continue;
+
+        _alert("0x%08llx - 0x%08llx : 0x%08llx 0x%08llx\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr));
+
+        to_free = ptr;
+        ptr = ptr->next;
+
+        kmm_free(to_free);
+    }
+    rtcb->xcp.pda = NULL;
+
+    /* delegate a execve to notify Linux to do some cleaning */
+    tux_delegate(59, 0, 0, 0, 0, 0, 0);
 
     // We are in a linux context, so free to use remote system calls
     // Get the ELF header
@@ -161,13 +204,17 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
     // Or copy it on to the kernel heap
     void* binary = kmm_zalloc(filesz);
 
-    tmp_ptr = tux_mmap(9, 0, filesz, PROT_READ, MAP_SHARED, elf_fd, 0);
-    if(tmp_ptr == MAP_FAILED) {
+    /* use a read instead of mmap
+     * This retains the pristine pda and vma in TCB */
+    tmp_ptr = tux_delegate(0, elf_fd, binary, filesz, 0, 0, 0);
+    if(tmp_ptr != filesz) {
         ret = -ENOMEM;
-        goto err_close;
+        tux_file_delegate(3, elf_fd, 0, 0, 0, 0, 0);
+        goto err_binary_mem;
     }
-    memcpy(binary, tmp_ptr, filesz);
-    tux_munmap(11, tmp_ptr, filesz);
+
+    /* We got everything in memory, not needed any more */
+    tux_file_delegate(3, elf_fd, 0, 0, 0, 0, 0);
 
     Elf64_Ehdr* header = binary;
 
@@ -370,9 +417,6 @@ static_err:
 
 err_binary_mem:
     kmm_free(binary);
-
-err_close:
-    tux_file_delegate(3, elf_fd, 0, 0, 0, 0, 0);
 
     return ret;
 };
