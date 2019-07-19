@@ -246,6 +246,8 @@ long     tux_gettimeofday   (unsigned long nbr, struct timeval *tv, struct timez
 
 long     tux_clone       (unsigned long nbr, unsigned long flags, void *child_stack,
                          void *ptid, void *ctid, unsigned long tls);
+long     tux_fork        (unsigned long nbr);
+long     tux_vfork       (unsigned long nbr);
 
 void    tux_mm_init     (void);
 void*   tux_mmap        (unsigned long nbr, void* addr, size_t length, int prot, int flags, int fd, off_t offset);
@@ -281,10 +283,8 @@ long     tux_select           (unsigned long nbr, int fd, struct tux_fd_set *r, 
 long     tux_getpid      (unsigned long nbr);
 long     tux_gettid      (unsigned long nbr);
 long     tux_getppid     (unsigned long nbr);
-long     tux_getpgid     (unsigned long nbr, int pid);
-long     tux_setpgid     (unsigned long nbr, int pid, int pgid);
-long     tux_getsid      (unsigned long nbr, int pid);
 long     tux_pidhook     (unsigned long nbr, int pid, uintptr_t param2, uintptr_t param3, uintptr_t param4, uintptr_t param5, uintptr_t param6);
+long     tux_waithook    (unsigned long nbr, uintptr_t param1, uintptr_t param2, uintptr_t param3, uintptr_t param4, uintptr_t param5, uintptr_t param6);
 
 long     tux_exec        (unsigned long nbr, const char* path, char *argv[], char* envp[]);
 long     _tux_exec       (char* path, char *argv[], char* envp[]);

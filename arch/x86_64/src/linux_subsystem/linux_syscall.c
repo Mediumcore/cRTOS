@@ -113,11 +113,11 @@ syscall_t linux_syscall_action_table[500] = {
     tux_file_delegate, // SYS_setsockopt,
     tux_file_delegate, // SYS_getsockopt,
     (syscall_t)tux_clone,
-    tux_no_impl, // sys_fork
-    tux_no_impl, // sys_vfrok
+    (syscall_t)tux_fork, // sys_fork
+    (syscall_t)tux_fork, // sys_vfork
     (syscall_t)tux_exec, // sys_execve
     tux_local, // SYS_exit,
-    (syscall_t)tux_pidhook, // sys_wait4
+    (syscall_t)tux_waithook, // sys_wait4
     (syscall_t)tux_pidhook, // SYS_kill,
     tux_local, // SYS_uname,
     (syscall_t)tux_semget, // SYS_semget,
@@ -303,7 +303,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_local, // SYS_mq_notify,
     tux_no_impl, // SYS_mq_getsetattr, // Maybe we should glue one out?
     tux_no_impl, // SYS_kexec_load,
-    (syscall_t)tux_pidhook, // SYS_waitpid,
+    (syscall_t)tux_waithook, // SYS_waitpid,
     tux_no_impl, // SYS_add_key,
     tux_no_impl, // SYS_request_key,
     tux_no_impl, // SYS_keyctl,

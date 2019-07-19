@@ -63,6 +63,14 @@ void clone_trampoline(void* regs, uint32_t* ctid) {
     _exit(255); // We should never end up here
 }
 
+long tux_fork(unsigned long nbr) {
+    return tux_clone(56, SIGCHLD, NULL, NULL, NULL, 0);
+}
+
+long tux_vfork(unsigned long nbr) {
+    return tux_clone(56, SIGCHLD, NULL, NULL, NULL, 0);
+}
+
 long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
               void *ptid, void *ctid,
               unsigned long tls){
