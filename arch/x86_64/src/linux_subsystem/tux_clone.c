@@ -48,7 +48,6 @@ void clone_trampoline(void* regs, uint32_t* ctid) {
     }
 
     if(ctid) {
-        _info("APPLYING TID %d\n", this_task()->xcp.linux_tid);
         *ctid = this_task()->xcp.linux_tid;
     }
 
@@ -241,7 +240,6 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
 
     /* Let the trampoline handle it */
     if(flags & CLONE_CHILD_SETTID){
-        _info("FORK SETTID!\n");
          tcb->cmn.xcp.regs[REG_RSI] = ctid;
     }
   }
