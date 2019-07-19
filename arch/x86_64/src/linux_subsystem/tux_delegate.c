@@ -98,11 +98,11 @@ int tux_errno[__ELASTERROR] = {
     0,   //                     72
     0,   //                     73
     72,  // EMULTIHOP           74
-    // ELBIN               75                         /* Linux errno extension */
+    0,// ELBIN               75                         /* Linux errno extension */
     73,  // EDOTDOT             76                         /* Linux errno extension */
     74,  // EBADMSG             77
     0,   //                     78
-    // EFTYPE              79
+    0,// EFTYPE              79
     76,  // ENOTUNIQ            80                         /* Linux errno extension */
     77,  // EBADFD              81                         /* Linux errno extension */
     78,  // EREMCHG             82                         /* Linux errno extension */
@@ -112,7 +112,7 @@ int tux_errno[__ELASTERROR] = {
     82,  // ELIBMAX             86                         /* Linux errno extension */
     83,  // ELIBEXEC            87                         /* Linux errno extension */
     38,  // ENOSYS              88
-    // ENMFILE             89                         /* Cygwin */
+    0,// ENMFILE             89                         /* Cygwin */
     39,  // ENOTEMPTY           90
     36,  // ENAMETOOLONG        91
     40,  // ELOOP               92
@@ -153,16 +153,16 @@ int tux_errno[__ELASTERROR] = {
     106, // EISCONN             127
     107, // ENOTCONN            128
     109, // ETOOMANYREFS        129
-    // EPROCLIM            130
+    0,// EPROCLIM            130
     87,  // EUSERS              131
     122, // EDQUOT              132
     116, // ESTALE              133
-    // ENOTSUP             134
+    0,// ENOTSUP             134
     123, // ENOMEDIUM           135                         /* Linux errno extension */
-    // ENOSHARE            136                         /* Cygwin */
-    // ECASECLASH          137                         /* Cygwin */
+    0,// ENOSHARE            136                         /* Cygwin */
+    0,// ECASECLASH          137                         /* Cygwin */
     84,  // EILSEQ              138
-    // EOVERFLOW           139
+    0,// EOVERFLOW           139
     125, // ECANCELED           140
     131, // ENOTRECOVERABLE     141
     130, // EOWNERDEAD          142
