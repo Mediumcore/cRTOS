@@ -88,6 +88,15 @@
 
 #define TUX_SEM_UNDO        0x1000          /* undo the operation on exit */
 
+enum
+{
+  TUX_SS_ONSTACK = 1,
+#define TUX_SS_ONSTACK	TUX_SS_ONSTACK
+  TUX_SS_DISABLE
+#define TUX_SS_DISABLE	TUX_SS_DISABLE
+};
+
+
 extern GRAN_HANDLE tux_mm_hnd;
 
 struct rlimit {
@@ -158,6 +167,12 @@ struct sembuf
   short int sem_op;		/* semaphore operation */
   short int sem_flg;		/* operation flag */
 };
+
+typedef struct sigaltstack {
+    void *ss_sp;
+    int ss_flags;
+    size_t ss_size;
+} stack_t;
 
 static inline uint64_t set_msr(unsigned long nbr){
     uint32_t bitset = *((volatile uint32_t*)0xfb503280 + 4);
@@ -288,6 +303,8 @@ long     tux_waithook    (unsigned long nbr, uintptr_t param1, uintptr_t param2,
 
 long     tux_exec        (unsigned long nbr, const char* path, char *argv[], char* envp[]);
 long     _tux_exec       (char* path, char *argv[], char* envp[]);
+
+long     tux_sigaltstack    (stack_t* ss, stack_t* oss);
 
 static inline long     tux_sched_get_priority_max(unsigned long nbr, uint64_t p) { return sched_get_priority_max(p); };
 static inline long     tux_sched_get_priority_min(unsigned long nbr, uint64_t p) { return sched_get_priority_min(p); };

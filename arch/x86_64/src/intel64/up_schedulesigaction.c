@@ -126,31 +126,58 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
 
           if (!g_current_regs)
             {
-              /* In this case just deliver the signal now. */
+              /* In this case just deliver the signal with a function call now. */
 
-              asm volatile("mov %%rsp, %0":"=m"(curr_rsp));
+                if(tcb->xcp.is_linux) {
 
-              /* if already in kernel stack, we need to prevent an overwrite*/
-              /* possible BUG, if the compiler use rsp to address local varible, we are doomed */
-              kstack = (uint64_t)tcb->adj_stack_ptr;
-              if((curr_rsp < kstack) && (curr_rsp > kstack - tcb->adj_stack_size) && tcb->xcp.is_linux) {
-                  tcb->xcp.saved_rsp = curr_rsp;
-                  tcb->xcp.saved_kstack = kstack;
+                  /* possible BUG, if the compiler use rsp to address local varible, we are doomed */
+                  asm volatile("mov %%rsp, %0":"=m"(curr_rsp));
 
-                  new_rsp = *((uint64_t*)tcb->adj_stack_ptr - 1) - 8;
-                  tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
+                  /* 1. move to the user stack */
+                  /* 2. if currently in kernel stack, we need to prevent an overwrite */
+                  /* 3. if signal stack is set use it instead */
+                  kstack = (uint64_t)tcb->adj_stack_ptr;
+                  if((curr_rsp < kstack) && (curr_rsp > kstack - tcb->adj_stack_size)) {
+                      tcb->xcp.saved_rsp = curr_rsp;
+                      tcb->xcp.saved_kstack = kstack;
+                      tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
 
-                  asm volatile("mov %%rsp, %%r12   \t\n\
-                                mov %0, %%rsp    \t\n\
-                                mov %1, %%rdi    \t\n\
-                                call *%2  \t\n\
-                                mov %%r12, %%rsp"::"g"(new_rsp), "g"(tcb), "g"(sigdeliver):"r12","rdi");
+                      if(tcb->xcp.signal_stack_flag) { // SS_DISABLE
+                          new_rsp = *((uint64_t*)kstack - 1) - 8; // Read out the user stack address
+                      } else {
+                          tcb->xcp.signal_stack_flag = 1;
+                          new_rsp =  (tcb->xcp.signal_stack + tcb->xcp.signal_stack_size) & (-0x10);
+                      }
 
-                  tcb->adj_stack_ptr = (void*)tcb->xcp.saved_kstack;
-                  tcb->xcp.saved_rsp = 0;
-              }else{
+                      asm volatile("mov %%rsp, %%r12   \t\n\
+                                    mov %0, %%rsp    \t\n\
+                                    mov %1, %%rdi    \t\n\
+                                    call *%2  \t\n\
+                                    mov %%r12, %%rsp"::"g"(new_rsp), "g"(tcb), "g"(sigdeliver):"r12","rdi");
+
+                      if(tcb->xcp.signal_stack_flag == 1)
+                          tcb->xcp.signal_stack_flag = 0;
+
+                      tcb->adj_stack_ptr = (void*)tcb->xcp.saved_kstack;
+                      tcb->xcp.saved_rsp = 0;
+                      tcb->xcp.saved_kstack = 0;
+                  }else{
+                      if(tcb->xcp.signal_stack_flag) { // SS_DISABLE
+                          sigdeliver(tcb);
+                      } else {
+                          new_rsp =  (tcb->xcp.signal_stack + tcb->xcp.signal_stack_size) & (-0x10);
+                          tcb->xcp.signal_stack_flag = 1;
+                          asm volatile("mov %%rsp, %%r12   \t\n\
+                                        mov %0, %%rsp    \t\n\
+                                        mov %1, %%rdi    \t\n\
+                                        call *%2  \t\n\
+                                        mov %%r12, %%rsp"::"g"(new_rsp), "g"(tcb), "g"(sigdeliver):"r12","rdi");
+                          tcb->xcp.signal_stack_flag = 0;
+                      }
+                  }
+                } else {
                   sigdeliver(tcb);
-              }
+                }
             }
 
           /* CASE 2:  We are in an interrupt handler AND the interrupted task
@@ -175,14 +202,27 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
               tcb->xcp.saved_rip        = g_current_regs[REG_RIP];
               tcb->xcp.saved_rflags     = g_current_regs[REG_RFLAGS];
 
-              /* if already in kernel stack, we need to prevent an overwrite*/
-              kstack = (uint64_t)tcb->adj_stack_ptr;
-              if((g_current_regs[REG_RSP] < kstack) && (g_current_regs[REG_RSP] > kstack - tcb->adj_stack_size) && tcb->xcp.is_linux) {
+              if(tcb->xcp.is_linux) {
+                  /* 1. move to the user stack */
+                  /* 2. if currently in kernel stack, we need to prevent an overwrite */
+                  /* 3. if signal stack is set use it instead */
+                  kstack = (uint64_t)tcb->adj_stack_ptr;
                   curr_rsp = g_current_regs[REG_RSP];
-                  tcb->xcp.saved_rsp = curr_rsp;
-                  tcb->xcp.saved_kstack = kstack;
-                  g_current_regs[REG_RSP] = *((uint64_t*)tcb->adj_stack_ptr - 1) - 8;
-                  tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
+
+                  if((g_current_regs[REG_RSP] < kstack) && (g_current_regs[REG_RSP] > kstack - tcb->adj_stack_size)) {
+                      tcb->xcp.saved_rsp = curr_rsp;
+                      tcb->xcp.saved_kstack = kstack;
+
+                      tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
+                      g_current_regs[REG_RSP] = *((uint64_t*)kstack - 1) - 8; // Read out the user stack address
+                  }
+
+                  if(!tcb->xcp.signal_stack_flag) { // !SS_DISABLE
+                      tcb->xcp.saved_rsp = curr_rsp;
+
+                      tcb->xcp.signal_stack_flag = 1;
+                      g_current_regs[REG_RSP] =  (tcb->xcp.signal_stack + tcb->xcp.signal_stack_size) & (-0x10);
+                  }
               }
 
               /* Then set up to vector to the trampoline with interrupts
@@ -217,20 +257,32 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
           tcb->xcp.saved_rip        = tcb->xcp.regs[REG_RIP];
           tcb->xcp.saved_rflags     = tcb->xcp.regs[REG_RFLAGS];
 
-          /* if already in kernel stack, we need to prevent an overwrite*/
-          kstack = (uint64_t)tcb->adj_stack_ptr;
-          if((tcb->xcp.regs[REG_RSP] < kstack) && (tcb->xcp.regs[REG_RSP] > kstack - tcb->adj_stack_size) && tcb->xcp.is_linux) {
-              curr_rsp = tcb->xcp.regs[REG_RSP];
+          if(tcb->xcp.is_linux) {
 
-              /* preserve thje values */
-              tcb->xcp.saved_rsp = curr_rsp;
-              tcb->xcp.saved_kstack = kstack;
+              /* move to the user stack */
+              /* if in kernel stack, we need to prevent an overwrite*/
+              kstack = (uint64_t)tcb->adj_stack_ptr;
+              curr_rsp = g_current_regs[REG_RSP];
 
-              /* Move to User Stack */
-              tcb->xcp.regs[REG_RSP] = *((uint64_t*)tcb->adj_stack_ptr - 1) - 8;
+              if((tcb->xcp.regs[REG_RSP] < kstack) && (tcb->xcp.regs[REG_RSP] > kstack - tcb->adj_stack_size) && tcb->xcp.is_linux) {
 
-              /* move the kstack starting point to somewhere unused */
-              tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
+                  /* preserve the values */
+                  tcb->xcp.saved_rsp = curr_rsp;
+                  tcb->xcp.saved_kstack = kstack;
+
+                  /* Move to User Stack */
+                  tcb->xcp.regs[REG_RSP] = *((uint64_t*)kstack - 1) - 8; // Read out the user stack address
+
+                  /* move the kstack starting point to somewhere unused */
+                  tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
+              }
+
+              if(!tcb->xcp.signal_stack_flag) { // !SS_DISABLE
+                  tcb->xcp.saved_rsp = curr_rsp;
+
+                  tcb->xcp.signal_stack_flag = 1;
+                  g_current_regs[REG_RSP] =  (tcb->xcp.signal_stack + tcb->xcp.signal_stack_size) & (-0x10);
+              }
           }
 
           /* Then set up to vector to the trampoline with interrupts

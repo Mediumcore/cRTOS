@@ -206,6 +206,9 @@ struct xcptcontext
   uint64_t saved_rflags;
   uint64_t saved_rsp;
   uint64_t saved_kstack;
+  uint64_t signal_stack;
+  uint64_t signal_stack_size;
+  uint64_t signal_stack_flag;
 #endif
 
   uint32_t is_linux;

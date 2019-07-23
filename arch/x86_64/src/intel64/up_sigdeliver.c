@@ -134,8 +134,12 @@ void up_sigdeliver(void)
 
   if(rtcb->xcp.saved_rsp){
     regs[REG_RSP]      = rtcb->xcp.saved_rsp;
-    rtcb->adj_stack_ptr = rtcb->xcp.saved_kstack;
     rtcb->xcp.saved_rsp = 0;
+  }
+
+  if(rtcb->xcp.saved_kstack){
+    rtcb->adj_stack_ptr = rtcb->xcp.saved_kstack;
+    rtcb->xcp.saved_kstack = 0;
   }
 
   /* Then restore the correct state for this thread of execution. */
