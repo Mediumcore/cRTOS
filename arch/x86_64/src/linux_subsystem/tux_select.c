@@ -26,7 +26,7 @@ int fd_set_tux_split(fd_set* out, struct tux_fd_set *in){
     int ret = 0;
 
     if(!in || !out)
-        return -1;
+        return 0;
 
     for(i = 0; i < CONFIG_TUX_FD_RESERVE / TUX_NFDBITS; i++){
       if(in->__fds_bits[i]){
@@ -122,6 +122,7 @@ long tux_select (unsigned long nbr, int fd, struct tux_fd_set *r, struct tux_fd_
   if((rr | wr | er) == 1){
     ret = tux_delegate(nbr, fd, (uintptr_t)r, (uintptr_t)w, (uintptr_t)e, (uintptr_t)timeout, 0);
   }else{
+    svcinfo("local select\n");
     ret = select(fd - CONFIG_TUX_FD_RESERVE, &lr, &lw, &le, timeout);
   }
 
