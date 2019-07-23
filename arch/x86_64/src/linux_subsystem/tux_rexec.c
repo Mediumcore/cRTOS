@@ -250,7 +250,7 @@ long rexec(const char* path, int priority,
     /* Initialize the task */
     /* The addresses are the virtual address of new task */
     /* the trampoline will be using the kernel stack, and switch to the user stack for us */
-    ret = task_init((FAR struct tcb_s *)tcb, "rexec trampoline", priority,
+    ret = task_init((FAR struct tcb_s *)tcb, argv[0] ? argv[0] : path, priority,
                     (void*)kstack, 0x8000, rexec_trampoline, NULL);
     if (ret < 0)
     {
