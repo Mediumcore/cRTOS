@@ -142,46 +142,6 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
     for(i = 0; envp[i] != NULL; i++);
     envc = i;
 
-    /* first free all the resource of the previous task */
-    /* fds we assume 4096 is the max
-     * let stdin, stdout, stderr and shadow process retain*/
-    /* Skip Linux part, we do it in a single execve call */
-    for(i = 4; i < _POSIX_OPEN_MAX; i++)
-        close(i);
-
-    /* memory */
-    svcinfo("Wiping Memory Map: \n");
-    ptr = rtcb->xcp.vma;
-    while(ptr) {
-        if(ptr == &g_vm_full_map) continue;
-
-        _alert("0x%08llx - 0x%08llx : backed by 0x%08llx 0x%08llx %s\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr), ptr->_backing);
-
-        to_free = ptr;
-        ptr = ptr->next;
-
-        gran_free(tux_mm_hnd, (void*)(to_free->pa_start), VMA_SIZE(to_free));
-        kmm_free(to_free);
-    }
-    rtcb->xcp.vma = NULL;
-
-    svcinfo("Wiping PDAs: \n");
-    ptr = rtcb->xcp.pda;
-    while(ptr) {
-        if(ptr == &g_vm_full_map) continue;
-
-        _alert("0x%08llx - 0x%08llx : 0x%08llx 0x%08llx\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr));
-
-        to_free = ptr;
-        ptr = ptr->next;
-
-        kmm_free(to_free);
-    }
-    rtcb->xcp.pda = NULL;
-
-    /* delegate a execve to notify Linux to do some cleaning */
-    tux_delegate(59, 0, 0, 0, 0, 0, 0);
-
     // We are in a linux context, so free to use remote system calls
     // Get the ELF header
     int elf_fd = tux_open_delegate(2, (uintptr_t)path, TUX_O_RDONLY, 0, 0, 0, 0);
@@ -241,6 +201,51 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
     }
 
     svcinfo("x86-64 ELF verified\n");
+
+    /* free all the resource of the previous task now */
+    /* We have the binary in memory and verified*/
+    /* fds we assume 4096 is the max
+     * let stdin, stdout, stderr and shadow process retain*/
+    /* Skip Linux part, we do it in a single execve call */
+    for(i = 4; i < _POSIX_OPEN_MAX; i++)
+        close(i);
+
+    /* memory */
+    svcinfo("Wiping Memory Map: \n");
+    ptr = rtcb->xcp.vma;
+    while(ptr) {
+        if(ptr == &g_vm_full_map) continue;
+
+        _alert("0x%08llx - 0x%08llx : backed by 0x%08llx 0x%08llx %s\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr), ptr->_backing);
+
+        to_free = ptr;
+        ptr = ptr->next;
+
+        gran_free(tux_mm_hnd, (void*)(to_free->pa_start), VMA_SIZE(to_free));
+        kmm_free(to_free);
+    }
+    rtcb->xcp.vma = NULL;
+
+    svcinfo("Wiping PDAs: \n");
+    ptr = rtcb->xcp.pda;
+    while(ptr) {
+        if(ptr == &g_vm_full_map) continue;
+
+        _alert("0x%08llx - 0x%08llx : 0x%08llx 0x%08llx\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr));
+
+        to_free = ptr;
+        ptr = ptr->next;
+
+        kmm_free(to_free);
+    }
+    rtcb->xcp.pda = NULL;
+
+    /* delegate a execve to notify Linux to do some cleaning */
+    tux_delegate(59, 0, 0, 0, 0, 0, 0);
+
+
+
+
 
     // print basic info
     svcinfo("Entry point: 0x%lx\n", header->e_entry);
