@@ -242,7 +242,8 @@ isr_common:
     mov %rsp, %rdi
 
     //swap-in the new rsp
-    mov g_interrupt_stack_end, %rsp
+    mov $g_interrupt_stack_end, %rsp
+    mov (%rsp), %rsp
 
     //Copy the values stored on the old stack
     pushq 56(%rdi)
@@ -317,7 +318,8 @@ irq_common:
     mov %rsp, %rdi
 
     //swap-in the new rsp
-    mov g_interrupt_stack_end, %rsp
+    mov $g_interrupt_stack_end, %rsp
+    mov (%rsp), %rsp
 
     //Copy the values stored on the old stack
     pushq 56(%rdi)
