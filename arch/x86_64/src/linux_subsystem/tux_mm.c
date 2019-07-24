@@ -139,6 +139,7 @@ void make_vma_free(struct vma_s* ret) {
             svcinfo("Shrink Head\n");
             // Shrink Head
             gran_free(tux_mm_hnd, (void*)(ptr->pa_start), ret->va_end - ptr->va_start);
+            ptr->pa_start = ptr->pa_start + ret->va_end - ptr->va_start;
             ptr->va_start = ret->va_end;
             *pptr = ret;
             ret->next = ptr;
