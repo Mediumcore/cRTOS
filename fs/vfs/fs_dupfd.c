@@ -76,6 +76,7 @@
 int file_dup(FAR struct file *filep, int minfd)
 {
   int fd2;
+  int ret;
 
   /* Verify that fd is a valid, open file descriptor */
 
@@ -92,6 +93,14 @@ int file_dup(FAR struct file *filep, int minfd)
 
   fd2 = files_allocate(filep->f_inode, filep->f_oflags, filep->f_pos, minfd);
   if (fd2 < 0)
+    {
+      inode_release(filep->f_inode);
+      return -EMFILE;
+    }
+
+
+  ret = filep->f_inode->u.i_ops->open(filep);
+  if (ret < 0)
     {
       inode_release(filep->f_inode);
       return -EMFILE;
