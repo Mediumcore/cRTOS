@@ -604,6 +604,7 @@ uint64_t shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint64_t *d
    */
   uint64_t buf[10];
   struct tcb_s *rtcb = (struct tcb_s *)this_task();
+  irqstate_t flags;
 
   memcpy(buf, data, sizeof(uint64_t) * 7);
   buf[7] = (uint64_t)rtcb;
@@ -613,7 +614,10 @@ uint64_t shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint64_t *d
   shadow_proc_tx_clean(priv);
 
   shadow_proc_tx_frame(priv, buf, sizeof(buf));
+
+  flags = enter_critical_section();
   nxsem_wait(&rtcb->xcp.syscall_lock);
+  leave_critical_section(flags);
 
   return rtcb->xcp.syscall_ret;
 }
