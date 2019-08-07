@@ -251,3 +251,12 @@ long tux_getpid(unsigned long nbr) {
 long tux_gettid(unsigned long nbr) {
     return this_task()->xcp.linux_tid;
 }
+
+long tux_sched_getaffinity(unsigned long nbr, long pid, unsigned int len, unsigned long *mask) {
+
+    TUX_CPU_ZERO_S(len, mask);
+    TUX_CPU_SET_S(0, len, mask);
+
+    return 0;
+
+}

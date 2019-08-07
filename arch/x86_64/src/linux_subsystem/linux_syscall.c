@@ -260,7 +260,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_delegate,//tux_no_impl, // SYS_time,
     (syscall_t)tux_futex,
     (syscall_t)tux_success_stub, // SYS_sched_setaffinity, // Only if we expend to SMP
-    tux_no_impl, // SYS_sched_getaffinity,
+    (syscall_t)tux_sched_getaffinity, // SYS_sched_getaffinity,
     tux_no_impl, // SYS_set_thread_area,
     tux_no_impl, // SYS_io_setup,
     tux_no_impl, // SYS_io_destroy,

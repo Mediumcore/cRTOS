@@ -3,6 +3,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <features.h>
 
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
@@ -94,6 +95,42 @@
 #define TUX_WEXITED		4	/* Report dead child.  */
 #define TUX_WCONTINUED	8	/* Report continued child.  */
 #define TUX_WNOWAIT		0x01000000 /* Don't reap, just poll status.  */
+
+typedef unsigned long tux_cpu_mask;
+# define TUX_NCPUBITS	(8 * sizeof (tux_cpu_mask))
+
+/* Basic access functions.  */
+# define TUX_CPUELT(cpu)	((cpu) / TUX_NCPUBITS)
+# define TUX_CPUMASK(cpu)	((tux_cpu_mask) 1 << ((cpu) % TUX_NCPUBITS))
+
+# if __GNUC_PREREQ (2, 91)
+#  define TUX_CPU_ZERO_S(setsize, cpusetp) \
+  do __builtin_memset (cpusetp, '\0', setsize); while (0)
+# else
+#  define TUX_CPU_ZERO_S(setsize, cpusetp) \
+  do {									      \
+    size_t __i;								      \
+    size_t __imax = (setsize) / sizeof (tux_cpu_mask);			      \
+    tux_cpu_mask *__bits = (cpusetp);				      \
+    for (__i = 0; __i < __imax; ++__i)					      \
+      __bits[__i] = 0;							      \
+  } while (0)
+# endif
+
+# define TUX_CPU_SET_S(cpu, setsize, cpusetp) \
+  (__extension__							      \
+   ({ size_t __cpu = (cpu);						      \
+      __cpu / 8 < (setsize)						      \
+      ? (((tux_cpu_mask *) ((cpusetp)))[TUX_CPUELT (__cpu)]		      \
+	 |= TUX_CPUMASK (__cpu))						      \
+      : 0; }))
+# define TUX_CPU_CLR_S(cpu, setsize, cpusetp) \
+  (__extension__							      \
+   ({ size_t __cpu = (cpu);						      \
+      __cpu / 8 < (setsize)						      \
+      ? (((tux_cpu_mask *) ((cpusetp)))[TUX_CPUELT (__cpu)]		      \
+	 &= ~TUX_CPUMASK (__cpu))						      \
+      : 0; }))
 
 enum
 {
@@ -315,6 +352,8 @@ long     tux_sigaltstack    (stack_t* ss, stack_t* oss);
 
 static inline long     tux_sched_get_priority_max(unsigned long nbr, uint64_t p) { return sched_get_priority_max(p); };
 static inline long     tux_sched_get_priority_min(unsigned long nbr, uint64_t p) { return sched_get_priority_min(p); };
+
+long tux_sched_getaffinity(unsigned long nbr, long pid, unsigned int len, unsigned long *mask);
 
 static inline long tux_pipe(unsigned long nbr, int pipefd[2], int flags){
     int ret = pipe(pipefd);
