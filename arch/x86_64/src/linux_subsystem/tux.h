@@ -88,6 +88,13 @@
 
 #define TUX_SEM_UNDO        0x1000          /* undo the operation on exit */
 
+#define TUX_WNOHANG		1	/* Don't block waiting.  */
+#define TUX_WUNTRACED	2	/* Report status of stopped children.  */
+#define TUX_WSTOPPED	2	/* Report stopped child (same as WUNTRACED). */
+#define TUX_WEXITED		4	/* Report dead child.  */
+#define TUX_WCONTINUED	8	/* Report continued child.  */
+#define TUX_WNOWAIT		0x01000000 /* Don't reap, just poll status.  */
+
 enum
 {
   TUX_SS_ONSTACK = 1,

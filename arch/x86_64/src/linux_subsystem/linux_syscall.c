@@ -303,7 +303,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_local, // SYS_mq_notify,
     tux_no_impl, // SYS_mq_getsetattr, // Maybe we should glue one out?
     tux_no_impl, // SYS_kexec_load,
-    (syscall_t)tux_waithook, // SYS_waitpid,
+    tux_no_impl, // SYS_waitid,
     tux_no_impl, // SYS_add_key,
     tux_no_impl, // SYS_request_key,
     tux_no_impl, // SYS_keyctl,
@@ -638,7 +638,7 @@ uint64_t linux_syscall_number_table[500] = {
     SYS_mq_notify,
     -1, // SYS_mq_getsetattr, // Maybe we should glue one out?
     -1, // SYS_kexec_load,
-    SYS_waitpid,
+    -1, // SYS_waitid
     -1, // SYS_add_key,
     -1, // SYS_request_key,
     -1, // SYS_keyctl,
