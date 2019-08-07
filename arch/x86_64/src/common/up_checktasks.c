@@ -73,9 +73,13 @@ void up_checktasks(void)
 {
   uint64_t buf[3];
   struct tcb_s *rtcb;
+  irqstate_t flags;
 
   if(!gshadow) return;
   if(!(gshadow->flags & SHADOW_PROC_FLAG_RUN)) return;
+
+  /* the IRQ of shadow process might race with us */
+  flags = enter_critical_section();
 
   while(shadow_proc_rx_avail(gshadow)) {
       shadow_proc_receive(gshadow, buf);
@@ -86,7 +90,24 @@ void up_checktasks(void)
 
       if(rtcb){
         rtcb->xcp.syscall_ret = buf[0];
-        nxsem_post(&rtcb->xcp.syscall_lock);
+
+        /* The task will be the new holder of the semaphore when
+         * it is awakened.
+         */
+        nxsem_addholder_tcb(rtcb, &rtcb->xcp.syscall_lock);
+
+        /* It is, let the task take the semaphore */
+        rtcb->waitsem = NULL;
+
+        sched_removeblocked(rtcb);
+
+        /* Add the task in the correct location in the prioritized
+         * ready-to-run task list
+         */
+        sched_addprioritized(rtcb, (FAR dq_queue_t *)&g_pendingtasks);
+        rtcb->task_state = TSTATE_TASK_PENDING;
       }
   }
+
+  leave_critical_section(flags);
 }
