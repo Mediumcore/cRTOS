@@ -136,8 +136,12 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
     struct tcb_s *rtcb = this_task();
     struct vma_s *ptr, *to_free;
 
-    for(i = 0; argv[i] != NULL; i++);
+    svcinfo("ARGV:\n");
+    for(i = 0; argv[i] != NULL; i++) {
+        svcinfo("argv[%d] %s\n", i, argv[i]);
+    }
     argc = i;
+    svcinfo("TOTAL: %d\n", argc);
 
     for(i = 0; envp[i] != NULL; i++);
     envc = i;
@@ -176,8 +180,83 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
     /* We got everything in memory, not needed any more */
     tux_file_delegate(3, elf_fd, 0, 0, 0, 0, 0);
 
+    svcinfo("Testing header...\n");
+    /* Test script */
+    if(((char*)binary)[0] == '#' && ((char*)binary)[1] == '!') {
+        /* This is a script */
+        /* Use the scripting program as interpreter */
+        svcinfo("Oh! a script is found\n");
+
+        char* holder[16]; // at max 16 arguments for the interpreter
+        int hidx = 0;
+        memset(holder, 0, sizeof(char*) * 16);
+
+        char* scan_ptr = binary + 2;
+        char* prev_ptr = binary + 2;
+        while(*scan_ptr != '\n') {
+            if(*scan_ptr == ' ') {
+                *scan_ptr = '\0';
+                if(prev_ptr != scan_ptr) {
+                    /* a new string */
+                    if(hidx >= 16) {
+                        for(hidx--; hidx >= 0; hidx--){
+                            kmm_free(holder[hidx]);
+                        }
+                        return -EINVAL;
+                    }
+                    holder[hidx++] = strdup(prev_ptr);
+                }
+                prev_ptr = scan_ptr + 1;
+            }
+            scan_ptr++;
+        }
+
+        if(prev_ptr != scan_ptr) {
+            *scan_ptr = '\0';
+            /* a new string */
+            if(hidx >= 16) {
+                for(hidx--; hidx >= 0; hidx--){
+                    kmm_free(holder[hidx]);
+                }
+                return -EINVAL;
+            }
+            holder[hidx++] = strdup(prev_ptr);
+        }
+
+        /* No interpreter given */
+        if(hidx < 1)
+            return -EINVAL;
+
+        svcinfo("The interpreter is %s\n", holder[0]);
+        for(int i = 1; i < hidx; i++)
+            svcinfo("Argv[%d] %s\n", i, holder[i]);
+
+        // Insert the interpreter as argv[0]
+        argv = kmm_realloc(argv, sizeof(char*) * (argc + 1 + hidx));
+        argv[argc + hidx] = NULL;
+        for(i = argc; i > hidx - 1; i--)
+            argv[i] = argv[i - 1];
+
+        kmm_free(argv[hidx]);
+        argv[hidx] = path;
+
+        for(; i >= 0; i--)
+            argv[i] = holder[i];
+
+        // We will never return, clear the resource now
+        kmm_free(binary);
+
+        for(i = 0; i < argc + hidx; i++){
+            svcinfo("new argv[%d] %s\n", i, argv[i]);
+        }
+
+        // Now we load again with Interpreter
+        ret = _tux_exec(strdup(holder[0]), argv, envp);
+    }
+
     Elf64_Ehdr* header = binary;
 
+    /* Test ELF */
     if((header->e_ident[EI_MAG0] != ELFMAG0) &&
        (header->e_ident[EI_MAG1] != ELFMAG1)  &&
        (header->e_ident[EI_MAG2] != ELFMAG2)  &&
@@ -243,10 +322,6 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
 
     /* delegate a execve to notify Linux to do some cleaning */
     tux_delegate(59, 0, 0, 0, 0, 0, 0);
-
-
-
-
 
     // print basic info
     svcinfo("Entry point: 0x%lx\n", header->e_entry);
