@@ -271,7 +271,7 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
     goto errout_with_tcbinit;
   }
 
-  return rtcb->xcp.linux_pid == tcb->cmn.xcp.linux_pid ? tcb->cmn.pid : tcb->cmn.xcp.linux_pid;
+  return tcb->cmn.xcp.linux_tid;
 
 errout_with_tcbinit:
     sched_releasetcb(&tcb->cmn, TCB_FLAG_TTYPE_TASK);
