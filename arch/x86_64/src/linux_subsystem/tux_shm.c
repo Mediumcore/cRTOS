@@ -10,6 +10,7 @@
 struct shm_q{
   struct shmid_ds info;
   uintptr_t addr;
+  int flag;
 };
 
 struct shm_q shm_hash_table[SHM_HT_SIZE];
@@ -21,8 +22,6 @@ long tux_shmget(unsigned long nbr, uint32_t key, uint32_t size, uint32_t flags){
   int exist;
   int ret;
   irqstate_t irqflags;
-
-  printf("SHM FLAGS: %lx\n", flags);
 
   irqflags = enter_critical_section();
 
@@ -65,19 +64,40 @@ long tux_shmget(unsigned long nbr, uint32_t key, uint32_t size, uint32_t flags){
 
   leave_critical_section(irqflags);
 
+  svcinfo("%d SHM addr: 0x%llx\n", hv, shm_hash_table[hv].addr);
+
   return hv;
 }
 
 
 long tux_shmctl(unsigned long nbr, int hv, uint32_t cmd, struct shmid_ds* buf){
-    if(!(shm_hash_table[hv].info.shm_perm.__key)) return -EINVAL;
+    if(!(shm_hash_table[hv].info.shm_perm.__key)) {
+        svcinfo("No Such key!\n");
+        return -EINVAL;
+    }
 
-    if(cmd != TUX_IPC_STAT && cmd != TUX_SHM_LOCK) return -EINVAL; // Only IPC_STAT and SHM_LOCK is available
-    if(cmd == TUX_SHM_LOCK) return 0; // Sliently handle SHM_LOCK
+    if(cmd == TUX_IPC_SET) {
+        return 0; // Silent return without error
+    }
 
-    memcpy(buf, &shm_hash_table[hv].info, sizeof(struct shmid_ds));
+    if(cmd != TUX_IPC_STAT && cmd != TUX_SHM_LOCK && cmd != TUX_IPC_RMID) {
+        svcinfo("Only IPC_STAT, IPC_RMID and SHM_LOCK is supported!\n");
+        return -EINVAL;
+    }
+    if(cmd == TUX_SHM_LOCK) {
+        return 0; // Sliently handle SHM_LOCK
+    } else if(cmd == TUX_IPC_RMID) {
+        shm_hash_table[hv].flag = 1;
+        if(shm_hash_table[hv].info.shm_nattch == 0 && shm_hash_table[hv].flag == 1){
+            memset(&shm_hash_table[hv].info, 0, sizeof(struct shmid_ds));
+            kmm_free((void*)shm_hash_table[hv].addr);
+            shm_hash_table[hv].addr = NULL;
+        }
+    } else {
+        memcpy(buf, &shm_hash_table[hv].info, sizeof(struct shmid_ds));
 
-    shm_hash_table[hv].info.shm_lpid = this_task()->pid;
+        shm_hash_table[hv].info.shm_lpid = this_task()->pid;
+    }
 
     return 0;
 }
@@ -107,7 +127,7 @@ long tux_shmdt(unsigned long nbr, void* addr){
     shm_hash_table[hv].info.shm_nattch -= 1;
     shm_hash_table[hv].info.shm_lpid = this_task()->pid;
 
-    if(shm_hash_table[hv].info.shm_nattch == 0){
+    if(shm_hash_table[hv].info.shm_nattch == 0 && shm_hash_table[hv].flag == 1){
         memset(&shm_hash_table[hv].info, 0, sizeof(struct shmid_ds));
         kmm_free((void*)shm_hash_table[hv].addr);
         shm_hash_table[hv].addr = NULL;
