@@ -142,6 +142,10 @@ void up_sigdeliver(void)
     rtcb->xcp.saved_kstack = 0;
   }
 
+  if(rtcb->xcp.signal_stack_flag & 1){
+    rtcb->xcp.signal_stack_flag = 0;
+  }
+
   /* Then restore the correct state for this thread of execution. */
 
   board_autoled_off(LED_SIGNAL);

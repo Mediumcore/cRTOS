@@ -50,6 +50,8 @@
 #include "up_internal.h"
 #include "up_arch.h"
 
+#include "tux.h"
+
 #ifndef CONFIG_DISABLE_SIGNALS
 
 /****************************************************************************
@@ -142,10 +144,10 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
                       tcb->xcp.saved_kstack = kstack;
                       tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
 
-                      if(tcb->xcp.signal_stack_flag) { // SS_DISABLE
+                      if(tcb->xcp.signal_stack_flag & TUX_SS_DISABLE) { // SS_DISABLE
                           new_rsp = *((uint64_t*)kstack - 1) - 8; // Read out the user stack address
                       } else {
-                          tcb->xcp.signal_stack_flag = 1;
+                          tcb->xcp.signal_stack_flag |= 1;
                           new_rsp =  (tcb->xcp.signal_stack + tcb->xcp.signal_stack_size) & (-0x10);
                       }
 
@@ -155,24 +157,24 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
                                     call *%2  \t\n\
                                     mov %%r12, %%rsp"::"g"(new_rsp), "g"(tcb), "g"(sigdeliver):"r12","rdi");
 
-                      if(tcb->xcp.signal_stack_flag == 1)
-                          tcb->xcp.signal_stack_flag = 0;
+                      if(tcb->xcp.signal_stack_flag & 1)
+                          tcb->xcp.signal_stack_flag = 0; // !SS_DISABLED
 
                       tcb->adj_stack_ptr = (void*)tcb->xcp.saved_kstack;
                       tcb->xcp.saved_rsp = 0;
                       tcb->xcp.saved_kstack = 0;
                   }else{
-                      if(tcb->xcp.signal_stack_flag) { // SS_DISABLE
+                      if(tcb->xcp.signal_stack_flag & TUX_SS_DISABLE) { // SS_DISABLE
                           sigdeliver(tcb);
                       } else {
                           new_rsp =  (tcb->xcp.signal_stack + tcb->xcp.signal_stack_size) & (-0x10);
-                          tcb->xcp.signal_stack_flag = 1;
+                          tcb->xcp.signal_stack_flag |= 1;
                           asm volatile("mov %%rsp, %%r12   \t\n\
                                         mov %0, %%rsp    \t\n\
                                         mov %1, %%rdi    \t\n\
                                         call *%2  \t\n\
                                         mov %%r12, %%rsp"::"g"(new_rsp), "g"(tcb), "g"(sigdeliver):"r12","rdi");
-                          tcb->xcp.signal_stack_flag = 0;
+                          tcb->xcp.signal_stack_flag = 0; // !SS_DISABLED
                       }
                   }
                 } else {
@@ -200,6 +202,7 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
 
               tcb->xcp.sigdeliver       = sigdeliver;
               tcb->xcp.saved_rip        = g_current_regs[REG_RIP];
+              tcb->xcp.saved_rsp        = 0;
               tcb->xcp.saved_rflags     = g_current_regs[REG_RFLAGS];
 
               if(tcb->xcp.is_linux) {
@@ -217,10 +220,10 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
                       g_current_regs[REG_RSP] = *((uint64_t*)kstack - 1) - 8; // Read out the user stack address
                   }
 
-                  if(!tcb->xcp.signal_stack_flag) { // !SS_DISABLE
+                  if(!(tcb->xcp.signal_stack_flag & TUX_SS_DISABLE)) { // !SS_DISABLE
                       tcb->xcp.saved_rsp = curr_rsp;
 
-                      tcb->xcp.signal_stack_flag = 1;
+                      tcb->xcp.signal_stack_flag |= 1;
                       g_current_regs[REG_RSP] =  (tcb->xcp.signal_stack + tcb->xcp.signal_stack_size) & (-0x10);
                   }
               }
@@ -255,6 +258,7 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
 
           tcb->xcp.sigdeliver       = sigdeliver;
           tcb->xcp.saved_rip        = tcb->xcp.regs[REG_RIP];
+          tcb->xcp.saved_rsp        = 0;
           tcb->xcp.saved_rflags     = tcb->xcp.regs[REG_RFLAGS];
 
           if(tcb->xcp.is_linux) {
@@ -262,7 +266,7 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
               /* move to the user stack */
               /* if in kernel stack, we need to prevent an overwrite*/
               kstack = (uint64_t)tcb->adj_stack_ptr;
-              curr_rsp = g_current_regs[REG_RSP];
+              curr_rsp = tcb->xcp.regs[REG_RSP];
 
               if((tcb->xcp.regs[REG_RSP] < kstack) && (tcb->xcp.regs[REG_RSP] > kstack - tcb->adj_stack_size) && tcb->xcp.is_linux) {
 
@@ -277,11 +281,11 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
                   tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
               }
 
-              if(!tcb->xcp.signal_stack_flag) { // !SS_DISABLE
+              if(!(tcb->xcp.signal_stack_flag & TUX_SS_DISABLE)) { // !SS_DISABLE
                   tcb->xcp.saved_rsp = curr_rsp;
 
-                  tcb->xcp.signal_stack_flag = 1;
-                  g_current_regs[REG_RSP] =  (tcb->xcp.signal_stack + tcb->xcp.signal_stack_size) & (-0x10);
+                  tcb->xcp.signal_stack_flag |= 1;
+                  tcb->xcp.regs[REG_RSP] =  (tcb->xcp.signal_stack + tcb->xcp.signal_stack_size) & (-0x10);
               }
           }
 

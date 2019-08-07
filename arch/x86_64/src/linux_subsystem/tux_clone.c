@@ -226,6 +226,10 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
 
     tcb->cmn.xcp.is_linux = 2; /* This is the head of threads, responsible to scrap the addrenv */
 
+    /* Inherit signal stack */
+    tcb->cmn.xcp.signal_stack_flag = rtcb->xcp.signal_stack_flag;
+    tcb->cmn.xcp.signal_stack = rtcb->xcp.signal_stack;
+
     insert_proc_node(tcb->cmn.pid, tcb->cmn.xcp.linux_pid);
 
     add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
