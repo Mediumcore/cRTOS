@@ -64,6 +64,9 @@
 uint8_t g_interrupt_stack[IRQ_STACK_SIZE];
 uint8_t* g_interrupt_stack_end = g_interrupt_stack + IRQ_STACK_SIZE;
 
+uint8_t g_isr_stack[IRQ_STACK_SIZE];
+uint8_t* g_isr_stack_end = g_isr_stack + IRQ_STACK_SIZE;
+
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/

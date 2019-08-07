@@ -64,6 +64,8 @@
 	.globl	isr_handler
 	.globl	g_interrupt_stack
 	.globl	g_interrupt_stack_end
+	.globl	g_isr_stack
+	.globl	g_isr_stack_end
 
 /****************************************************************************
  * Macros
@@ -242,7 +244,7 @@ isr_common:
     mov %rsp, %rdi
 
     //swap-in the new rsp
-    mov $g_interrupt_stack_end, %rsp
+    mov $g_isr_stack_end, %rsp
     mov (%rsp), %rsp
 
     //Copy the values stored on the old stack
