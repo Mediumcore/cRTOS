@@ -308,6 +308,10 @@ long rexec(const char* path, int priority,
 
     add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
 
+    tcb->cmn.xcp.fd[0] = 0;
+    tcb->cmn.xcp.fd[1] = 1;
+    tcb->cmn.xcp.fd[2] = 2;
+
     tcb->cmn.xcp.signal_stack_flag = TUX_SS_DISABLE;
 
     sinfo("activate: new task=%d\n", tcb->cmn.pid);

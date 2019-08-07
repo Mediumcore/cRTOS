@@ -219,6 +219,8 @@ struct xcptcontext
   uint64_t syscall_ret;
   sem_t syscall_lock;
 
+  uint32_t fd[3];
+
   void* __brk;
   void* __min_brk;
 

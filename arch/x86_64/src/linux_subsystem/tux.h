@@ -297,6 +297,10 @@ long tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6);
 
+long tux_dup2_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+                          uintptr_t parm6);
+
 void add_remote_on_exit(struct tcb_s* tcb, void (*func)(int, void *), void *arg);
 void tux_on_exit(int val, void* arg);
 

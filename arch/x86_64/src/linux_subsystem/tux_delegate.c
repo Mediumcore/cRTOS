@@ -189,9 +189,13 @@ long tux_local(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
     PANIC();
   }
 
+  errno = 0;
   ret = ((syscall_t) \
          (g_stublookup[linux_syscall_number_table[nbr] - CONFIG_SYS_RESERVED])) \
          (linux_syscall_number_table[nbr] - CONFIG_SYS_RESERVED, parm1, parm2, parm3, parm4, parm5, parm6);
+
+  if(errno != 0)
+      ret = -errno;
 
   tux_errno_sanitaizer(&ret);
 
@@ -230,10 +234,20 @@ long tux_file_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6)
 {
-  int ret;
+  struct tcb_s *rtcb = this_task();
+  int ret = -EBADF;
   svcinfo("Multiplexed File related syscall %d, fd: %d\n", nbr, parm1);
 
-  if(parm1 < CONFIG_TUX_FD_RESERVE) { // Lower parts should be delegated
+  if(parm1 >= 0 && parm1 <= 2) {
+      if(rtcb->xcp.fd[parm1] != parm1) {
+        if(linux_syscall_number_table[nbr] != (uint64_t)-1){
+          svcinfo("Facking: %d\n", rtcb->xcp.fd[parm1]);
+          ret = tux_local(nbr, rtcb->xcp.fd[parm1], parm2, parm3, parm4, parm5, parm6);
+        }
+      } else {
+        ret = tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
+      }
+  } else if(parm1 < CONFIG_TUX_FD_RESERVE) { // Lower parts should be delegated
     ret = tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
   }else{
     ret = -1;
@@ -317,4 +331,34 @@ long tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
       return ret;
   }
 
+}
+
+long tux_dup2_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+                          uintptr_t parm6)
+{
+  struct tcb_s *rtcb = this_task();
+  int ret;
+  svcinfo("Multiplexed DUP2, fd: %d\n", parm1);
+
+  if(parm1 < CONFIG_TUX_FD_RESERVE && parm2 < CONFIG_TUX_FD_RESERVE) {
+    ret = tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
+  } else if(parm1 >= CONFIG_TUX_FD_RESERVE && parm2 >= CONFIG_TUX_FD_RESERVE) {
+    ret = -1;
+    ret = tux_local(nbr, parm1 - CONFIG_TUX_FD_RESERVE, parm2 - CONFIG_TUX_FD_RESERVE, parm3, parm4, parm5, parm6) + CONFIG_TUX_FD_RESERVE;
+  } else if(parm1 < CONFIG_TUX_FD_RESERVE && parm2 >= CONFIG_TUX_FD_RESERVE){
+    ret = -EINVAL;
+  } else {
+      if(parm2 >= 0 && parm2 <= 2) {
+          // dup first and assign to the xcp;
+          ret = dup(parm1 - CONFIG_TUX_FD_RESERVE);
+          svcinfo("Fake DUPED as %d\n", ret);
+          rtcb->xcp.fd[parm2] = ret;
+          ret = parm2;
+      } else {
+        ret = -EINVAL;
+      }
+  }
+
+  return ret;
 }

@@ -89,7 +89,7 @@ syscall_t linux_syscall_action_table[500] = {
     (syscall_t)tux_shmat, // SYS_shmat,
     (syscall_t)tux_shmctl, // SYS_shmctl,
     tux_file_delegate, // SYS_dup,
-    tux_file_delegate, // SYS_dup2,
+    tux_dup2_delegate, // SYS_dup2,
     tux_no_impl, // SYS_pause,
     (syscall_t)tux_nanosleep,
     tux_no_impl, // SYS_getitimer,
