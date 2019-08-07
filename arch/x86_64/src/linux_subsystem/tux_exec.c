@@ -142,21 +142,21 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
     for(i = 0; envp[i] != NULL; i++);
     envc = i;
 
+    // Hack use of fstat, hard code the linux struct stat size
+    uint64_t filesz;
+
+    tmp_ptr = kmm_zalloc(144);
+    tux_delegate(4, (uintptr_t)path, (uintptr_t)tmp_ptr, 0, 0, 0, 0);
+    filesz = ((uint64_t*)tmp_ptr)[6];
+    kmm_free(tmp_ptr);
+
+    svcinfo("Path: %s, size: 0x%llx\n", path, filesz);
+
     // We are in a linux context, so free to use remote system calls
     // Get the ELF header
     int elf_fd = tux_open_delegate(2, (uintptr_t)path, TUX_O_RDONLY, 0, 0, 0, 0);
     if(elf_fd < 0)
         return elf_fd;
-
-    // Hack use of fstat, hard code the linux struct stat size
-    uint64_t filesz;
-
-    tmp_ptr = kmm_zalloc(144);
-    tux_file_delegate(5, elf_fd, (uintptr_t)tmp_ptr, 0, 0, 0, 0);
-    filesz = ((uint64_t*)tmp_ptr)[6];
-    kmm_free(tmp_ptr);
-
-    svcinfo("Path: %s, size: 0x%llx\n", path, filesz);
 
     // The mapping might be overwrite during loading
     // Extra care should be taken
