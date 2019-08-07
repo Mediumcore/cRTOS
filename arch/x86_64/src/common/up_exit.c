@@ -53,6 +53,8 @@
 #include "group/group.h"
 #include "up_internal.h"
 
+#include <arch/board/shadow.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -159,6 +161,8 @@ void _exit(int status)
   sched_foreach(_up_dumponexit, NULL);
 #endif
 
+  up_checktasks();
+
   /* Destroy the task at the head of the ready to run list. */
 
   (void)task_exit();
@@ -171,6 +175,7 @@ void _exit(int status)
 
   // Context switch, rearrange MMU
   up_restore_auxstate(tcb);
+  shadow_proc_set_prio(gshadow, tcb->sched_priority);
 
 #ifdef CONFIG_ARCH_ADDRENV
   /* Make sure that the address environment for the previously running
