@@ -403,7 +403,7 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
         tux_file_delegate(3, elf_fd, 0, 0, 0, 0, 0);
 
         /* We probelly need to close all fds */
-        svcinfo("Starting\n");
+        svcinfo("Starting, jumping to: 0x%llx\n", entry);
 
         /* enter the new program */
         asm volatile ("mov %0, %%rsp; \t\n\
