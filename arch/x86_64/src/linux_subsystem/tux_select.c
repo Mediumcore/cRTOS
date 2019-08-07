@@ -121,10 +121,22 @@ long tux_select (unsigned long nbr, int fd, struct tux_fd_set *r, struct tux_fd_
 
   if((rr | wr | er) == 1){
     ret = tux_delegate(nbr, fd, (uintptr_t)r, (uintptr_t)w, (uintptr_t)e, (uintptr_t)timeout, 0);
-  }else{
+  }else if((rr | wr | er) == 2){
     svcinfo("local select\n");
     ret = select(fd - CONFIG_TUX_FD_RESERVE, &lr, &lw, &le, timeout);
+    if(ret < 0)
+      ret = -errno;
+    if(ret == -ETIMEDOUT)
+        ret = -EAGAIN;
+  }else{
+    ret = select(0, NULL, NULL, NULL, timeout);
+    if(ret < 0)
+      ret = -errno;
+    if(ret == -ETIMEDOUT)
+        ret = -EAGAIN;
   }
+
+  svcinfo("ret: %d\n", ret);
 
   fd_set_tux_merge(r, &lr);
   fd_set_tux_merge(w, &lw);
