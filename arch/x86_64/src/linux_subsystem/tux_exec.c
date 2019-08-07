@@ -293,7 +293,6 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
 
         // We will never return, clear the resource now
         kmm_free(binary);
-        tux_file_delegate(3, elf_fd, 0, 0, 0, 0, 0);
 
         // Now we load again with statically linked dynamic loader
         ret = _tux_exec(tmp_ptr, argv, envp);
@@ -400,7 +399,6 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
             kmm_free(argv[i]);
         for(i = 0; envp[i] != NULL; i++)
             kmm_free(envp[i]);
-        tux_file_delegate(3, elf_fd, 0, 0, 0, 0, 0);
 
         /* We probelly need to close all fds */
         svcinfo("Starting, jumping to: 0x%llx\n", entry);
