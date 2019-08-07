@@ -43,7 +43,7 @@ ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
 endif
 
 ifneq ($(CONFIG_DEBUG_NOOPT),y)
-  ARCHOPTIMIZATION += -O2 -fno-optimize-sibling-calls -fno-omit-frame-pointer
+  ARCHOPTIMIZATION += -O2 -fno-optimize-sibling-calls -fno-omit-frame-pointer -fno-crossjumping  
 endif
 
 ifeq ($(WINTOOL),y)
