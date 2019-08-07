@@ -351,6 +351,8 @@ int nxsched_setpriority(FAR struct tcb_s *tcb, int sched_priority)
       return -EINVAL;
     }
 
+  up_checktasks();
+
   /* We need to assure that there there is no interrupt activity while
    * performing the following.
    */
