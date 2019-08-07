@@ -445,8 +445,18 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
               /* Discard the child entry and break out of the loop */
 
+              pid = child->ch_pid;
+
               (void)group_removechild(rtcb->group, child->ch_pid);
               group_freechild(child);
+              break;
+            }
+
+          /* do not wait, just return with 0 */
+          if ((options & WNOHANG) != 0)
+            {
+              *stat_loc = 0;
+              pid = 0;
               break;
             }
         }
@@ -472,6 +482,14 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
               (void)group_removechild(rtcb->group, pid);
               group_freechild(child);
+              break;
+            }
+
+          /* do not wait, just return with 0 */
+          if ((options & WNOHANG) != 0)
+            {
+              *stat_loc = 0;
+              pid = 0;
               break;
             }
         }
