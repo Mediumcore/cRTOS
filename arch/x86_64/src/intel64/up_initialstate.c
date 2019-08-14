@@ -130,9 +130,9 @@ void up_initial_state(struct tcb_s *tcb)
           nxsem_init(&xcp->syscall_lock, 1, 0);
           nxsem_setprotocol(&xcp->syscall_lock, SEM_PRIO_NONE);
 
-          xcp->fd[0] = 0;
-          xcp->fd[1] = 1;
-          xcp->fd[2] = 2;
+          xcp->fd[0] = rtcb->xcp.fd[0];
+          xcp->fd[1] = rtcb->xcp.fd[1];
+          xcp->fd[2] = rtcb->xcp.fd[2];
 
           xcp->signal_stack_flag = 2;
         }
