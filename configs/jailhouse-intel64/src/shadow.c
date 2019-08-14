@@ -689,6 +689,7 @@ int shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg)
 
   DEBUGASSERT(priv != NULL);
 
+  memset(buf, 0, sizeof(buf));
   shadow_proc_receive(priv, buf);
 
   rtcb = (struct tcb_s *)buf[2];
