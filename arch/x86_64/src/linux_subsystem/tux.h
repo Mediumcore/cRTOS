@@ -313,7 +313,7 @@ long     tux_fork        (unsigned long nbr);
 long     tux_vfork       (unsigned long nbr);
 
 void    tux_mm_init     (void);
-void*   tux_mmap        (unsigned long nbr, void* addr, size_t length, int prot, int flags, int fd, off_t offset);
+void*   tux_mmap        (unsigned long nbr, void* addr, long length, int prot, int flags, int fd, off_t offset);
 long     tux_munmap      (unsigned long nbr, void* addr, size_t length);
 
 long     tux_shmget      (unsigned long nbr, uint32_t key, uint32_t size, uint32_t flags);

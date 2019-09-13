@@ -52,8 +52,8 @@ void get_free_vma(struct vma_s* ret, uint64_t size) {
     }
   else if (tcb->xcp.vma->next == NULL)
     {
-    tcb->xcp.vma->next = ret;
-    ret->va_start = tcb->xcp.vma->va_end;
+      tcb->xcp.vma->next = ret;
+      ret->va_start = tcb->xcp.vma->va_end;
     }
   else
     {
@@ -390,7 +390,7 @@ char* retrive_path(int fd, off_t offset) {
 #endif
 }
 
-void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags, int fd, off_t offset){
+void* tux_mmap(unsigned long nbr, void* addr, long length, int prot, int flags, int fd, off_t offset){
   struct tcb_s *tcb = this_task();
   int i, j;
   struct vma_s* vma;
@@ -407,12 +407,27 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
 
   if(((flags & MAP_NORESERVE)) && (prot == 0)) return (void*)-1; // Why glibc require large amount of non accessible memory?
 
+  svcinfo("TUX: mmap get vma\n");
+
   vma = kmm_malloc(sizeof(struct vma_s));
   if(!vma) return (void*)-1;
 
   // TODO: process proto
   vma->proto = 0x3;
   vma->_backing = "[Memory]";
+
+  svcinfo("TUX: mmap get mem\n");
+  // Create backing memory
+  // The allocated physical memory is non-accessible from this process, must be mapped
+  vma->pa_start = gran_alloc(tux_mm_hnd, num_of_pages * PAGE_SIZE);
+  if(!vma->pa_start)
+    {
+      svcinfo("TUX: mmap failed to allocate 0x%llx bytes\n", num_of_pages * PAGE_SIZE);
+      kmm_free(vma);
+      return -1;
+    }
+
+  svcinfo("TUX: mmap allocated 0x%llx bytes at 0x%llx\n", num_of_pages * PAGE_SIZE, vma->pa_start);
 
   if(!(flags & MAP_FIXED)) // Fixed mapping?
     {
@@ -431,17 +446,6 @@ void* tux_mmap(unsigned long nbr, void* addr, size_t length, int prot, int flags
       vma->va_end = addr + num_of_pages * PAGE_SIZE;
       make_vma_free(vma);
     }
-
-  // Create backing memory
-  // The allocated physical memory is non-accessible from this process, must be mapped
-  vma->pa_start = gran_alloc(tux_mm_hnd, vma->va_end - vma->va_start);
-  if(!vma->pa_start)
-    {
-      svcinfo("TUX: mmap failed to allocate 0x%llx bytes\n", VMA_SIZE(vma));
-      revoke_vma(vma);
-      return -1;
-    }
-  svcinfo("TUX: mmap allocated 0x%llx bytes at 0x%llx\n", VMA_SIZE(vma), vma->pa_start);
 
   if(map_pages(vma))
     {
