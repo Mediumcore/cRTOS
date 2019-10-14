@@ -475,11 +475,15 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
         for(i = 0; envp[i] != NULL; i++)
             kmm_free(envp[i]);
 
+
+
         /* We probelly need to close all fds */
         svcinfo("Starting, jumping to: 0x%llx\n", entry);
 
         /* enter the new program */
+        /* Somehow, glibc take rdx as the address of rtld_fini, clear it */
         asm volatile ("mov %0, %%rsp; \t\n\
+                       mov $0, %%rdx; \t\n\
                        jmpq %1"::"g"(sp), "g"(entry));
 
 static_err:
