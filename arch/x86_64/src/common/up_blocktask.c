@@ -85,8 +85,6 @@ void up_block_task(struct tcb_s *tcb, tstate_t task_state)
   ASSERT((tcb->task_state >= FIRST_READY_TO_RUN_STATE) &&
          (tcb->task_state <= LAST_READY_TO_RUN_STATE));
 
-  up_checktasks();
-
   /* Remove the tcb task from the ready-to-run list.  If we
    * are blocking the task at the head of the task list (the
    * most likely case), then a context switch to the next
@@ -99,6 +97,8 @@ void up_block_task(struct tcb_s *tcb, tstate_t task_state)
   /* Add the task to the specified blocked task list */
 
   sched_addblocked(tcb, (tstate_t)task_state);
+
+  up_checktasks();
 
   /* If there are any pending tasks, then add them to the ready-to-run
    * task list now
