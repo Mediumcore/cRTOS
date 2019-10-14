@@ -70,7 +70,7 @@ void* exec_setupargs(uint64_t stack, int argc, char* argv[], int envc, char* env
     total_size += sizeof(char*) * (argc + 1); // argvs + NULL
     total_size += sizeof(char*) * (envc + 1); // envp + NULL
     total_size += sizeof(Elf64_auxv_t) * 7; // 7 aux vectors
-    total_size += sizeof(uint64_t);         // AT_RANDOM
+    total_size += sizeof(uint64_t) * 2;         // AT_RANDOM
 
     sp = (void*)(stack + TUX_STACK_SIZE - total_size);
 
@@ -107,7 +107,7 @@ void* exec_setupargs(uint64_t stack, int argc, char* argv[], int envc, char* env
     auxptr[0].a_un.a_val = PAGE_SIZE;
 
     auxptr[1].a_type = AT_RANDOM;
-    auxptr[1].a_un.a_val = (uint64_t)(sp + total_size - argv_size - envp_size - 8 - stack + TUX_STACK_START);
+    auxptr[1].a_un.a_val = (uint64_t)(sp + total_size - argv_size - envp_size - 16 - stack + TUX_STACK_START);
 
     auxptr[2].a_type = AT_SYSINFO_EHDR;
     auxptr[2].a_un.a_val = 0x0;
