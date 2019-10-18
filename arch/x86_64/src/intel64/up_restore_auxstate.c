@@ -84,23 +84,18 @@ void up_restore_auxstate(struct tcb_s *rtcb)
   /* some dirty hack to speed up the switching of full mapping */
   static int cached = 0;
 
-  pdpt[0] = (uintptr_t)pd | 0x23;
-  for(ptr = rtcb->xcp.pda; ptr; ptr = ptr->next) {
-      if(ptr == &g_vm_full_map){
-          if(!cached) {
-              for(j = 0, i = 0; i < 0x40000000; i += HUGE_PAGE_SIZE, j += PAGE_SIZE) {
-                full_map_pd1[(i >> 21) & 0x7ffffff] = (j + (uint64_t)pt) | 0x3;
-              }
-              cached = 1;
+  if(rtcb->xcp.pd1 == NULL){
+      if(!cached) {
+          for(j = 0, i = 0; i < 0x40000000; i += HUGE_PAGE_SIZE, j += PAGE_SIZE) {
+            full_map_pd1[(i >> 21) & 0x7ffffff] = (j + (uint64_t)pt) | 0x3;
           }
-          pdpt[0] = (uintptr_t)full_map_pd1 | 0x23;
-          break;
+          cached = 1;
       }
-
-      for(j = 0, i = ptr->va_start; i < ptr->va_end; i += HUGE_PAGE_SIZE, j += PAGE_SIZE) {
-        pd[(i >> 21) & 0x7ffffff] = (j + ptr->pa_start) | ptr->proto;
-      }
+      pdpt[0] = (uintptr_t)full_map_pd1 | 0x23;
+  } else {
+    pdpt[0] = (uintptr_t)rtcb->xcp.pd1 | 0x23;
   }
+
 
   set_pcid(rtcb->pid);
   if(rtcb->xcp.fs_base_set){

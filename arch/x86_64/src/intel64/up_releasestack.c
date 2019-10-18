@@ -133,6 +133,7 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
       if(ptr == &g_vm_full_map) continue;
       if(ptr->pa_start == 0xffffffffffffffff) continue;
       gran_free(tux_mm_hnd, (void*)(ptr->pa_start), ptr->va_end - ptr->va_start);
+      gran_free(tux_mm_hnd, (void*)tux_mm_del_pd1, PAGE_SIZE);
 #ifdef CONFIG_DEBUG_SYSCALL_INFO
       if(ptr->_backing[0] != '[')
           sched_kfree(ptr->_backing);

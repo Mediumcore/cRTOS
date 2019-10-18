@@ -20,6 +20,29 @@ void tux_mm_init(void) {
   tux_mm_hnd = gran_initialize((void*)0x1000000, (0x34000000 - 0x1000000), 12, 12); // 2^12 is 4KB, the PAGE_SIZE
 }
 
+uint64_t* tux_mm_new_pd1(void) {
+  uintptr_t pd1 = (uintptr_t)gran_alloc(tux_mm_hnd, PAGE_SIZE);
+  uint64_t *vpd1 = temp_map_at_0xc0000000(pd1, pd1 + PAGE_SIZE);
+
+  memset(vpd1, 0, PAGE_SIZE);
+
+  // Below 0x1000000 and Beyond 0x34000000 is 1:1
+  for(int i = 0; i < 0x1000000 / HUGE_PAGE_SIZE; i++) {
+    vpd1[i] = (i * PAGE_SIZE + (uint64_t)pt) | 0x3;
+  }
+
+  for(int i = 0x34000000 / HUGE_PAGE_SIZE; i < 0x40000000 / HUGE_PAGE_SIZE; i++) {
+    vpd1[i] = (i * PAGE_SIZE + (uint64_t)pt) | 0x3;
+  }
+
+  return (uint64_t*)pd1;
+}
+
+void tux_mm_del_pd1(uint64_t* pd1) {
+  gran_free(tux_mm_hnd, pd1, PAGE_SIZE);
+  return;
+}
+
 void revoke_vma(struct vma_s* vma){
   struct tcb_s *tcb = this_task();
   struct vma_s* ptr;
@@ -222,9 +245,12 @@ long map_pages(struct vma_s* vma){
           *pptr = pda;
           pda->next = ptr;
 
+          // Temporary map the memory for writing
+          tmp_pd = temp_map_at_0xc0000000(tcb->xcp.pd1, (uintptr_t)tcb->xcp.pd1 + PAGE_SIZE);
+
           // Map it via page directories
           for(j = pda->va_start; j < pda->va_end; j += HUGE_PAGE_SIZE) {
-            pd[(j >> 21) & 0x7ffffff] = (((j - pda->va_start) >> 9) + pda->pa_start) | pda->proto;
+            tmp_pd[(j >> 21) & 0x7ffffff] = (((j - pda->va_start) >> 9) + pda->pa_start) | pda->proto;
           }
 
           i = ptr->va_start < vma->va_end ? ptr->va_start : vma->va_end;
@@ -285,9 +311,11 @@ long map_pages(struct vma_s* vma){
       *pptr = pda;
       pda->next = NULL;
 
+      tmp_pd = temp_map_at_0xc0000000(tcb->xcp.pd1, (uintptr_t)tcb->xcp.pd1 + PAGE_SIZE);
+
       // Map it via page directories
       for(j = pda->va_start; j < pda->va_end; j += HUGE_PAGE_SIZE) {
-        pd[(j >> 21) & 0x7ffffff] = (((j - pda->va_start) >> 9) + pda->pa_start) | pda->proto;
+        tmp_pd[(j >> 21) & 0x7ffffff] = (((j - pda->va_start) >> 9) + pda->pa_start) | pda->proto;
       }
     }
 

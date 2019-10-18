@@ -308,6 +308,8 @@ long rexec(const char* path, int priority,
 
     add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
 
+    tcb->cmn.xcp.pd1 = tux_mm_new_pd1();
+
     tcb->cmn.xcp.fd[0] = 0;
     tcb->cmn.xcp.fd[1] = 1;
     tcb->cmn.xcp.fd[2] = 2;

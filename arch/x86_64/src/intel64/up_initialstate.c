@@ -96,6 +96,8 @@ struct vma_s g_vm_empty_map = {
  *
  ****************************************************************************/
 
+extern uintptr_t tux_mm_new_pd1(void);
+
 void up_initial_state(struct tcb_s *tcb)
 {
   struct xcptcontext *xcp = &tcb->xcp;
@@ -122,6 +124,8 @@ void up_initial_state(struct tcb_s *tcb)
         {
           xcp->vma = NULL;
           xcp->pda = NULL;
+          xcp->pd1 = NULL;
+
           xcp->is_linux = 1;
           xcp->linux_sock = rtcb->xcp.linux_sock;
           xcp->linux_tcb = rtcb->xcp.linux_tcb;
@@ -141,6 +145,7 @@ void up_initial_state(struct tcb_s *tcb)
           xcp->is_linux = 0;
           xcp->vma = &g_vm_full_map;
           xcp->pda = &g_vm_full_map;
+          xcp->pd1 = NULL;
         }
     }
   else
@@ -148,6 +153,7 @@ void up_initial_state(struct tcb_s *tcb)
       xcp->is_linux = 0;
       xcp->vma = &g_vm_full_map;
       xcp->pda = &g_vm_full_map;
+      xcp->pd1 = NULL;
     }
 
   /* Save the initial stack pointer... the value of the stackpointer before

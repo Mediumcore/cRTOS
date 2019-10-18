@@ -234,6 +234,8 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
 
     add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
 
+    tcb->cmn.xcp.pd1 = tux_mm_new_pd1();
+
     /* manual set the instruction pointer */
     regs = kmm_zalloc(sizeof(uint64_t) * 16);
     memcpy(regs, (uint64_t*)(get_kernel_stack_ptr()) - 16, sizeof(uint64_t) * 16);

@@ -50,6 +50,8 @@
 #  include <arch/arch.h>
 #  include <semaphore.h>
 #  include <time.h>
+#  include <debug.h>
+#  include <nuttx/config.h>
 #endif
 
 /****************************************************************************
@@ -233,6 +235,7 @@ struct xcptcontext
 
   struct vma_s* vma;
   struct vma_s* pda;
+  uint64_t* pd1;
 
   /* Register save area */
 
