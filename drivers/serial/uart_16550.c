@@ -891,11 +891,7 @@ static int u16550_interrupt(int irq, FAR void *context, FAR void *arg)
                   priv->ier &= ~UART_IER_EDSSI;
                   u16550_serialout(priv, UART_IER_OFFSET, priv->ier);
 
-                  sem_getvalue(&(priv->msisem), &svalue);
-                  if(svalue < 0)
-                    {
-                      sem_post(&(priv->msisem));
-                    }
+                  sem_post(&(priv->msisem));
                 }
               break;
             }
@@ -1125,14 +1121,10 @@ static int u16550_ioctl(struct file *filep, int cmd, unsigned long arg)
 
     case TIOCMIWAIT:
       {
-        irqstate_t flags = enter_critical_section();
-
         priv->ier |= UART_IER_EDSSI;
         u16550_serialout(priv, UART_IER_OFFSET, priv->ier);
 
         sem_wait(&(priv->msisem));
-
-        leave_critical_section(flags);
       }
       break;
 
