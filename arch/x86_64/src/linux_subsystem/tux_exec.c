@@ -77,12 +77,11 @@ void* exec_setupargs(uint64_t stack, int argc, char* argv[], int envc, char* env
     sinfo("Setting up stack args at %p\n", sp);
 
     *((uint64_t*)sp) = argc;
-    sp += sizeof(uint64_t);
 
     sinfo("Setting up stack argc is %d\n", *(((uint64_t*)sp) - 1));
 
     done = 0;
-    argv_ptr = ((char**)sp);
+    argv_ptr = ((char**)(((uint8_t*)sp) + sizeof(uint64_t)));
     for(int i = 0; i < argc; i++){
         argv_ptr[i] = (char*)(sp + total_size - argv_size - envp_size + done);
         strcpy(argv_ptr[i], argv[i]);
@@ -92,7 +91,7 @@ void* exec_setupargs(uint64_t stack, int argc, char* argv[], int envc, char* env
     }
 
     done = 0;
-    envp_ptr = ((char**)sp + (argc + 1));
+    envp_ptr = ((char**)(((uint8_t*)sp) + sizeof(uint64_t)) + (argc + 1));
     for(int i = 0; i < envc; i++){
         envp_ptr[i] = (char*)(sp + total_size - envp_size + done);
         strcpy(envp_ptr[i], envp[i]);
@@ -124,7 +123,7 @@ void* exec_setupargs(uint64_t stack, int argc, char* argv[], int envc, char* env
     auxptr[6].a_type = AT_NULL; //at_null
     auxptr[6].a_un.a_val = 0x0;
 
-    return sp - sizeof(uint64_t);
+    return sp;
 }
 
 long _tux_exec(char* path, char *argv[], char* envp[]){
