@@ -75,10 +75,10 @@ void up_checktasks(void)
   struct tcb_s *rtcb;
   irqstate_t flags;
 
-    return;
-
   if(!gshadow) return;
   if(!(gshadow->flags & SHADOW_PROC_FLAG_RUN)) return;
+
+  shadow_proc_set_prio(gshadow, 0);
 
   /* the IRQ of shadow process might race with us */
   flags = enter_critical_section();
