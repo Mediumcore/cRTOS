@@ -119,7 +119,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_local, // SYS_exit,
     (syscall_t)tux_waithook, // sys_wait4
     (syscall_t)tux_pidhook, // SYS_kill,
-    tux_local, // SYS_uname,
+    tux_delegate, // SYS_uname,
     (syscall_t)tux_semget, // SYS_semget,
     (syscall_t)tux_semop, // SYS_semop,
     (syscall_t)tux_semctl, // SYS_semctl,
