@@ -94,11 +94,11 @@ void up_block_task(struct tcb_s *tcb, tstate_t task_state)
 
   switch_needed = sched_removereadytorun(tcb);
 
+  up_checktasks();
+
   /* Add the task to the specified blocked task list */
 
   sched_addblocked(tcb, (tstate_t)task_state);
-
-  up_checktasks();
 
   /* If there are any pending tasks, then add them to the ready-to-run
    * task list now

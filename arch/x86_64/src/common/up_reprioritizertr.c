@@ -99,8 +99,6 @@ void up_reprioritize_rtr(struct tcb_s *tcb, uint8_t priority)
 
       sinfo("TCB=%p PRI=%d\n", tcb, priority);
 
-      up_checktasks();
-
       /* Remove the tcb task from the ready-to-run list.
        * sched_removereadytorun will return true if we just
        * remove the head of the ready to run list.
@@ -130,6 +128,8 @@ void up_reprioritize_rtr(struct tcb_s *tcb, uint8_t priority)
            * time to add any pending tasks back into the ready-to-run list.
            * task list now
            */
+
+          up_checktasks();
 
           if (g_pendingtasks.head)
             {

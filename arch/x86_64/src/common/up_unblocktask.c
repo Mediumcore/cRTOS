@@ -81,11 +81,13 @@ void up_unblock_task(struct tcb_s *tcb)
   ASSERT((tcb->task_state >= FIRST_BLOCKED_STATE) &&
          (tcb->task_state <= LAST_BLOCKED_STATE));
 
-  up_checktasks();
 
   /* Remove the task from the blocked task list */
 
   sched_removeblocked(tcb);
+
+  up_checktasks();
+  sched_mergepending();
 
   /* Add the task in the correct location in the prioritized
    * ready-to-run task list
