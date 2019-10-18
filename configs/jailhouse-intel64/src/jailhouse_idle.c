@@ -88,18 +88,7 @@ void up_idle(void)
   asm volatile("hlt");
 # endif
 #else
-  /* Busy looping for jailhouse message */
-  switch (comm_region->msg_to_cell) {
-  case JAILHOUSE_MSG_SHUTDOWN_REQUEST:
-    comm_region->cell_state = JAILHOUSE_CELL_SHUT_DOWN;
-    for(;;){
-      asm("cli");
-      asm("hlt");
-    }
-    break;
-  default:
-    break;
-  }
+
 #endif
 #endif
 }
