@@ -74,15 +74,26 @@
  *
  ****************************************************************************/
 
+extern uint64_t full_map_pd1[512];
+
 void up_restore_auxstate(struct tcb_s *rtcb)
 {
   struct vma_s* ptr;
   uint64_t i, j;
+
+  /* some dirty hack to speed up the switching of full mapping */
+  static int cached = 0;
+
+  pdpt[0] = (uintptr_t)pd | 0x23;
   for(ptr = rtcb->xcp.pda; ptr; ptr = ptr->next) {
       if(ptr == &g_vm_full_map){
-          for(j = 0, i = ptr->va_start; i < ptr->va_end; i += HUGE_PAGE_SIZE, j += PAGE_SIZE) {
-            pd[(i >> 21) & 0x7ffffff] = (j + (uint64_t)pt) | 0x3;
+          if(!cached) {
+              for(j = 0, i = 0; i < 0x40000000; i += HUGE_PAGE_SIZE, j += PAGE_SIZE) {
+                full_map_pd1[(i >> 21) & 0x7ffffff] = (j + (uint64_t)pt) | 0x3;
+              }
+              cached = 1;
           }
+          pdpt[0] = (uintptr_t)full_map_pd1 | 0x23;
           break;
       }
 

@@ -82,6 +82,7 @@
 	.global	g_idle_topstack				/* The start of the heap */
     .global pdpt
     .global pd
+    .global full_map_pd1
     .global pt
 
 /****************************************************************************
@@ -362,6 +363,10 @@ pt:
 	.fill 0x40000, 8, 0x00
 	.fill 0x40000, 8, 0x00
 	.fill 0x40000, 8, 0x00
+
+	.align(4096)
+full_map_pd1:
+	.fill 512, 8, 0x80
 
 /****************************************************************************
  * .bss
