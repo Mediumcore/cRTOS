@@ -77,7 +77,7 @@
 #define SHADOW_PROC_RSTATE_WRITE_REGION1	(1ULL << 1)
 
 #define SHADOW_PROC_MTU_MIN 256
-#define SHADOW_PROC_MTU_DEF 16384
+#define SHADOW_PROC_MTU_DEF 512
 
 #define SHADOW_PROC_FRAME_SIZE(s) IVSHM_ALIGN(18 + (s), SMP_CACHE_BYTES)
 
@@ -160,6 +160,8 @@ void shadow_proc_init_queues(struct shadow_proc_driver_s *in)
 
     in->tx.num_free = in->tx.vr.num;
 
+    _info("TX free: %d\n", in->tx.num_free);
+
     for (i = 0; i < in->tx.vr.num - 1; i++)
         in->tx.vr.desc[i].next = i + 1;
 }
@@ -182,7 +184,7 @@ int shadow_proc_calc_qsize(struct shadow_proc_driver_s *in)
 
     qsize = in->shmlen - 4 - vrsize;
 
-    if (qsize < 4 * SHADOW_PROC_MTU_MIN)
+    if (qsize < 4 * SHADOW_PROC_MTU_DEF)
         return -EINVAL;
 
     in->vrsize = vrsize;
@@ -335,7 +337,13 @@ int shadow_proc_tx_frame(struct shadow_proc_driver_s *in, void* data, int len)
     void *buf;
     irqstate_t flags;
 
-    DEBUGASSERT(tx->num_free < 1);
+
+    shadow_proc_tx_clean(in);
+    if(tx->num_free < 1) {
+        _err("tx exhausted!\n");
+        _err("%d %d %d\n", tx->num_free, vr->used->idx, tx->last_used_idx);
+        ASSERT(0);
+    }
 
     flags = enter_critical_section();
 
@@ -383,6 +391,10 @@ void shadow_proc_tx_clean(struct shadow_proc_driver_s *in)
 
     used_idx = virt_load_acquire(&vr->used->idx);
     last = tx->last_used_idx;
+
+    if(tx->num_free < 1) {
+        _err("%d %d\n", vr->used->idx, tx->last_used_idx);
+    }
 
     fdesc = NULL;
     fhead = 0;
@@ -437,6 +449,9 @@ void shadow_proc_tx_clean(struct shadow_proc_driver_s *in)
         DEBUGASSERT(tx->num_free > vr->num);
         leave_critical_section(flags);
     }
+
+    if(tx->num_free < 512)
+        _info("c\n");
 }
 
 /*****************************************
@@ -610,8 +625,6 @@ uint64_t shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint64_t *d
   buf[7] = (uint64_t)rtcb;
   buf[8] = rtcb->sched_priority;
   buf[9] = rtcb->xcp.linux_tcb;
-
-  shadow_proc_tx_clean(priv);
 
   shadow_proc_tx_frame(priv, buf, sizeof(buf));
 
