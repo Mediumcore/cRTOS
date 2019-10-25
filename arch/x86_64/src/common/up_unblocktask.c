@@ -86,8 +86,13 @@ void up_unblock_task(struct tcb_s *tcb)
 
   sched_removeblocked(tcb);
 
+  /* this ensure that interrupt coming after checking and before switching is received iff rtcb.prio == pipe_tcb.prio
+   * We don't know what we are switching to, but we know the priority of the unblocking tcb
+   * The selected tcb's priority must be greater or equal to the unblocking one, so it's safe to set it to the unblocking tcb priority */
+  shadow_proc_set_prio(gshadow, tcb->sched_priority);
+
   up_checktasks();
-  sched_mergepending();
+  /*sched_mergepending();*/
 
   /* Add the task in the correct location in the prioritized
    * ready-to-run task list

@@ -98,6 +98,10 @@ void up_block_task(struct tcb_s *tcb, tstate_t task_state)
 
   sched_addblocked(tcb, (tstate_t)task_state);
 
+  /* this ensure that interrupt coming after checking and before switching is received iff rtcb.prio == pipe_tcb.prio */
+  /* because we don't know what we are switching to , set it to zero */
+  shadow_proc_set_prio(gshadow, 0);
+
   up_checktasks();
 
   /* If there are any pending tasks, then add them to the ready-to-run
