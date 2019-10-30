@@ -75,6 +75,8 @@ void up_checktasks(void)//struct tcb_s *from, struct tcb_* to)
   struct tcb_s *rtcb;
   irqstate_t flags;
 
+  return;
+
   if(!gshadow) return;
   if(!(gshadow->flags & SHADOW_PROC_FLAG_RUN)) return;
 
