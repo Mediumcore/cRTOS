@@ -79,7 +79,7 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
   struct tcb_s *rtcb = this_task();
   void* stack;
   struct vma_s *ptr, *ptr2, *pptr, *pda_ptr;
-  uint64_t i;
+  uint64_t i, j;
   void* virt_mem;
   uint64_t *regs;
 
@@ -119,6 +119,7 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
   if(flags & CLONE_VM){
     tcb->cmn.xcp.vma = rtcb->xcp.vma;
     tcb->cmn.xcp.pda = rtcb->xcp.pda;
+    tcb->cmn.xcp.pd1 = rtcb->xcp.pd1;
 
     /* manual set the stack pointer */
     tcb->cmn.xcp.regs[REG_RSP] = (uint64_t)child_stack;
@@ -176,6 +177,10 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
         curr = curr->next;
     }
 
+    svcinfo("Create new page table\n");
+
+    tcb->cmn.xcp.pd1 = tux_mm_new_pd1();
+
     svcinfo("Copy pdas\n");
     tcb->cmn.xcp.pda = pda_ptr = kmm_zalloc(sizeof(struct vma_s));
 
@@ -201,6 +206,13 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
             }
             ptr = ptr->next;
         }while(ptr != pptr->next);
+
+        uint64_t* tmp_pd = temp_map_at_0xc0000000(tcb->cmn.xcp.pd1, (uintptr_t)tcb->cmn.xcp.pd1 + PAGE_SIZE);
+
+        // Map it via page directories
+        for(j = pda_ptr->va_start; j < pda_ptr->va_end; j += HUGE_PAGE_SIZE) {
+        tmp_pd[(j >> 21) & 0x7ffffff] = (((j - pda_ptr->va_start) >> 9) + pda_ptr->pa_start) | pda_ptr->proto;
+        }
 
         if(ptr){
             pda_ptr->next = kmm_zalloc(sizeof(struct vma_s));
@@ -233,8 +245,6 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
     insert_proc_node(tcb->cmn.pid, tcb->cmn.xcp.linux_pid);
 
     add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
-
-    tcb->cmn.xcp.pd1 = tux_mm_new_pd1();
 
     /* manual set the instruction pointer */
     regs = kmm_zalloc(sizeof(uint64_t) * 16);
