@@ -87,8 +87,24 @@
 	.globl	vector_isr\intno
 vector_isr\intno:
 	cli							/* Disable interrupts firstly. */
-	pushq  $0				/* Push a dummy error code. */
+
+    // First save the current rsp to rdi
     push   %rdi
+    mov %rsp, %rdi
+
+    //swap-in the new rsp
+    mov $g_isr_stack_end, %rsp
+    mov (%rsp), %rsp
+
+    //Copy the IRQ frame stored on the old stack
+    pushq 40(%rdi)
+    pushq 32(%rdi)
+    pushq 24(%rdi)
+    pushq 16(%rdi)
+    pushq 8(%rdi)
+
+	pushq  $0				/* Push a dummy error code. */
+    pushq (%rdi) /* The old rdi */
     push   %rsi
 	movq   $\intno,   %rsi     /* INT Number is saved to 2nd parameter of function call */
 	jmp		isr_common			/* Go to the common ISR handler code. */
@@ -102,7 +118,24 @@ vector_isr\intno:
 	.globl	vector_isr\intno
 vector_isr\intno:
 	cli							/* Disable interrupts firstly. */
+
+    // First save the current rsp to rdi
     push   %rdi
+    mov %rsp, %rdi
+
+    //swap-in the new rsp
+    mov $g_isr_stack_end, %rsp
+    mov (%rsp), %rsp
+
+    //Copy the IRQ frame stored on the old stack
+    pushq 48(%rdi)
+    pushq 40(%rdi)
+    pushq 32(%rdi)
+    pushq 24(%rdi)
+    pushq 16(%rdi)
+    pushq 8(%rdi) /* additional error code */
+
+    pushq (%rdi) /* The old rdi */
     push   %rsi
 	movq   $\intno,   %rsi     /* INT Number is saved to 2nd parameter of function call */
 	jmp		isr_common			/* Go to the common ISR handler code. */
@@ -116,8 +149,24 @@ vector_isr\intno:
 	.globl	vector_irq\irqno
 vector_irq\irqno:
 	cli							/* Disable interrupts firstly. */
-	pushq  $0				/* Push a dummy error code. */
+
+    // First save the current rsp to rdi
     push   %rdi
+    mov %rsp, %rdi
+
+    //swap-in the new rsp
+    mov $g_isr_stack_end, %rsp
+    mov (%rsp), %rsp
+
+    //Copy the IRQ frame stored on the old stack
+    pushq 40(%rdi)
+    pushq 32(%rdi)
+    pushq 24(%rdi)
+    pushq 16(%rdi)
+    pushq 8(%rdi)
+
+	pushq  $0				/* Push a dummy error code. */
+    pushq (%rdi) /* The old rdi */
     push   %rsi
 	movq   $\intno,   %rsi     /* INT Number is saved to 2nd parameter of function call */
 	jmp		irq_common			/* Go to the common IRQ handler code. */
@@ -237,25 +286,8 @@ vector_irq\irqno:
 
 isr_common:
 /*	trace	'S' */
-    /* swap to the interrupt stack */
+    /* Already swap to the interrupt stack */
     /* stack is automatically recovered by iretq using task state */
-
-    // First save the current rsp to rdi
-    mov %rsp, %rdi
-
-    //swap-in the new rsp
-    mov $g_isr_stack_end, %rsp
-    mov (%rsp), %rsp
-
-    //Copy the values stored on the old stack
-    pushq 56(%rdi)
-    pushq 48(%rdi)
-    pushq 40(%rdi)
-    pushq 32(%rdi)
-    pushq 24(%rdi)
-    pushq 16(%rdi)
-    pushq 8(%rdi)
-    pushq (%rdi)
 
     /* x86_64 don't have pusha, we have to do things manually */
     /* RDI and RSI are pushed above for handling IRQ no */
@@ -313,25 +345,8 @@ isr_common:
 	.type	irq_common, @function
 irq_common:
 /*	trace	'R' */
-    /* swap to the interrupt stack */
+    /* Already swap to the interrupt stack */
     /* stack is automatically recovered by iretq using task state */
-
-    // First save the current rsp to rdi
-    mov %rsp, %rdi
-
-    //swap-in the new rsp
-    mov $g_interrupt_stack_end, %rsp
-    mov (%rsp), %rsp
-
-    //Copy the values stored on the old stack
-    pushq 56(%rdi)
-    pushq 48(%rdi)
-    pushq 40(%rdi)
-    pushq 32(%rdi)
-    pushq 24(%rdi)
-    pushq 16(%rdi)
-    pushq 8(%rdi)
-    pushq (%rdi)
 
     /* x86_64 don't have pusha, we have to do things manually */
     /* RDI and RSI are pushed above for handling IRQ no */
