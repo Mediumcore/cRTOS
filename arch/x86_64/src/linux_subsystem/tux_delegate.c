@@ -264,12 +264,10 @@ long tux_poll_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm6)
 {
   int ret, i;
-  svcinfo("Poll syscall %d, nfd: %d\n", nbr, parm2);
 
   for(i = 0; i < parm2; i++)
     {
-      svcinfo("Poll fd #%d: %d\n", i, ((struct pollfd*)parm1)[i].fd);
-      if(((struct pollfd*)parm1)[i].fd >= CONFIG_TUX_FD_RESERVE)
+      if(((struct tux_pollfd*)parm1)[i].fd >= CONFIG_TUX_FD_RESERVE)
           return -1;
     }
 

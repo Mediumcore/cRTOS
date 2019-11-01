@@ -165,6 +165,13 @@ struct tux_fd_set
     long int __fds_bits[TUX_FD_SETSIZE / TUX_NFDBITS];
 };
 
+struct tux_pollfd
+  {
+    int fd;			/* File descriptor to poll.  */
+    short int events;		/* Types of events poller cares about.  */
+    short int revents;		/* Types of events that actually occurred.  */
+  };
+
 struct ipc_perm {
    uint32_t       __key;    /* Key supplied to shmget(2) */
    uint64_t       uid;      /* Effective UID of owner */
