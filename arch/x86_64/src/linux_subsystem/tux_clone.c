@@ -29,10 +29,14 @@
 					  the child.  */
 
 static inline void* new_memory_block(uint64_t size, void** virt) {
+    irqstate_t flags;
     void* ret;
+
     ret = gran_alloc(tux_mm_hnd, size);
+    flags = enter_critical_section();
     *virt = temp_map_at_0xc0000000(ret, ret + size);
     memset(*virt, 0, size);
+    leave_critical_section(flags);
     return ret;
 }
 
@@ -74,6 +78,7 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
               void *ptid, void *ctid,
               unsigned long tls){
 
+  irqstate_t irqflags;
   int ret;
   struct task_tcb_s *tcb;
   struct tcb_s *rtcb = this_task();
@@ -207,12 +212,14 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
             ptr = ptr->next;
         }while(ptr != pptr->next);
 
+        irqflags = enter_critical_section();
         uint64_t* tmp_pd = temp_map_at_0xc0000000(tcb->cmn.xcp.pd1, (uintptr_t)tcb->cmn.xcp.pd1 + PAGE_SIZE);
 
         // Map it via page directories
         for(j = pda_ptr->va_start; j < pda_ptr->va_end; j += HUGE_PAGE_SIZE) {
         tmp_pd[(j >> 21) & 0x7ffffff] = (((j - pda_ptr->va_start) >> 9) + pda_ptr->pa_start) | pda_ptr->proto;
         }
+        leave_critical_section(irqflags);
 
         if(ptr){
             pda_ptr->next = kmm_zalloc(sizeof(struct vma_s));
