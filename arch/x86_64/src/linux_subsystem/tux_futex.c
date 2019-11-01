@@ -9,19 +9,23 @@
 struct futex_q{
   sem_t sem;
   uint64_t key;
+  uint32_t bitmask;
 };
 
 struct futex_q futex_hash_table[FUTEX_HT_SIZE];
 
 long tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint32_t val2, int32_t* uaddr2, uint32_t val3){
   struct tcb_s *tcb = this_task();
+  int32_t* paddr = virt_to_phys(uaddr);
+  int32_t* paddr2 = virt_to_phys(uaddr2);
   uint32_t s_head = (uint64_t)uaddr % FUTEX_HT_SIZE;
   uint32_t s_head2 = (uint64_t)uaddr2 % FUTEX_HT_SIZE;
   uint32_t hv = s_head;
   uint32_t hv2 = s_head2;
   int ret;
   irqstate_t flags;
-  if(!uaddr) return -1;
+
+  if(paddr == (void*)-1) return -1;
 
   // XXX: At the mean time only per process futex
   /*if(!(opcode & FUTEX_PRIVATE_FLAG)) return -1;*/
@@ -31,19 +35,20 @@ long tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint
 
   switch(opcode){
     case FUTEX_WAIT:
-      svcinfo("T: %d LT: %d FUTEX_WAIT at %llx\n", tcb->pid, tcb->xcp.linux_pid, uaddr);
-      while((futex_hash_table[hv].key != 0) && (futex_hash_table[hv].key != (((uint64_t)tcb->xcp.linux_pid << 32) | (uint64_t)uaddr))){
+      svcinfo("T: %d LT: %d FUTEX_WAIT at %llx -> %llx\n", tcb->pid, tcb->xcp.linux_pid, uaddr, paddr);
+
+      flags = enter_critical_section();
+
+      while((futex_hash_table[hv].key != 0) && (futex_hash_table[hv].key != ((uint64_t)paddr))){
           hv++;
           hv %= FUTEX_HT_SIZE;
           if(hv == s_head) return -1; // Out of free futex
       }
 
-      flags = enter_critical_section();
-
       if(*uaddr == val){
         if(futex_hash_table[hv].key == 0) sem_init(&(futex_hash_table[hv].sem), 0, 0);
 
-        futex_hash_table[hv].key = (((uint64_t)tcb->xcp.linux_pid << 32) | (uint64_t)uaddr);
+        futex_hash_table[hv].key = (uint64_t)paddr;
         sem_wait(&(futex_hash_table[hv].sem));
       }
 
@@ -53,12 +58,12 @@ long tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint
 
       break;
     case FUTEX_WAKE:
-      svcinfo("T: %d LT: %d FUTEX_WAKE at %llx\n", tcb->pid, tcb->xcp.linux_pid, uaddr);
-      while(futex_hash_table[hv].key != (((uint64_t)tcb->xcp.linux_pid << 32) | (uint64_t)uaddr)){
+      svcinfo("T: %d LT: %d FUTEX_WAKE at %llx -> %llx\n", tcb->pid, tcb->xcp.linux_pid, uaddr, paddr);
+      while(futex_hash_table[hv].key != ((uint64_t)paddr)){
           hv++;
           hv %= FUTEX_HT_SIZE;
           if(hv == s_head) {
-            svcinfo("No such key: %llx\n", uaddr);
+            svcinfo("No such key: %llx\n", paddr);
             return 0; // ? No such key, wake no one
           }
       }
@@ -83,7 +88,7 @@ long tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint
 
       break;
     case FUTEX_WAKE_OP:
-      svcinfo("T: %d FUTEX_WAKE_OP at %llx and %llx\n", tcb->xcp.linux_pid, uaddr, uaddr2);
+      svcinfo("T: %d FUTEX_WAKE_OP at %llx -> %llx and %llx -> %llx\n", tcb->xcp.linux_pid, uaddr, paddr, uaddr2, paddr2);
 
       int32_t oparg = FUTEX_GET_OPARG(val3);
       if(FUTEX_GET_OP(val3) & FUTEX_OP_ARG_SHIFT)

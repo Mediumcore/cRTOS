@@ -251,6 +251,45 @@ static inline uint64_t* temp_map_at_0xc0000000(uintptr_t start, uintptr_t end)
   return (uint64_t*)(0xc0000000 + lsb);
 }
 
+static inline void* virt_to_phys(void* vaddr)
+{
+  struct tcb_s *tcb = this_task();
+  struct vma_s* ptr;
+  irqstate_t flags;
+
+  if(vaddr > 0x40000000) return (void*)-1;
+
+  for(ptr = tcb->xcp.vma; ptr; ptr = ptr->next)
+    {
+      if((uintptr_t)vaddr >= ptr->va_start && (uintptr_t)vaddr < ptr->va_end && ptr->pa_start != 0xffffffff)
+        {
+          break;
+        }
+    }
+
+  if((uintptr_t)vaddr >= ptr->va_start && (uintptr_t)vaddr < ptr->va_end && ptr->pa_start != 0xffffffff)
+    {
+      return (void*)(ptr->pa_start + (uintptr_t)vaddr - ptr->va_start);
+    }
+  return (void*) -1;
+
+  //flags = enter_critical_section();
+
+  //lpd = pdpt[(j >> 30) & 0x1ff];
+  //lpd = temp_map_at_0xc0000000((void*)lpd, (void*)lpd + PAGE_SIZE);
+
+  //lpt = lpd[(j >> 21) & 0x1ff];
+  //lpt = temp_map_at_0xc0000000((void*)lpt, (void*)lpt + PAGE_SIZE);
+
+
+  //tmp_pd[(j >> 21) & 0x7ffffff] = (((j - pda->va_start) >> 9) + pda->pa_start) | pda->proto;
+  //tmp_pd[((i - ptr->va_start) >> 12) & 0x3ffff] = (vma->pa_start + i - vma->va_start) | vma->proto;
+
+  //temp_map_at_0xc0000000((void*)tcb->xcp.pd1, (void*)tcb->xcp.pd1 + PAGE_SIZE);
+
+  //leave_critical_section(flags);
+}
+
 int insert_proc_node(int lpid, int rpid);
 int delete_proc_node(int rpid);
 
