@@ -14,7 +14,7 @@ struct futex_q{
 
 struct futex_q futex_hash_table[FUTEX_HT_SIZE];
 
-long tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint32_t val2, int32_t* uaddr2, uint32_t val3){
+long tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uintptr_t val2, int32_t* uaddr2, uint32_t val3){
   struct tcb_s *tcb = this_task();
   int32_t* paddr = virt_to_phys(uaddr);
   int32_t* paddr2 = virt_to_phys(uaddr2);
@@ -22,6 +22,8 @@ long tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint
   uint32_t s_head2 = (uint64_t)uaddr2 % FUTEX_HT_SIZE;
   uint32_t hv = s_head;
   uint32_t hv2 = s_head2;
+  const struct timespec *timeout = (const struct timespec *)val2;
+  struct timespec now;
   int ret;
   irqstate_t flags;
 
@@ -49,7 +51,20 @@ long tux_futex(unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint
         if(futex_hash_table[hv].key == 0) sem_init(&(futex_hash_table[hv].sem), 0, 0);
 
         futex_hash_table[hv].key = (uint64_t)paddr;
-        sem_wait(&(futex_hash_table[hv].sem));
+
+        if(timeout) {
+            clock_gettime(CLOCK_MONOTONIC, &now);
+            now.tv_nsec += timeout->tv_nsec;
+            now.tv_sec += timeout->tv_sec;
+            if(now.tv_nsec >= NSEC_PER_SEC) {
+                now.tv_nsec -= NSEC_PER_SEC;
+                now.tv_sec++;
+            }
+
+            nxsem_timedwait(&(futex_hash_table[hv].sem), &now);
+        } else {
+            nxsem_wait(&(futex_hash_table[hv].sem));
+        }
       }
 
       leave_critical_section(flags);
