@@ -26,7 +26,7 @@ long tux_shmget(unsigned long nbr, uint32_t key, uint32_t size, uint32_t flags){
   irqflags = enter_critical_section();
 
   exist = 1;
-  while((shm_hash_table[hv].info.shm_perm.__key != key)){
+  while(!(shm_hash_table[hv].addr) || (shm_hash_table[hv].info.shm_perm.__key != key)){
       hv++;
       hv %= SHM_HT_SIZE;
       if(hv == s_head){
@@ -38,13 +38,13 @@ long tux_shmget(unsigned long nbr, uint32_t key, uint32_t size, uint32_t flags){
   if(exist && (flags & TUX_IPC_EXCL) && (flags & TUX_IPC_CREAT)) return -EEXIST;
 
   if(!exist)
-      while((shm_hash_table[hv].info.shm_perm.__key != 0)){
+      while((shm_hash_table[hv].addr)){
           hv++;
           hv %= SHM_HT_SIZE;
           if(hv == s_head) return -ENOMEM; // Out of free shm
       }
 
-  if(shm_hash_table[hv].info.shm_perm.__key == 0){
+  if(shm_hash_table[hv].info.shm_perm.mode == 0){
 
       size = (size + ~PAGE_MASK) & PAGE_MASK;
       shm_hash_table[hv].addr = kmm_zalloc(size);
@@ -71,7 +71,7 @@ long tux_shmget(unsigned long nbr, uint32_t key, uint32_t size, uint32_t flags){
 
 
 long tux_shmctl(unsigned long nbr, int hv, uint32_t cmd, struct shmid_ds* buf){
-    if(!(shm_hash_table[hv].info.shm_perm.__key)) {
+    if(!(shm_hash_table[hv].addr)) {
         svcinfo("No Such key!\n");
         return -EINVAL;
     }
@@ -103,8 +103,14 @@ long tux_shmctl(unsigned long nbr, int hv, uint32_t cmd, struct shmid_ds* buf){
 }
 
 void *tux_shmat(unsigned long nbr, int hv, void* addr, int flags){
-    if(!(shm_hash_table[hv].info.shm_perm.__key)) return (void*)-EINVAL;
-    if(addr) return (void*)-EINVAL;
+    if(!(shm_hash_table[hv].addr)){
+        svcinfo("SHMAT: Non-exist hv: 0x%x\n", hv);
+        return (void*)-EINVAL;
+    }
+    if(addr){
+        svcinfo("SHMAT: fix address not supported\n");
+        return (void*)-EINVAL;
+    }
 
     shm_hash_table[hv].info.shm_nattch += 1;
     shm_hash_table[hv].info.shm_lpid = this_task()->pid;
