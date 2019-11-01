@@ -132,7 +132,11 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
     /* manual set the instruction pointer */
     tcb->cmn.xcp.regs[REG_RIP] = *((uint64_t*)(get_kernel_stack_ptr()) - 2); // Directly leaves the syscall
 
-    tcb->cmn.xcp.linux_tid = tux_delegate(56, 0, 0, 0, 0, 0, 0);
+    uint64_t tid_slot = tux_delegate(56, 0, 0, 0, 0, 0, 0);
+    tcb->cmn.xcp.linux_tid = tid_slot >> 48;
+    tcb->cmn.xcp.linux_tcb = tid_slot & ~(0xffffULL << 48);
+
+    add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
 
     insert_proc_node(tcb->cmn.pid, tcb->cmn.xcp.linux_tid);
 

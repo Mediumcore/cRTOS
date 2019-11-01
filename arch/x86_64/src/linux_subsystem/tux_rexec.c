@@ -84,8 +84,10 @@ void tux_on_exit(int val, void* arg){
 
     write(rtcb->xcp.linux_sock, params, sizeof(params));
     close(rtcb->xcp.linux_sock);
-
-    delete_proc_node(rtcb->xcp.linux_pid);
+    if(rtcb->xcp.is_linux == 2)
+        delete_proc_node(rtcb->xcp.linux_pid);
+    else
+        delete_proc_node(rtcb->xcp.linux_tid);
 
   } else {
     _err("Non-linux process calling linux syscall or invalid sock fd %d, %d\n", rtcb->xcp.is_linux, rtcb->xcp.linux_sock);
