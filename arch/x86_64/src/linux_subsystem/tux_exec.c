@@ -72,7 +72,7 @@ void* exec_setupargs(uint64_t stack, int argc, char* argv[], int envc, char* env
     total_size += sizeof(Elf64_auxv_t) * 7; // 7 aux vectors
     total_size += sizeof(uint64_t) * 2;         // AT_RANDOM
 
-    sp = (void*)(stack + TUX_STACK_SIZE - total_size);
+    sp = (void*)(stack + TUX_STACK_SIZE - total_size - PAGE_SIZE);
 
     sinfo("Setting up stack args at %p\n", sp);
 
