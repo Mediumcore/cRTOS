@@ -19,7 +19,12 @@
 #define FUTEX_WAIT 0x0
 #define FUTEX_WAKE 0x1
 #define FUTEX_WAKE_OP 0x5
+#define FUTEX_REQUEUE		3
+#define FUTEX_CMP_REQUEUE	4
+#define FUTEX_WAIT_BITSET	9
+#define FUTEX_WAKE_BITSET	10
 #define FUTEX_PRIVATE_FLAG 0x80
+#define FUTEX_CLOCK_REALTIME	256
 
 #define FUTEX_OP_SET        0  /* uaddr2 = oparg; */
 #define FUTEX_OP_ADD        1  /* uaddr2 += oparg; */
@@ -343,6 +348,8 @@ long tux_dup2_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
 void add_remote_on_exit(struct tcb_s* tcb, void (*func)(int, void *), void *arg);
 void tux_on_exit(int val, void* arg);
 
+void tux_errno_sanitaizer(int *ret);
+
 long     tux_nanosleep   (unsigned long nbr, const struct timespec *rqtp, struct timespec *rmtp);
 long     tux_gettimeofday   (unsigned long nbr, struct timeval *tv, struct timezone *tz);
 
@@ -377,7 +384,7 @@ void*   tux_brk         (unsigned long nbr, void* brk);
 
 long     tux_arch_prctl       (unsigned long nbr, int code, unsigned long addr);
 
-long     tux_futex            (unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uint32_t val2, int32_t* uaddr2, uint32_t val3);
+long     tux_futex            (unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uintptr_t val2, int32_t* uaddr2, uint32_t val3);
 
 long     tux_rt_sigaction     (unsigned long nbr, int sig, const struct tux_sigaction* act, struct tux_sigaction* old_act, uint64_t set_size);
 long     tux_alarm            (unsigned long nbr, unsigned int second);
