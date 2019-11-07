@@ -276,8 +276,9 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
     *(uint32_t*)(ptid) = tcb->cmn.xcp.linux_tid;
   }
 
-  svcinfo("Cloned a task(0x%llx) with RIP=0x%llx, RSP=0x%llx, kstack=0x%llx\n",
+  _info("Cloned a task(0x%llx)<%d> with RIP=0x%llx, RSP=0x%llx, kstack=0x%llx\n",
           tcb,
+          tcb->cmn.pid,
           tcb->cmn.xcp.regs[REG_RIP],
           tcb->cmn.xcp.regs[REG_RSP],
           stack);
