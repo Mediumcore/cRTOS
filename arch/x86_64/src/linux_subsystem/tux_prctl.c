@@ -14,12 +14,12 @@ long tux_arch_prctl(unsigned long nbr, int code, unsigned long addr){
 
   switch(code){
     case ARCH_GET_FS:
-      *(unsigned long*)addr = read_msr(MSR_FS_BASE);
+      *(unsigned long*)addr = read_fsbase();
       break;
     case ARCH_SET_FS:
       rtcb->xcp.fs_base_set = 1;
       rtcb->xcp.fs_base = addr;
-      write_msr(MSR_FS_BASE, addr);
+      write_fsbase(addr);
       break;
     default:
       ret = -1;

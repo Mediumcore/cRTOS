@@ -163,6 +163,25 @@ static inline void write_msr(unsigned int msr, unsigned long val)
 		: "memory");
 }
 
+static inline uint64_t read_fsbase()
+{
+    uint64_t val;
+	asm volatile("rdfsbase %0"
+		: "=r" (val)
+		: /* no output */
+		: "memory");
+
+    return val;
+}
+
+static inline void write_fsbase(unsigned long val)
+{
+	asm volatile("wrfsbase %0"
+		: /* no output */
+		: "r" (val)
+		: "memory");
+}
+
 /* Return stack pointer */
 
 static inline uint64_t up_getrsp()
