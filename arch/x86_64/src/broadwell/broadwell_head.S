@@ -101,7 +101,8 @@
 #define X86_CR4_PGE      0x00000080
 #define X86_CR4_OSXFSR   0x00000200
 #define X86_CR4_XMMEXCPT 0x00000400
-#define X86_CR4_PCIDE	0x00020000
+#define X86_CR4_FGSBASE  0x00010000
+#define X86_CR4_PCIDE    0x00020000
 
 #define MSR_EFER		0xc0000080
 #define EFER_LME		0x00000100
@@ -237,9 +238,10 @@ ept_loop:
 	mov $(X86_CR0_PG | X86_CR0_WP | X86_CR0_PE),%eax
 	mov %eax,%cr0
 
-    // Enable PCID
+    // Enable PCID and FGSBASE
 	mov %cr4,%eax
 	or $X86_CR4_PCIDE,%eax
+	or $X86_CR4_FGSBASE,%eax
 	mov %eax,%cr4
 
     // Load a GDT with 64bits mode set
