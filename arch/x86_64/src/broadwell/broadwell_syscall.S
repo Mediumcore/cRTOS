@@ -138,12 +138,8 @@ syscall_entry:
     pushq   %rbx
     pushq   %rax
 
-    // Add 8byte, hole to align with 16-bytes boundary, to compile with x86_64 ABI
-    lea -8(%rsp), %rsp
-
     /* Arrange the arguments, syscall number is passed in on rax */
     /* 4th argument was passed using r10, change it to rcx */
-    pushq   %rcx
     pushq   %r9
     mov     %r8, %r9
     mov     %r10, %r8
@@ -155,10 +151,10 @@ syscall_entry:
 	call	syscall_handler
     
     // Remove the parameter
-    lea 16(%rsp), %rsp
+    lea 8(%rsp), %rsp
 
     // recover the values saved
-    lea 16(%rsp), %rsp // Hole and RAX, which is the return value
+    lea 8(%rsp), %rsp // SKIP RAX, which is the return value
     popq   %rbx
     popq   %r10
     popq   %r12
@@ -172,7 +168,7 @@ syscall_entry:
 
     popq   %rsi
     popq   %rdi
-    popq   %r11
+    popfq  // The RFLAGS, following instruction won't alter any flags
     popq   %rbp
 
     /* write the user stack address to the kernel stack */
