@@ -75,6 +75,7 @@
 #define MAP_NORESERVE   0x04000         /* Do not reserve swap space for this mapping */
 #define MAP_POPULATE    0x08000         /* Populate (prefault) pagetables */
 #define MAP_NONBLOCK    0x10000         /* Do not block on IO */
+#define MAP_STACK       0x20000         /* For Stack */
 
 /* Failure return */
 

@@ -451,6 +451,8 @@ void* tux_mmap(unsigned long nbr, void* addr, long length, int prot, int flags, 
 
   if(((flags & MAP_NORESERVE)) && (prot == 0)) return (void*)-1; // Why glibc require large amount of non accessible memory?
 
+  if(flags & ~(MAP_FIXED | MAP_SHARED | MAP_PRIVATE | MAP_ANONYMOUS | MAP_DENYWRITE | MAP_STACK)) PANIC();
+
   svcinfo("TUX: mmap get vma\n");
 
   vma = kmm_malloc(sizeof(struct vma_s));
