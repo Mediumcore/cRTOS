@@ -251,9 +251,30 @@ ept_loop:
 	ljmpl $0x8,$start64
 
 
+    // IST for 64 bit long mode
+    // will be filled in up_irq
+	.align(16)
+	.global ist64
+ist64:
+	.long	0
+	.quad	0xdeadbeefdeadbee0
+	.quad	0xdeadbeefdeadbee1
+	.quad	0xdeadbeefdeadbee2
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.word	0
+
     // GDT for 64 bit long mode
 	.align(16)
 	.global gdt64
+	.global gdt64_ist
 gdt64:
 	.quad	0
     .quad   0x002f98000000ffff
@@ -261,6 +282,9 @@ gdt64:
     .quad   0x000f98000000ffff
     .quad   0x000f92000000ffff
     .quad   0x002f98000000ffff
+gdt64_ist:
+    .quad   0x0 // TSS segment low
+    .quad   0x0 // TSS segment high
 
 gdt64_ptr:
 	.short	gdt64_ptr - gdt64 - 1

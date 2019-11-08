@@ -277,9 +277,13 @@ static inline uint32_t up_getgs()
  * Public Data
  ****************************************************************************/
 
-extern uint64_t pdpt[512];
-extern uint64_t pd[2048];
-extern uint64_t pt[1048576];
+extern volatile uint64_t pdpt[512];
+extern volatile uint64_t pd[2048];
+extern volatile uint64_t pt[1048576];
+
+extern volatile uint32_t ist64;
+extern volatile uint64_t gdt64;
+extern volatile uint64_t gdt64_ist[2];
 
 void* page_map[16];
 

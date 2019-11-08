@@ -46,6 +46,7 @@
 
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
+#include <arch/arch.h>
 #include <arch/irq.h>
 #include <arch/io.h>
 #include <arch/board/board.h>
@@ -59,6 +60,7 @@
  ****************************************************************************/
 #define UART_BASE 0x3f8
 
+#define IRQ_STACK_SIZE 0x2000
 
 #define X2APIC_SPIV		0x80f
 
@@ -75,7 +77,7 @@
 static void up_apic_init(void);
 static void up_ioapic_init(void);
 static void up_idtentry(unsigned int index, uint64_t base, uint16_t sel,
-                        uint8_t flags);
+                        uint8_t flags, uint8_t ist);
 static inline void up_idtinit(void);
 
 /****************************************************************************
@@ -83,6 +85,12 @@ static inline void up_idtinit(void);
  ****************************************************************************/
 
 volatile uint64_t *g_current_regs;
+
+uint8_t g_interrupt_stack[IRQ_STACK_SIZE];
+uint8_t* g_interrupt_stack_end = g_interrupt_stack + IRQ_STACK_SIZE;
+
+uint8_t g_isr_stack[IRQ_STACK_SIZE];
+uint8_t* g_isr_stack_end = g_isr_stack + IRQ_STACK_SIZE;
 
 /****************************************************************************
  * Private Data
@@ -153,6 +161,36 @@ void up_ioapic_unmask_pin(unsigned int pin)
 }
 
 /****************************************************************************
+ * Name: up_init_ist
+ *
+ * Description:
+ *  Initialize the Interrupt Stack Table
+ *
+ ****************************************************************************/
+
+static void up_ist_init(void)
+{
+    uint64_t tss_l = 0;
+    uint64_t tss_h = 0;
+    volatile uint64_t* ist_IST1 = (void*)&ist64 + 0x24;
+    volatile uint64_t* ist_IST2 = (void*)&ist64 + 0x2C;
+
+    tss_l |= (((104 - 1) & 0xffff)); // Segment limit = TSS size - 1
+    tss_l |= (((uintptr_t)&ist64 & 0x00ffffff) << 16);          // Low address 1
+    tss_l |= (((uintptr_t)&ist64 & 0xff000000) << (56 - 24));   // Low address 2
+    tss_l |= (((uint64_t)0b10001001 & 0xff) << 40);             // Present | Type = TSS
+    tss_h |= (((uintptr_t)&ist64 >> 32) & 0xffffffff);          // High address
+
+    gdt64_ist[0] = tss_l;
+    gdt64_ist[1] = tss_h;
+
+    *ist_IST1 = (uintptr_t)g_interrupt_stack_end;
+    *ist_IST2 = (uintptr_t)g_isr_stack_end;
+
+    asm volatile ("mov $0x30, %%ax; ltr %%ax":::"memory", "rax");
+}
+
+/****************************************************************************
  * Name: up_init_apic
  *
  * Description:
@@ -208,14 +246,14 @@ static void up_ioapic_init(void)
  ****************************************************************************/
 
 static void up_idtentry(unsigned int index, uint64_t base, uint16_t sel,
-                       uint8_t flags)
+                       uint8_t flags, uint8_t ist)
 {
   struct idt_entry_s *entry = &idt_entries[index];
 
   entry->lobase  = base & 0xffff;
   entry->hibase  = (base >> 16) & 0xffff;
   entry->xhibase = (base >> 32) & 0xffffffff;
-  entry->ist     = 0 & 0x7;
+  entry->ist     = ist & 0x7;
   entry->sel     = sel;
   entry->zero    = 0;
 
@@ -251,55 +289,55 @@ static inline void up_idtinit(void)
    * interrupts enabled when the IRS/IRQ handler is entered.
    */
 
-  up_idtentry(ISR0,  (uint64_t)vector_isr0 , 0x08, 0x8e);
-  up_idtentry(ISR1,  (uint64_t)vector_isr1 , 0x08, 0x8e);
-  up_idtentry(ISR2,  (uint64_t)vector_isr2 , 0x08, 0x8e);
-  up_idtentry(ISR3,  (uint64_t)vector_isr3 , 0x08, 0x8e);
-  up_idtentry(ISR4,  (uint64_t)vector_isr4 , 0x08, 0x8e);
-  up_idtentry(ISR5,  (uint64_t)vector_isr5 , 0x08, 0x8e);
-  up_idtentry(ISR6,  (uint64_t)vector_isr6 , 0x08, 0x8e);
-  up_idtentry(ISR7,  (uint64_t)vector_isr7 , 0x08, 0x8e);
-  up_idtentry(ISR8,  (uint64_t)vector_isr8 , 0x08, 0x8e);
-  up_idtentry(ISR9,  (uint64_t)vector_isr9 , 0x08, 0x8e);
-  up_idtentry(ISR10, (uint64_t)vector_isr10, 0x08, 0x8e);
-  up_idtentry(ISR11, (uint64_t)vector_isr11, 0x08, 0x8e);
-  up_idtentry(ISR12, (uint64_t)vector_isr12, 0x08, 0x8e);
-  up_idtentry(ISR13, (uint64_t)vector_isr13, 0x08, 0x8e);
-  up_idtentry(ISR14, (uint64_t)vector_isr14, 0x08, 0x8e);
-  up_idtentry(ISR15, (uint64_t)vector_isr15, 0x08, 0x8e);
-  up_idtentry(ISR16, (uint64_t)vector_isr16, 0x08, 0x8e);
-  up_idtentry(ISR17, (uint64_t)vector_isr17, 0x08, 0x8e);
-  up_idtentry(ISR18, (uint64_t)vector_isr18, 0x08, 0x8e);
-  up_idtentry(ISR19, (uint64_t)vector_isr19, 0x08, 0x8e);
-  up_idtentry(ISR20, (uint64_t)vector_isr20, 0x08, 0x8e);
-  up_idtentry(ISR21, (uint64_t)vector_isr21, 0x08, 0x8e);
-  up_idtentry(ISR22, (uint64_t)vector_isr22, 0x08, 0x8e);
-  up_idtentry(ISR23, (uint64_t)vector_isr23, 0x08, 0x8e);
-  up_idtentry(ISR24, (uint64_t)vector_isr24, 0x08, 0x8e);
-  up_idtentry(ISR25, (uint64_t)vector_isr25, 0x08, 0x8e);
-  up_idtentry(ISR26, (uint64_t)vector_isr26, 0x08, 0x8e);
-  up_idtentry(ISR27, (uint64_t)vector_isr27, 0x08, 0x8e);
-  up_idtentry(ISR28, (uint64_t)vector_isr28, 0x08, 0x8e);
-  up_idtentry(ISR29, (uint64_t)vector_isr29, 0x08, 0x8e);
-  up_idtentry(ISR30, (uint64_t)vector_isr30, 0x08, 0x8e);
-  up_idtentry(ISR31, (uint64_t)vector_isr31, 0x08, 0x8e);
+  up_idtentry(ISR0,  (uint64_t)vector_isr0 , 0x08, 0x8e, 0x2);
+  up_idtentry(ISR1,  (uint64_t)vector_isr1 , 0x08, 0x8e, 0x2);
+  up_idtentry(ISR2,  (uint64_t)vector_isr2 , 0x08, 0x8e, 0x2);
+  up_idtentry(ISR3,  (uint64_t)vector_isr3 , 0x08, 0x8e, 0x2);
+  up_idtentry(ISR4,  (uint64_t)vector_isr4 , 0x08, 0x8e, 0x2);
+  up_idtentry(ISR5,  (uint64_t)vector_isr5 , 0x08, 0x8e, 0x2);
+  up_idtentry(ISR6,  (uint64_t)vector_isr6 , 0x08, 0x8e, 0x2);
+  up_idtentry(ISR7,  (uint64_t)vector_isr7 , 0x08, 0x8e, 0x2);
+  up_idtentry(ISR8,  (uint64_t)vector_isr8 , 0x08, 0x8e, 0x2);
+  up_idtentry(ISR9,  (uint64_t)vector_isr9 , 0x08, 0x8e, 0x2);
+  up_idtentry(ISR10, (uint64_t)vector_isr10, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR11, (uint64_t)vector_isr11, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR12, (uint64_t)vector_isr12, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR13, (uint64_t)vector_isr13, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR14, (uint64_t)vector_isr14, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR15, (uint64_t)vector_isr15, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR16, (uint64_t)vector_isr16, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR17, (uint64_t)vector_isr17, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR18, (uint64_t)vector_isr18, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR19, (uint64_t)vector_isr19, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR20, (uint64_t)vector_isr20, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR21, (uint64_t)vector_isr21, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR22, (uint64_t)vector_isr22, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR23, (uint64_t)vector_isr23, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR24, (uint64_t)vector_isr24, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR25, (uint64_t)vector_isr25, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR26, (uint64_t)vector_isr26, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR27, (uint64_t)vector_isr27, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR28, (uint64_t)vector_isr28, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR29, (uint64_t)vector_isr29, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR30, (uint64_t)vector_isr30, 0x08, 0x8e, 0x2);
+  up_idtentry(ISR31, (uint64_t)vector_isr31, 0x08, 0x8e, 0x2);
 
-  up_idtentry(IRQ0,  (uint64_t)vector_irq0,  0x08, 0x8e);
-  up_idtentry(IRQ1,  (uint64_t)vector_irq1,  0x08, 0x8e);
-  up_idtentry(IRQ2,  (uint64_t)vector_irq2,  0x08, 0x8e);
-  up_idtentry(IRQ3,  (uint64_t)vector_irq3,  0x08, 0x8e);
-  up_idtentry(IRQ4,  (uint64_t)vector_irq4,  0x08, 0x8e);
-  up_idtentry(IRQ5,  (uint64_t)vector_irq5,  0x08, 0x8e);
-  up_idtentry(IRQ6,  (uint64_t)vector_irq6,  0x08, 0x8e);
-  up_idtentry(IRQ7,  (uint64_t)vector_irq7,  0x08, 0x8e);
-  up_idtentry(IRQ8,  (uint64_t)vector_irq8,  0x08, 0x8e);
-  up_idtentry(IRQ9,  (uint64_t)vector_irq9,  0x08, 0x8e);
-  up_idtentry(IRQ10, (uint64_t)vector_irq10, 0x08, 0x8e);
-  up_idtentry(IRQ11, (uint64_t)vector_irq11, 0x08, 0x8e);
-  up_idtentry(IRQ12, (uint64_t)vector_irq12, 0x08, 0x8e);
-  up_idtentry(IRQ13, (uint64_t)vector_irq13, 0x08, 0x8e);
-  up_idtentry(IRQ14, (uint64_t)vector_irq14, 0x08, 0x8e);
-  up_idtentry(IRQ15, (uint64_t)vector_irq15, 0x08, 0x8e);
+  up_idtentry(IRQ0,  (uint64_t)vector_irq0,  0x08, 0x8e, 0x1);
+  up_idtentry(IRQ1,  (uint64_t)vector_irq1,  0x08, 0x8e, 0x1);
+  up_idtentry(IRQ2,  (uint64_t)vector_irq2,  0x08, 0x8e, 0x1);
+  up_idtentry(IRQ3,  (uint64_t)vector_irq3,  0x08, 0x8e, 0x1);
+  up_idtentry(IRQ4,  (uint64_t)vector_irq4,  0x08, 0x8e, 0x1);
+  up_idtentry(IRQ5,  (uint64_t)vector_irq5,  0x08, 0x8e, 0x1);
+  up_idtentry(IRQ6,  (uint64_t)vector_irq6,  0x08, 0x8e, 0x1);
+  up_idtentry(IRQ7,  (uint64_t)vector_irq7,  0x08, 0x8e, 0x1);
+  up_idtentry(IRQ8,  (uint64_t)vector_irq8,  0x08, 0x8e, 0x1);
+  up_idtentry(IRQ9,  (uint64_t)vector_irq9,  0x08, 0x8e, 0x1);
+  up_idtentry(IRQ10, (uint64_t)vector_irq10, 0x08, 0x8e, 0x1);
+  up_idtentry(IRQ11, (uint64_t)vector_irq11, 0x08, 0x8e, 0x1);
+  up_idtentry(IRQ12, (uint64_t)vector_irq12, 0x08, 0x8e, 0x1);
+  up_idtentry(IRQ13, (uint64_t)vector_irq13, 0x08, 0x8e, 0x1);
+  up_idtentry(IRQ14, (uint64_t)vector_irq14, 0x08, 0x8e, 0x1);
+  up_idtentry(IRQ15, (uint64_t)vector_irq15, 0x08, 0x8e, 0x1);
 
   /* Then program the IDT */
 
@@ -319,6 +357,10 @@ void up_irqinitialize(void)
   /* currents_regs is non-NULL only while processing an interrupt */
 
   g_current_regs = NULL;
+
+  /* Initialize the IST */
+
+  up_ist_init();
 
   /* Initialize the APIC */
 

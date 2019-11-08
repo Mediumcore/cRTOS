@@ -55,17 +55,9 @@
 
 #define APIC_EOI_ACK		0
 
-#define IRQ_STACK_SIZE 0x2000
-
 /****************************************************************************
  * Global Data
  ****************************************************************************/
-
-uint8_t g_interrupt_stack[IRQ_STACK_SIZE];
-uint8_t* g_interrupt_stack_end = g_interrupt_stack + IRQ_STACK_SIZE;
-
-uint8_t g_isr_stack[IRQ_STACK_SIZE];
-uint8_t* g_isr_stack_end = g_isr_stack + IRQ_STACK_SIZE;
 
 /****************************************************************************
  * Private Function Prototypes
@@ -216,7 +208,6 @@ uint64_t *irq_handler(uint64_t *regs, uint64_t irq_no)
 
   /* Get the IRQ number */
   irq = (int)irq_no;
-
 
   /* Dispatch the interrupt */
   ret = common_handler(irq, regs);

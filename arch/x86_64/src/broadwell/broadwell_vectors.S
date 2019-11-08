@@ -88,24 +88,13 @@
 vector_isr\intno:
 	cli							/* Disable interrupts firstly. */
 
-    // First save the current rsp to rdi
-    push   %rdi
-    mov %rsp, %rdi
-
-    //swap-in the new rsp
-    mov $g_isr_stack_end, %rsp
-    mov (%rsp), %rsp
-
-    //Copy the IRQ frame stored on the old stack
-    pushq 40(%rdi)
-    pushq 32(%rdi)
-    pushq 24(%rdi)
-    pushq 16(%rdi)
-    pushq 8(%rdi)
+    // CPU has sawitched to the ISR stack using IST
 
 	pushq  $0				/* Push a dummy error code. */
-    pushq (%rdi) /* The old rdi */
-    push   %rsi
+
+    // Save rdi, rsi
+    pushq   %rdi
+    pushq   %rsi
 	movq   $\intno,   %rsi     /* INT Number is saved to 2nd parameter of function call */
 	jmp		isr_common			/* Go to the common ISR handler code. */
 	.endm
@@ -119,24 +108,11 @@ vector_isr\intno:
 vector_isr\intno:
 	cli							/* Disable interrupts firstly. */
 
-    // First save the current rsp to rdi
-    push   %rdi
-    mov %rsp, %rdi
+    // CPU has sawitched to the ISR stack using IST
 
-    //swap-in the new rsp
-    mov $g_isr_stack_end, %rsp
-    mov (%rsp), %rsp
-
-    //Copy the IRQ frame stored on the old stack
-    pushq 48(%rdi)
-    pushq 40(%rdi)
-    pushq 32(%rdi)
-    pushq 24(%rdi)
-    pushq 16(%rdi)
-    pushq 8(%rdi) /* additional error code */
-
-    pushq (%rdi) /* The old rdi */
-    push   %rsi
+    // Save rdi, rsi
+    pushq   %rdi
+    pushq   %rsi
 	movq   $\intno,   %rsi     /* INT Number is saved to 2nd parameter of function call */
 	jmp		isr_common			/* Go to the common ISR handler code. */
 	.endm
@@ -150,24 +126,13 @@ vector_isr\intno:
 vector_irq\irqno:
 	cli							/* Disable interrupts firstly. */
 
-    // First save the current rsp to rdi
-    push   %rdi
-    mov %rsp, %rdi
-
-    //swap-in the new rsp
-    mov $g_isr_stack_end, %rsp
-    mov (%rsp), %rsp
-
-    //Copy the IRQ frame stored on the old stack
-    pushq 40(%rdi)
-    pushq 32(%rdi)
-    pushq 24(%rdi)
-    pushq 16(%rdi)
-    pushq 8(%rdi)
+    // CPU has switched to the IRQ stack using IST
 
 	pushq  $0				/* Push a dummy error code. */
-    pushq (%rdi) /* The old rdi */
-    push   %rsi
+
+    // Save rdi, rsi
+    pushq   %rdi
+    pushq   %rsi
 	movq   $\intno,   %rsi     /* INT Number is saved to 2nd parameter of function call */
 	jmp		irq_common			/* Go to the common IRQ handler code. */
 	.endm
