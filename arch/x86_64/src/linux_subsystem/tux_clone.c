@@ -1,3 +1,4 @@
+#include <string.h>
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/sched.h>
@@ -34,11 +35,13 @@ static inline void* new_memory_block(uint64_t size, void** virt) {
 
     ret = gran_alloc(tux_mm_hnd, size);
     flags = enter_critical_section();
-    *virt = temp_map_at_0xc0000000(ret, ret + size);
+    *virt = temp_map_at_0xc0000000((uintptr_t)ret, (uintptr_t)ret + size);
     memset(*virt, 0, size);
     leave_critical_section(flags);
     return ret;
 }
+
+extern void fork_kickstart(void*);
 
 void clone_trampoline(void* regs, uint32_t* ctid) {
     uint64_t regs_on_stack[16];
@@ -87,9 +90,6 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
   uint64_t i, j;
   void* virt_mem;
   uint64_t *regs;
-
-  int* orig_child_tid_ptr;
-  int orig_tid;
 
   tcb = (FAR struct task_tcb_s *)kmm_zalloc(sizeof(struct task_tcb_s));
   if (!tcb)
@@ -178,8 +178,8 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
         curr->_backing = kmm_zalloc(strlen(ptr->_backing) + 1);
         strcpy(curr->_backing, ptr->_backing);
 
-        curr->pa_start = new_memory_block(VMA_SIZE(ptr), &virt_mem);
-        memcpy(virt_mem, ptr->va_start, VMA_SIZE(ptr));
+        curr->pa_start = (uintptr_t)new_memory_block(VMA_SIZE(ptr), &virt_mem);
+        memcpy(virt_mem, (void*)ptr->va_start, VMA_SIZE(ptr));
 
         svcinfo("Mapping: %llx - %llx: %llx %s\n", ptr->va_start, ptr->va_end, curr->pa_start, curr->_backing);
 
@@ -208,7 +208,7 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
         pda_ptr->proto = ptr->proto; // All proto are the same
         pda_ptr->_backing = "";
 
-        pda_ptr->pa_start = new_memory_block(VMA_SIZE(pda_ptr) / HUGE_PAGE_SIZE * PAGE_SIZE, &virt_mem);
+        pda_ptr->pa_start = (uintptr_t)new_memory_block(VMA_SIZE(pda_ptr) / HUGE_PAGE_SIZE * PAGE_SIZE, &virt_mem);
         do{
             for(i = ptr->va_start; i < ptr->va_end; i += PAGE_SIZE){
                 ((uint64_t*)(virt_mem))[((i - pda_ptr->va_start) >> 12) & 0x3ffff] = (ptr->pa_start + i - ptr->va_start) | ptr->proto;
@@ -217,7 +217,7 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
         }while(ptr != pptr->next);
 
         irqflags = enter_critical_section();
-        uint64_t* tmp_pd = temp_map_at_0xc0000000(tcb->cmn.xcp.pd1, (uintptr_t)tcb->cmn.xcp.pd1 + PAGE_SIZE);
+        uint64_t* tmp_pd = temp_map_at_0xc0000000((uintptr_t)tcb->cmn.xcp.pd1, (uintptr_t)tcb->cmn.xcp.pd1 + PAGE_SIZE);
 
         // Map it via page directories
         for(j = pda_ptr->va_start; j < pda_ptr->va_end; j += HUGE_PAGE_SIZE) {
@@ -260,14 +260,14 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
     /* manual set the instruction pointer */
     regs = kmm_zalloc(sizeof(uint64_t) * 16);
     memcpy(regs, (uint64_t*)(get_kernel_stack_ptr()) - 16, sizeof(uint64_t) * 16);
-    tcb->cmn.xcp.regs[REG_RDI] = regs;
+    tcb->cmn.xcp.regs[REG_RDI] = (uintptr_t)regs;
     tcb->cmn.xcp.regs[REG_RSI] = 0;
-    tcb->cmn.xcp.regs[REG_RIP] = clone_trampoline; // We need to manage the memory mapping
+    tcb->cmn.xcp.regs[REG_RIP] = (uintptr_t)clone_trampoline; // We need to manage the memory mapping
     /* stack is the new kernel stack */
 
     /* Let the trampoline handle it */
     if(flags & CLONE_CHILD_SETTID){
-         tcb->cmn.xcp.regs[REG_RSI] = ctid;
+         tcb->cmn.xcp.regs[REG_RSI] = (uintptr_t)ctid;
     }
   }
 
