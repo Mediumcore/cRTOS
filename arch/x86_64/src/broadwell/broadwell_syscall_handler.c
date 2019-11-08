@@ -63,11 +63,6 @@
 
 #ifdef CONFIG_LIB_SYSCALL
 
-uint64_t get_kernel_stack_ptr(void) {
-  struct tcb_s *rtcb = this_task();
-  return (uint64_t)(rtcb->adj_stack_ptr);
-}
-
 uint64_t __attribute__ ((noinline))
 syscall_handler(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,

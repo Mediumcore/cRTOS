@@ -76,6 +76,21 @@
 
 
 /****************************************************************************
+ * Name: get_kernel_stack_ptr
+ *
+ * Description:
+ *      The kernel stack of the process is at GS base register, read and return
+ *
+ ****************************************************************************/
+
+	.type	get_kernel_stack_ptr, @function
+get_kernel_stack_ptr:
+    rdgsbase %rax
+    ret
+	.size	get_kernel_stack_ptr, . - get_kernel_stack_ptr
+
+
+/****************************************************************************
  * Name: syscall_entry
  *
  * Description:
@@ -88,24 +103,17 @@
 syscall_entry:
     /* RCX is the userspace RIP */
     pushq %rcx
-    pushq %rax
 
     /* switch to the kernel stack */
-    call get_kernel_stack_ptr
-
     mov %rsp, %rcx
-    mov %rax, %rsp
+    rdgsbase %rsp
 
     /* User stack address + 8(return address) */
-    add $16, %rcx
+    add $8, %rcx
     pushq %rcx
 
     /* return address */
     pushq -8(%rcx)
-
-    /* the original RAX */
-    mov -16(%rcx), %rax
-
     
     /* Maintain a traceable chain of frame pointer */
     pushq %rbp

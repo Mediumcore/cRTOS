@@ -66,6 +66,8 @@
  * Public Function Prototypes
  ****************************************************************************/
 
+extern uintptr_t get_kernel_stack_ptr(void);
+
 void enable_syscall(void);
 
 #ifdef __cplusplus

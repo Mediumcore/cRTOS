@@ -138,15 +138,26 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
                   /* 1. move to the user stack */
                   /* 2. if currently in kernel stack, we need to prevent an overwrite */
                   /* 3. if signal stack is set use it instead */
+                  /* 4. nested signal will break this implementation */
                   kstack = (uint64_t)tcb->adj_stack_ptr;
+
                   if((curr_rsp < kstack) && (curr_rsp > kstack - tcb->adj_stack_size)) {
+                      if(tcb->xcp.saved_kstack) {
+                          // Cannot Nest!
+                          PANIC();
+                      }
+
+                      // Currently on the kstack, shrink the kstack
                       tcb->xcp.saved_rsp = curr_rsp;
                       tcb->xcp.saved_kstack = kstack;
-                      tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
 
-                      if(tcb->xcp.signal_stack_flag & TUX_SS_DISABLE) { // SS_DISABLE
+                      // Update the kernel stack, also update GS BASE, which is the cache of kernel stack
+                      tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
+                      write_gsbase(tcb->adj_stack_ptr);
+
+                      if(tcb->xcp.signal_stack_flag & TUX_SS_DISABLE) { // SS_DISABLE, not using signal stack
                           new_rsp = *((uint64_t*)kstack - 1) - 8; // Read out the user stack address
-                      } else {
+                      } else { // Using signal stack
                           tcb->xcp.signal_stack_flag |= 1;
                           new_rsp =  (tcb->xcp.signal_stack + tcb->xcp.signal_stack_size) & (-0x10);
                       }
@@ -160,13 +171,16 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
                       if(tcb->xcp.signal_stack_flag & 1)
                           tcb->xcp.signal_stack_flag = 0; // !SS_DISABLED
 
+
+                      // Restore the kernel stack, also update GS BASE, which is the cache of kernel stack
                       tcb->adj_stack_ptr = (void*)tcb->xcp.saved_kstack;
+                      write_gsbase(tcb->adj_stack_ptr);
                       tcb->xcp.saved_rsp = 0;
                       tcb->xcp.saved_kstack = 0;
                   }else{
-                      if(tcb->xcp.signal_stack_flag & TUX_SS_DISABLE) { // SS_DISABLE
+                      if(tcb->xcp.signal_stack_flag & TUX_SS_DISABLE) { // SS_DISABLE, not using signal stack
                           sigdeliver(tcb);
-                      } else {
+                      } else { // Using signal stack
                           new_rsp =  (tcb->xcp.signal_stack + tcb->xcp.signal_stack_size) & (-0x10);
                           tcb->xcp.signal_stack_flag |= 1;
                           asm volatile("mov %%rsp, %%r12   \t\n\
@@ -216,6 +230,7 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
                       tcb->xcp.saved_rsp = curr_rsp;
                       tcb->xcp.saved_kstack = kstack;
 
+                      /* No need to update the GS cache, CTX will do that */
                       tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
                       g_current_regs[REG_RSP] = *((uint64_t*)kstack - 1) - 8; // Read out the user stack address
                   }
@@ -278,6 +293,7 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
                   tcb->xcp.regs[REG_RSP] = *((uint64_t*)kstack - 1) - 8; // Read out the user stack address
 
                   /* move the kstack starting point to somewhere unused */
+                  /* No need to update the GS cache, CTX will do that */
                   tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
               }
 

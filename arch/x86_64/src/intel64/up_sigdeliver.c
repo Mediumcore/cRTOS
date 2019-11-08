@@ -139,6 +139,7 @@ void up_sigdeliver(void)
 
   if(rtcb->xcp.saved_kstack){
     rtcb->adj_stack_ptr = rtcb->xcp.saved_kstack;
+    write_gsbase(rtcb->adj_stack_ptr);
     rtcb->xcp.saved_kstack = 0;
   }
 

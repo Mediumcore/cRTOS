@@ -96,8 +96,13 @@ void up_restore_auxstate(struct tcb_s *rtcb)
     pdpt[0] = (uintptr_t)rtcb->xcp.pd1 | 0x23;
   }
 
-
+  // set PCID, avoid TLB flush
   set_pcid(rtcb->pid);
+
+  // The kernel stack cache, GS BASE
+  write_gsbase((uintptr_t)rtcb->adj_stack_ptr);
+
+  // If user space set the FS BASE, recover it
   if(rtcb->xcp.fs_base_set){
     write_fsbase(rtcb->xcp.fs_base);
   }else{
