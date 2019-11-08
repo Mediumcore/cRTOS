@@ -101,19 +101,20 @@ get_kernel_stack_ptr:
 
 	.type	syscall_entry, @function
 syscall_entry:
+    /* GS points to the kernel stack */
+
+    /* write the user stack address to the kernel stack */
+    movq %rsp, %gs:-8
+
+    /* write the return address to the kernel stack */
     /* RCX is the userspace RIP */
-    pushq %rcx
+    movq %rcx, %gs:-16
 
     /* switch to the kernel stack */
-    mov %rsp, %rcx
     rdgsbase %rsp
 
-    /* User stack address + 8(return address) */
-    add $8, %rcx
-    pushq %rcx
-
-    /* return address */
-    pushq -8(%rcx)
+    /* Already placed ret and stack address on stack */
+    leaq -16(%rsp), %rsp
     
     /* Maintain a traceable chain of frame pointer */
     pushq %rbp
@@ -174,13 +175,13 @@ syscall_entry:
     popq   %r11
     popq   %rbp
 
-    /* recover the Stack pointer */
-    /* return address should be the following item in stack */
-    popq %rcx
-    mov (%rsp), %rsp
-    pushq %rcx
+    /* write the user stack address to the kernel stack */
+    movq  %gs:-8, %rsp
 
-	ret
+    /* write the return address to the kernel stack */
+    /* RCX is the userspace RIP */
+    movq  %gs:-16, %rcx
+    jmp  *%rcx
 
 	.size	syscall_entry, . - syscall_entry
 
