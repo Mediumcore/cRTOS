@@ -295,7 +295,7 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
     while(ptr) {
         if(ptr == &g_vm_full_map) continue;
 
-        _alert("0x%08llx - 0x%08llx : backed by 0x%08llx 0x%08llx %s\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr), ptr->_backing);
+        svcinfo("0x%08llx - 0x%08llx : backed by 0x%08llx 0x%08llx %s\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr), ptr->_backing);
 
         to_free = ptr;
         ptr = ptr->next;
@@ -310,7 +310,7 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
     while(ptr) {
         if(ptr == &g_vm_full_map) continue;
 
-        _alert("0x%08llx - 0x%08llx : 0x%08llx 0x%08llx\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr));
+        svcinfo("0x%08llx - 0x%08llx : 0x%08llx 0x%08llx\n", ptr->va_start, ptr->va_end, ptr->pa_start, ptr->pa_start + VMA_SIZE(ptr));
 
         to_free = ptr;
         ptr = ptr->next;
