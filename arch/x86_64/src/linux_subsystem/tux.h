@@ -421,4 +421,12 @@ static inline long tux_pipe(unsigned long nbr, int pipefd[2], int flags){
     return ret;
 };
 
+static inline long tux_getcpu(unsigned long nbr, unsigned *cpu, unsigned *node){
+    if(node)
+        *node = 0;
+    if(cpu)
+        *cpu = 0;
+    return 0;
+};
+
 #endif//__LINUX_SUBSYSTEM_TUX_H

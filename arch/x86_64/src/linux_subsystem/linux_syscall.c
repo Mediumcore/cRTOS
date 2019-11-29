@@ -365,7 +365,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_delegate, // SYS_syncfs,
     tux_delegate, // SYS_sendmmsg,
     tux_no_impl, // SYS_setns,
-    tux_no_impl, // SYS_getcpu,
+    (syscall_t)tux_getcpu, // SYS_getcpu,
     tux_no_impl, // SYS_process_vm_readv,
     tux_no_impl, // SYS_process_vm_writev,
     tux_no_impl, // SYS_kcmp,
