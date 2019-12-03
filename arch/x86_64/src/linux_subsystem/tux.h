@@ -411,7 +411,7 @@ long     tux_waithook    (unsigned long nbr, uintptr_t param1, uintptr_t param2,
 long     tux_exec        (unsigned long nbr, const char* path, char *argv[], char* envp[]);
 long     _tux_exec       (char* path, char *argv[], char* envp[]);
 
-long     tux_sigaltstack    (stack_t* ss, stack_t* oss);
+long     tux_sigaltstack (unsigned long nbr, stack_t* ss, stack_t* oss);
 
 static inline long     tux_sched_get_priority_max(unsigned long nbr, uint64_t p) { return sched_get_priority_max(p); };
 static inline long     tux_sched_get_priority_min(unsigned long nbr, uint64_t p) { return sched_get_priority_min(p); };

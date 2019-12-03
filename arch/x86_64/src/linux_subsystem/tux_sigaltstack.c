@@ -8,7 +8,7 @@
 #include <group/group.h>
 #include <task/task.h>
 
-long tux_sigaltstack(stack_t* ss, stack_t* oss) {
+long tux_sigaltstack(unsigned long nbr, stack_t* ss, stack_t* oss) {
     struct tcb_s* tcb = this_task();
     int ret;
 
