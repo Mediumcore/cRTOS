@@ -80,6 +80,23 @@
 #define TUX_FD_ELT(d)   ((d) / TUX_NFDBITS)
 #define TUX_FD_MASK(d)  ((long int) (1UL << ((d) % TUX_NFDBITS)))
 
+#define TUX_POLLIN          0x001        /* There is data to read.  */
+#define TUX_POLLPRI         0x002        /* There is urgent data to read.  */
+#define TUX_POLLOUT         0x004        /* Writing now will not block.  */
+
+#define TUX_POLLRDNORM      0x040       /* Normal data may be read.  */
+#define TUX_POLLRDBAND      0x080       /* Priority data may be read.  */
+#define TUX_POLLWRNORM      0x100       /* Writing now will not block.  */
+#define TUX_POLLWRBAND      0x200       /* Priority data may be written.  */
+
+#define TUX_POLLMSG         0x400
+#define TUX_POLLREMOVE      0x1000
+#define TUX_POLLRDHUP       0x2000
+
+#define TUX_POLLERR         0x008        /* Error condition.  */
+#define TUX_POLLHUP         0x010        /* Hung up.  */
+#define TUX_POLLNVAL        0x020        /* Invalid polling request.  */
+
 #define TUX_IPC_CREAT	01000		/* create key if key does not exist. */
 #define TUX_IPC_EXCL	02000		/* fail if key exists.  */
 
@@ -168,6 +185,7 @@ struct tux_fd_set
     long int __fds_bits[TUX_FD_SETSIZE / TUX_NFDBITS];
 };
 
+typedef unsigned long int tux_nfds_t;
 struct tux_pollfd
   {
     int fd;			/* File descriptor to poll.  */
@@ -372,8 +390,8 @@ void    tux_mm_init     (void);
 uint64_t*    tux_mm_new_pd1     (void);
 void    tux_mm_del_pd1     (uint64_t*);
 void*   tux_mmap        (unsigned long nbr, void* addr, long length, int prot, int flags, int fd, off_t offset);
-long    tux_munmap      (unsigned long nbr, void* addr, size_t length);
-void*   tux_mremap(unsigned long nbr, void *old_address, size_t old_size, size_t new_size, int flags, void *new_address);
+long     tux_munmap      (unsigned long nbr, void* addr, size_t length);
+void*    tux_mremap(unsigned long nbr, void *old_address, size_t old_size, size_t new_size, int flags, void *new_address);
 
 long     tux_shmget      (unsigned long nbr, uint32_t key, uint32_t size, uint32_t flags);
 long     tux_shmctl      (unsigned long nbr, int hv, uint32_t cmd, struct shmid_ds* buf);
@@ -401,6 +419,8 @@ long     tux_rt_sigaction     (unsigned long nbr, int sig, const struct tux_siga
 long     tux_alarm            (unsigned long nbr, unsigned int second);
 
 long     tux_select           (unsigned long nbr, int fd, struct tux_fd_set *r, struct tux_fd_set *w, struct tux_fd_set *e, struct timeval *timeout);
+
+long      tux_poll(unsigned long nbr, struct tux_pollfd *fds, tux_nfds_t nfds, int timeout);
 
 long     tux_getpid      (unsigned long nbr);
 long     tux_gettid      (unsigned long nbr);

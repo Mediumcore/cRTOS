@@ -259,24 +259,6 @@ long tux_file_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
   return ret;
 }
 
-long tux_poll_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
-                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
-                          uintptr_t parm6)
-{
-  int ret, i;
-
-  for(i = 0; i < parm2; i++)
-    {
-      if(((struct tux_pollfd*)parm1)[i].fd >= CONFIG_TUX_FD_RESERVE)
-          return -1;
-    }
-
-  ret = tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
-
-  return ret;
-}
-
-
 long tux_open_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
                           uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
                           uintptr_t parm6)
