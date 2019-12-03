@@ -81,7 +81,7 @@ syscall_t linux_syscall_action_table[500] = {
     (syscall_t)tux_pipe, // sys_pipe
     (syscall_t)tux_select, // sys_select
     tux_local,
-    tux_no_impl, // sys_mremap
+    (syscall_t)tux_mremap, // sys_mremap
     (syscall_t)tux_success_stub, // sys_msync
     (syscall_t)tux_success_stub, // sys_mincore
     (syscall_t)tux_success_stub, // sys_madvise

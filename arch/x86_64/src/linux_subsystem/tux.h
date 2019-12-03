@@ -16,6 +16,9 @@
 
 #include <arch/io.h>
 
+# define MREMAP_MAYMOVE 1
+# define MREMAP_FIXED   2
+
 #define FUTEX_WAIT 0x0
 #define FUTEX_WAKE 0x1
 #define FUTEX_WAKE_OP 0x5
@@ -369,7 +372,8 @@ void    tux_mm_init     (void);
 uint64_t*    tux_mm_new_pd1     (void);
 void    tux_mm_del_pd1     (uint64_t*);
 void*   tux_mmap        (unsigned long nbr, void* addr, long length, int prot, int flags, int fd, off_t offset);
-long     tux_munmap      (unsigned long nbr, void* addr, size_t length);
+long    tux_munmap      (unsigned long nbr, void* addr, size_t length);
+void*   tux_mremap(unsigned long nbr, void *old_address, size_t old_size, size_t new_size, int flags, void *new_address);
 
 long     tux_shmget      (unsigned long nbr, uint32_t key, uint32_t size, uint32_t flags);
 long     tux_shmctl      (unsigned long nbr, int hv, uint32_t cmd, struct shmid_ds* buf);

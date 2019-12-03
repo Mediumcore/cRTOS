@@ -555,28 +555,31 @@ long tux_munmap(unsigned long nbr, void* addr, size_t length){
   /*print_mapping();*/
 
   return 0;
-
-  /*if(length > HUGE_PAGE_SIZE * 32)*/
-    /*{*/
-      /*errno = -EINVAL;*/
-      /*return -1;*/
-    /*}*/
-
-  /*[> Round to page boundary <]*/
-  /*uint64_t bb = (uint64_t)addr & ~(HUGE_PAGE_SIZE - 1);*/
-
-  /*// Calculate page to be unmapped*/
-  /*uint64_t num_of_pages = (length + (uint64_t)addr - bb + HUGE_PAGE_SIZE - 1) / HUGE_PAGE_SIZE;*/
-
-  /*// Calculate starting page table entry*/
-  /*int pg = bb / HUGE_PAGE_SIZE;*/
-
-  /*for(int i = 0; i < num_of_pages; i++) {*/
-      /*if(!(tcb->xcp.page_table[pg + i] & 1)) continue; // Already unmapped*/
-
-      /*gran_free(tux_mm_hnd, (void*)(tcb->xcp.page_table[pg + i] & HUGE_PAGE_MASK), HUGE_PAGE_SIZE);*/
-      /*tcb->xcp.page_table[pg + i] = 0x82;*/
-  /*}*/
-
 }
 
+
+void* tux_mremap(unsigned long nbr, void *old_address, size_t old_size, size_t new_size, int flags, void *new_address){
+  struct tcb_s *tcb = this_task();
+  struct vma_s* vma;
+
+  if(flags & MREMAP_FIXED) return (void*)-1;
+
+  if(!(flags & MREMAP_MAYMOVE)) return (void*)-1;
+
+  // Calculate page to be mapped
+  uint64_t old_num_of_pages = (uint64_t)(old_size + PAGE_SIZE - 1) / PAGE_SIZE;
+  uint64_t new_num_of_pages = (uint64_t)(new_size + PAGE_SIZE - 1) / PAGE_SIZE;
+
+  // XXX: PROT and flags should be copied
+  void* new = tux_mmap(nbr, NULL, new_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, 0, 0);
+
+  if(new == (void*)-1) return (void*)-1;
+
+  memcpy(new, old_address, old_size > new_size ? new_size : old_size);
+
+  svcinfo("TUX: mremap %llx - %llx -> %llx - %llx\n", old_address, old_address + old_num_of_pages * PAGE_SIZE, new, new + new_num_of_pages * PAGE_SIZE);
+
+  tux_munmap(nbr, old_address, old_size);
+
+  return new;
+}
