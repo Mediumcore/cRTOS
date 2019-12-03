@@ -193,7 +193,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_no_impl, // SYS_uselib,
     tux_no_impl, // SYS_personality,
     tux_no_impl, // SYS_ustat,
-    tux_file_delegate, // SYS_statfs,
+    tux_delegate, // SYS_statfs,
     tux_file_delegate, // SYS_fstatfs,
     tux_delegate, // SYS_sysfs,
     tux_no_impl, // SYS_getpriority,
