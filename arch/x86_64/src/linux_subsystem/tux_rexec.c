@@ -73,26 +73,8 @@ void add_remote_on_exit(struct tcb_s* tcb, void (*func)(int, void *), void *arg)
 }
 
 void tux_on_exit(int val, void* arg){
-  struct tcb_s *rtcb = this_task();
-  uint64_t params[7];
 
-  if(rtcb->xcp.is_linux && rtcb->xcp.linux_sock)
-  {
-    // Shutdown remote shadow process
-    params[0] = 60;
-    params[1] = val;
-
-    write(rtcb->xcp.linux_sock, params, sizeof(params));
-    close(rtcb->xcp.linux_sock);
-    if(rtcb->xcp.is_linux == 2)
-        delete_proc_node(rtcb->xcp.linux_pid);
-    else
-        delete_proc_node(rtcb->xcp.linux_tid);
-
-  } else {
-    _err("Non-linux process calling linux syscall or invalid sock fd %d, %d\n", rtcb->xcp.is_linux, rtcb->xcp.linux_sock);
-    PANIC();
-  }
+    return;
 }
 
 void rexec_trampoline(const char* path, char *argv[], char* envp[]) {
@@ -308,7 +290,7 @@ long rexec(const char* path, int priority,
     nxsem_init(&tcb->cmn.xcp.syscall_lock, 1, 0);
     nxsem_setprotocol(&tcb->cmn.xcp.syscall_lock, SEM_PRIO_NONE);
 
-    add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
+    /*add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);*/
 
     tcb->cmn.xcp.pd1 = tux_mm_new_pd1();
 

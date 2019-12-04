@@ -136,7 +136,7 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
     tcb->cmn.xcp.linux_tid = tid_slot >> 48;
     tcb->cmn.xcp.linux_tcb = tid_slot & ~(0xffffULL << 48);
 
-    add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
+    /*add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);*/
 
     insert_proc_node(tcb->cmn.pid, tcb->cmn.xcp.linux_tid);
 
@@ -255,7 +255,7 @@ long tux_clone(unsigned long nbr, unsigned long flags, void *child_stack,
 
     insert_proc_node(tcb->cmn.pid, tcb->cmn.xcp.linux_pid);
 
-    add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);
+    /*add_remote_on_exit((struct tcb_s*)tcb, tux_on_exit, NULL);*/
 
     /* manual set the instruction pointer */
     regs = kmm_zalloc(sizeof(uint64_t) * 16);

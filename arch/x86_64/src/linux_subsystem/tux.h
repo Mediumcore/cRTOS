@@ -438,6 +438,10 @@ static inline long     tux_sched_get_priority_min(unsigned long nbr, uint64_t p)
 
 long tux_sched_getaffinity(unsigned long nbr, long pid, unsigned int len, unsigned long *mask);
 
+long tux_exit(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+                          uintptr_t parm6);
+
 static inline long tux_pipe(unsigned long nbr, int pipefd[2], int flags){
     int ret = pipe(pipefd);
     pipefd[0] += CONFIG_TUX_FD_RESERVE;

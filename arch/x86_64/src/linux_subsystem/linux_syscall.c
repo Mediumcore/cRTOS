@@ -116,7 +116,7 @@ syscall_t linux_syscall_action_table[500] = {
     (syscall_t)tux_fork, // sys_fork
     (syscall_t)tux_fork, // sys_vfork
     (syscall_t)tux_exec, // sys_execve
-    tux_local, // SYS_exit,
+    (syscall_t)tux_exit, // SYS_exit,
     (syscall_t)tux_waithook, // sys_wait4
     (syscall_t)tux_pidhook, // SYS_kill,
     tux_delegate, // SYS_uname,
@@ -287,7 +287,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_local, // SYS_clock_gettime,
     tux_local, // SYS_clock_getres,
     tux_local, // SYS_clock_nanosleep,
-    tux_local, //sys_exit_group
+    (syscall_t)tux_exit, //sys_exit_group
     tux_delegate, // SYS_epoll_wait,
     tux_delegate, // SYS_epoll_ctl,
     tux_no_impl, // SYS_tgkill,

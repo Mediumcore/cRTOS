@@ -342,3 +342,22 @@ long tux_dup2_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
 
   return ret;
 }
+
+long tux_exit(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+                          uintptr_t parm6) {
+
+  struct tcb_s *rtcb = this_task();
+
+  tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
+  close(rtcb->xcp.linux_sock);
+
+  if(rtcb->xcp.is_linux == 2)
+    delete_proc_node(rtcb->xcp.linux_pid);
+  else
+    delete_proc_node(rtcb->xcp.linux_tid);
+
+  _info("PID %d exiting\n", rtcb->pid);
+
+  _exit(parm1);
+}
