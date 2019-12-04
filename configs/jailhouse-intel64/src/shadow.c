@@ -620,6 +620,7 @@ uint64_t shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint64_t *d
    */
   uint64_t buf[10];
   struct tcb_s *rtcb = (struct tcb_s *)this_task();
+  long ret;
   irqstate_t flags;
 
   memcpy(buf, data, sizeof(uint64_t) * 7);
@@ -630,10 +631,15 @@ uint64_t shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint64_t *d
   shadow_proc_tx_frame(priv, buf, sizeof(buf));
 
   flags = enter_critical_section();
-  nxsem_wait(&rtcb->xcp.syscall_lock);
+
+  do {
+    ret = nxsem_wait(&rtcb->xcp.syscall_lock);
+  }while(ret);
+
+  ret = rtcb->xcp.syscall_ret;
   leave_critical_section(flags);
 
-  return rtcb->xcp.syscall_ret;
+  return ret;
 }
 
 /****************************************************************************
@@ -708,12 +714,12 @@ int shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg)
 
   rtcb = (struct tcb_s *)buf[2];
 
-  shadow_proc_enable_rx_irq(priv);
-
   if(rtcb){
     rtcb->xcp.syscall_ret = buf[0];
     nxsem_post(&rtcb->xcp.syscall_lock);
   }
+
+  shadow_proc_enable_rx_irq(priv);
 
   return OK;
 }
