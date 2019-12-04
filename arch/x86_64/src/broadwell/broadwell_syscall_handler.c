@@ -89,6 +89,8 @@ syscall_handler(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
     ret = ((uint64_t(*)(unsigned long, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t))(g_stublookup[nbr]))(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
   }
 
+  svcinfo("END SYSCALL %d Task: %d ret:%llx\n", nbr, this_task()->pid, ret);
+
   return ret;
 }
 #else
