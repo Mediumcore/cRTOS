@@ -230,8 +230,8 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
                       tcb->xcp.saved_rsp = curr_rsp;
                       tcb->xcp.saved_kstack = kstack;
 
-                      /* No need to update the GS cache, CTX will do that */
                       tcb->adj_stack_ptr = (void*)(curr_rsp - 8);
+                      write_gsbase(tcb->adj_stack_ptr);
                       g_current_regs[REG_RSP] = *((uint64_t*)kstack - 1) - 8; // Read out the user stack address
                   }
 
