@@ -107,6 +107,9 @@ void up_initial_state(struct tcb_s *tcb)
 
   memset(xcp, 0, sizeof(struct xcptcontext));
 
+  /* set the FCW to 1f80 */
+  xcp->regs[1]      = (uint64_t)0x0000037f00000000;
+
   /* set the MXCSR to 1f80 */
   xcp->regs[3]      = (uint64_t)0x0000000000001f80;
 
