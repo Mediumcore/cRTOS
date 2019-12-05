@@ -42,11 +42,13 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
+#include <nuttx/signal.h>
 #include <arch/io.h>
 #include <syscall.h>
 #include <arch/board/board.h>
 
 #include "up_internal.h"
+#include "sched/sched.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -154,6 +156,8 @@ static uint64_t *common_handler(int irq, uint64_t *regs)
  *
  ****************************************************************************/
 
+#define SIGFPE 8
+
 uint64_t *isr_handler(uint64_t *regs, uint64_t irq)
 {
 #ifdef CONFIG_SUPPRESS_INTERRUPTS
@@ -166,23 +170,37 @@ uint64_t *isr_handler(uint64_t *regs, uint64_t irq)
   DEBUGASSERT(g_current_regs == NULL);
   g_current_regs = regs;
 
-  /* Let's say, all ISR are asserted when REALLY BAD things happended */
-  /* Don't even brother to recover, just dump the regs and PANIC*/
-  _alert("PANIC:\n");
-  _alert("Exception %lld occurred with error code %lld:\n", irq, regs[REG_ERRCODE]);
+  switch(irq) {
+      case 0:
+      case 16:
+          asm volatile("fnclex":::"memory");
+          break;
+          _alert("Task: %d Floating point exception occurred\n", this_task()->pid);
+          nxsig_kill(this_task()->pid, SIGFPE);
+          break;
+      deafult:
+        /* Let's say, all ISR are asserted when REALLY BAD things happended */
+        /* Don't even brother to recover, just dump the regs and PANIC*/
+        _alert("PANIC:\n");
+        _alert("Exception %lld occurred with error code %lld:\n", irq, regs[REG_ERRCODE]);
 
-  up_registerdump(regs);
+        up_registerdump(regs);
 
-  up_trash_cpu();
-  PANIC();
+        up_trash_cpu();
+        PANIC();
+        break;
 
-  /* Dispatch the interrupt */
-  ret = common_handler(irq, regs);
+  }
 
-  board_autoled_on(LED_INIRQ);
-  ret = common_handler((int)irq, regs);
-  board_autoled_off(LED_INIRQ);
-  return ret;
+  // Maybe we need a context switch
+  regs = (uint64_t*)g_current_regs;
+
+  /* Set g_current_regs to NULL to indicate that we are no longer in an
+   * interrupt handler.
+   */
+
+  g_current_regs = NULL;
+  return regs;
 #endif
 }
 
