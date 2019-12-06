@@ -98,13 +98,15 @@ int file_dup(FAR struct file *filep, int minfd)
       return -EMFILE;
     }
 
-
-  ret = filep->f_inode->u.i_ops->open(filep);
-  if (ret < 0)
-    {
-      inode_release(filep->f_inode);
-      return -EMFILE;
-    }
+  ret = 0;
+  if(filep->f_inode->u.i_ops->open){
+    ret = filep->f_inode->u.i_ops->open(filep);
+    if (ret < 0)
+      {
+        inode_release(filep->f_inode);
+        return -EMFILE;
+      }
+  }
 
   return fd2;
 }
