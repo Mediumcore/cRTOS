@@ -200,7 +200,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_no_impl, // SYS_setpriority,
     (syscall_t)tux_pidhook, // SYS_sched_setparam,
     (syscall_t)tux_pidhook, // SYS_sched_getparam,
-    (syscall_t)tux_success_stub, // SYS_sched_setscheduler,
+    tux_local, // SYS_sched_setscheduler,
     tux_local, // SYS_sched_getscheduler,
     (syscall_t)tux_sched_get_priority_max, // SYS_sched_get_priority_max,
     (syscall_t)tux_sched_get_priority_min, // SYS_sched_get_priority_min,

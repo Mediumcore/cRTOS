@@ -625,7 +625,11 @@ uint64_t shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint64_t *d
 
   memcpy(buf, data, sizeof(uint64_t) * 7);
   buf[7] = (uint64_t)rtcb;
-  buf[8] = rtcb->sched_priority;
+
+  uint64_t policy = ((rtcb->flags & TCB_FLAG_POLICY_MASK) >> TCB_FLAG_POLICY_SHIFT) + 1;
+  uint64_t prio = rtcb->sched_priority;
+  buf[8] = (policy << 32) | prio;
+
   buf[9] = rtcb->xcp.linux_tcb;
 
   shadow_proc_tx_frame(priv, buf, sizeof(buf));
