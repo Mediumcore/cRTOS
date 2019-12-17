@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <debug.h>
+#include <sched.h>
 
 #include <nuttx/sched.h>
 #include <nuttx/arch.h>
@@ -85,125 +86,9 @@ void rexec_trampoline(const char* path, char *argv[], char* envp[]) {
 
     // We should never end up here
     exit(0xff);
-
-
-    /*Stack is allocated and will be placed at the high mem of the task*/
-    /*stack = (uint64_t)gran_alloc(tux_mm_hnd, 0x800000);*/
-    /*heap = (uint64_t)gran_alloc(tux_mm_hnd, 0x200000);*/
-
-    /*First we need to clean the user stack*/
-    /*memset(stack, 0, 0x800000);*/
-    /*memset(heap, 0, 0x800000);*/
-
-
-     /*Put the arguments etc. on to the user stack*/
-    /*vstack = execvs_setupargs(tcb, stack, argc, argv, envc, envv);*/
-    /*if (vstack < 0)*/
-    /*{*/
-        /*ret = -get_errno();*/
-        /*berr("execvs_setupargs() failed: %d\n", ret);*/
-        /*goto errout_with_tcbinit;*/
-    /*}*/
-
-    /*_info("STACK: %llx, KSTACK: %llx, RSP: %llx, VSTACK: %llx\n", stack, kstack, tcb->cmn.xcp.regs[REG_RSP], vstack);*/
-
-     /*setup the tcb page_table entries as not present on creation*/
-    /*struct vma_s* program_mapping = kmm_malloc(sizeof(struct vma_s));*/
-    /*struct vma_s* program_mapping_pda = kmm_malloc(sizeof(struct vma_s));*/
-    /*struct vma_s* stack_mapping = kmm_malloc(sizeof(struct vma_s));*/
-    /*struct vma_s* stack_mapping_pda = kmm_malloc(sizeof(struct vma_s));*/
-    /*struct vma_s* heap_mapping = kmm_malloc(sizeof(struct vma_s));*/
-    /*struct vma_s* heap_mapping_pda = kmm_malloc(sizeof(struct vma_s));*/
-
-    /*tcb->cmn.xcp.vma = program_mapping;*/
-    /*tcb->cmn.xcp.pda = program_mapping_pda;*/
-
-    /*program_mapping->va_start = vbase;*/
-    /*program_mapping->va_end = vbase + bsize;*/
-    /*program_mapping->pa_start = pbase;*/
-    /*program_mapping->proto = 3;*/
-    /*program_mapping->_backing = "[Program Image]";*/
-
-    /*program_mapping_pda->va_start = (uint64_t)vbase & HUGE_PAGE_MASK;*/
-    /*program_mapping_pda->va_end = ((uint64_t)vbase + bsize + HUGE_PAGE_SIZE - 1) & HUGE_PAGE_MASK;*/
-    /*program_mapping_pda->pa_start = (void*)gran_alloc(tux_mm_hnd, PAGE_SIZE * (program_mapping_pda->va_end - program_mapping_pda->va_start) / HUGE_PAGE_SIZE);*/
-    /*program_mapping_pda->proto = 0x3;*/
-    /*program_mapping_pda->_backing = "[Program Image]";*/
-    /*memset(program_mapping_pda->pa_start, 0, PAGE_SIZE * (program_mapping_pda->va_end - program_mapping_pda->va_start) / HUGE_PAGE_SIZE);*/
-    /*for(i = program_mapping->va_start; i < program_mapping->va_end; i += PAGE_SIZE){*/
-        /*((uint64_t*)(program_mapping_pda->pa_start))[((i - program_mapping_pda->va_start) >> 12) & 0x3ffff] = (program_mapping->pa_start + i - program_mapping->va_start) | program_mapping->proto;*/
-    /*}*/
-
-    /*program_mapping->next = heap_mapping;*/
-    /*program_mapping_pda->next = heap_mapping_pda;*/
-
-    /*heap_mapping->va_start = 123 * HUGE_PAGE_SIZE;*/
-    /*heap_mapping->va_end = 124 * HUGE_PAGE_SIZE;*/
-    /*heap_mapping->pa_start = heap;*/
-    /*heap_mapping->proto = 3;*/
-    /*heap_mapping->_backing = "[Heap]";*/
-
-    /*heap_mapping_pda->va_start = 123 * HUGE_PAGE_SIZE;*/
-    /*heap_mapping_pda->va_end = 124 * HUGE_PAGE_SIZE;*/
-    /*heap_mapping_pda->pa_start = (void*)gran_alloc(tux_mm_hnd, PAGE_SIZE * (heap_mapping_pda->va_end - heap_mapping_pda->va_start) / HUGE_PAGE_SIZE);*/
-    /*heap_mapping_pda->proto = 0x3;*/
-    /*heap_mapping_pda->_backing = "[Heap]";*/
-    /*memset(heap_mapping_pda->pa_start, 0, PAGE_SIZE * (heap_mapping_pda->va_end - heap_mapping_pda->va_start) / HUGE_PAGE_SIZE);*/
-    /*for(i = heap_mapping->va_start; i < heap_mapping->va_end; i += PAGE_SIZE){*/
-        /*((uint64_t*)(heap_mapping_pda->pa_start))[((i - heap_mapping_pda->va_start) >> 12) & 0x3ffff] = (heap_mapping->pa_start + i - heap_mapping->va_start) | heap_mapping->proto;*/
-    /*}*/
-
-    /*heap_mapping->next = stack_mapping;*/
-    /*heap_mapping_pda->next = stack_mapping_pda;*/
-
-    /*stack_mapping->va_start = 124 * HUGE_PAGE_SIZE;*/
-    /*stack_mapping->va_end = 128 * HUGE_PAGE_SIZE;*/
-    /*stack_mapping->pa_start = stack;*/
-    /*stack_mapping->proto = 3;*/
-    /*stack_mapping->_backing = "[Stack]";*/
-
-    /*stack_mapping_pda->va_start = 124 * HUGE_PAGE_SIZE;*/
-    /*stack_mapping_pda->va_end = 128 * HUGE_PAGE_SIZE;*/
-    /*stack_mapping_pda->pa_start = (void*)gran_alloc(tux_mm_hnd, PAGE_SIZE * (stack_mapping_pda->va_end - stack_mapping_pda->va_start) / HUGE_PAGE_SIZE);*/
-    /*stack_mapping_pda->proto = 0x3;*/
-    /*stack_mapping_pda->_backing = "[Stack]";*/
-    /*memset(stack_mapping_pda->pa_start, 0, PAGE_SIZE * (stack_mapping_pda->va_end - stack_mapping_pda->va_start) / HUGE_PAGE_SIZE);*/
-    /*for(i = stack_mapping->va_start; i < stack_mapping->va_end; i += PAGE_SIZE){*/
-        /*((uint64_t*)(stack_mapping_pda->pa_start))[((i - stack_mapping_pda->va_start) >> 12) & 0x3ffff] = (stack_mapping->pa_start + i - stack_mapping->va_start) | stack_mapping->proto;*/
-    /*}*/
-
-    /*stack_mapping->next = NULL;*/
-    /*stack_mapping_pda->next = NULL;*/
-
-     /*set brk*/
-    /*tcb->cmn.xcp.__min_brk = (void*)(heap_mapping->va_start);*/
-    /*tcb->cmn.xcp.__brk = tcb->cmn.xcp.__min_brk;*/
-    /*sinfo("Set min_brk at: %llx\n", tcb->cmn.xcp.__min_brk);*/
-
-
-    /*stack*/
-    /*tux_delegate(9, (((uint64_t)pstack) << 32) | (uint64_t)(124 * HUGE_PAGE_SIZE), 4 * HUGE_PAGE_SIZE,*/
-                 /*0, MAP_ANONYMOUS, 0, 0);*/
-
-    /*heap*/
-    /*tux_delegate(9, (((uint64_t)pheap) << 32) | (uint64_t)(123 * HUGE_PAGE_SIZE), 1 * HUGE_PAGE_SIZE,*/
-                 /*0, MAP_ANONYMOUS, 0, 0);*/
-
-    /*uint64_t sp;*/
-
-     /*Set the stack pointer to user stack*/
-    /*sp = 124 * HUGE_PAGE_SIZE + (uint64_t)vstack - (uint64_t)pstack;*/
-
-     /*Jump to the actual entry point, not using call to preserve stack*/
-     /*Clear the registers, otherwise the libc_main will*/
-     /*mistaken the trash value in registers as arguments*/
-
-    /*asm volatile ("mov %0, %%rsp; xor %%rdi, %%rdi; xor %%rsi, %%rsi; xor %%rdx, %%rdx; xor %%rcx, %%rcx; xor %%r8, %%r8; xor %%r9, %%r9; jmpq %1"::"g"(sp), "g"(entry));*/
-
-    /*_exit(255);  We should never end up here*/
 }
 
-long rexec(const char* path, int priority,
+long rexec(const char* path, int policy, int priority,
            char* argv[], char* envp[], uint64_t shadow_tcb)
 {
     struct task_tcb_s *tcb;
@@ -242,6 +127,14 @@ long rexec(const char* path, int priority,
         berr("task_init() failed: %d\n", ret);
         goto errout_with_tcb;
     }
+
+    // Set policy
+    // The nuttx SCHED_FIFO/SCHED_RR has the same numbering
+    tcb->cmn.flags &= ~TCB_FLAG_POLICY_MASK;
+    if(policy == SCHED_FIFO) // SCHED_FIFO
+        tcb->cmn.flags |= TCB_FLAG_SCHED_FIFO;
+    if(policy == SCHED_RR) // SCHED_RR
+        tcb->cmn.flags |= TCB_FLAG_SCHED_RR;
 
     tcb->cmn.xcp.vma = NULL;
     tcb->cmn.xcp.pda = NULL;
