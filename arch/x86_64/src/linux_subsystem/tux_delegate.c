@@ -352,10 +352,13 @@ long tux_exit(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
   tux_delegate(nbr, parm1, parm2, parm3, parm4, parm5, parm6);
   close(rtcb->xcp.linux_sock);
 
-  if(rtcb->xcp.is_linux == 2)
+  if(rtcb->xcp.is_linux == 2) {
     delete_proc_node(rtcb->xcp.linux_pid);
   else
     delete_proc_node(rtcb->xcp.linux_tid);
+  }
+
+  tux_set_tid_callback();
 
   _info("PID %d exiting\n", rtcb->pid);
 

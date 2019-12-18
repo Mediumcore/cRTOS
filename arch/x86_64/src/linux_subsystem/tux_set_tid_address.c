@@ -11,12 +11,6 @@ int* _tux_set_tid_address(struct tcb_s *rtcb, int* tidptr){
 
   flags = enter_critical_section();
 
-  if(rtcb->xcp.clear_child_tid == NULL)
-  {
-    // XXX: This will break if task group is enabled,
-    // on_exit only in effect on group's last exit
-    add_remote_on_exit(rtcb, tux_set_tid_callback, NULL);
-  }
   orig_val = rtcb->xcp.clear_child_tid;
   rtcb->xcp.clear_child_tid = tidptr;
 
@@ -30,7 +24,7 @@ long tux_set_tid_address(unsigned long nbr, int* tidptr){
   return rtcb->xcp.linux_tid;
 }
 
-void tux_set_tid_callback(int val, void* arg){
+void tux_set_tid_callback(void){
   struct tcb_s *rtcb = this_task();
   if(rtcb->xcp.clear_child_tid != NULL)
   {

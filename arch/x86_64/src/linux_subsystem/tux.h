@@ -407,7 +407,7 @@ long     tux_getrlimit   (unsigned long nbr, int resource, struct rlimit *rlim);
 
 int*    _tux_set_tid_address    (struct tcb_s *rtcb, int* tidptr);
 long     tux_set_tid_address     (unsigned long nbr, int* tidptr);
-void    tux_set_tid_callback    (int val, void* arg);
+void    tux_set_tid_callback    (void);
 
 void*   tux_brk         (unsigned long nbr, void* brk);
 
