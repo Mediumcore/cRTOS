@@ -360,7 +360,7 @@ long tux_exit(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
 
   tux_set_tid_callback();
 
-  _info("PID %d exiting\n", rtcb->pid);
+  svcinfo("PID %d exiting\n", rtcb->pid);
 
   _exit(parm1);
 }
