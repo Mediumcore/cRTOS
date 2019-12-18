@@ -179,12 +179,14 @@ long tux_pidhook(unsigned long nbr, int pid, uintptr_t param2, uintptr_t param3,
     int lpid;
     if(pid > 0){
         lpid = get_nuttx_pid(pid);
-        if (lpid < 0) return lpid;
+        if(lpid < 0)
+            return tux_delegate(nbr, pid, param2, param3, param4, param5, param6);
+        else
+            return tux_local(nbr, lpid, param2, param3, param4, param5, param6);
     } else {
         lpid = pid;
+        return tux_local(nbr, lpid, param2, param3, param4, param5, param6);
     }
-
-    return tux_local(nbr, lpid, param2, param3, param4, param5, param6);
 }
 
 long tux_waithook(unsigned long nbr, uintptr_t param1, uintptr_t param2, uintptr_t param3, uintptr_t param4, uintptr_t param5, uintptr_t param6) {
