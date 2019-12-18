@@ -157,6 +157,9 @@ typedef unsigned long tux_cpu_mask;
 	 &= ~TUX_CPUMASK (__cpu))						      \
       : 0; }))
 
+# define __SI_MAX_SIZE     128
+#  define __SI_PAD_SIZE     ((__SI_MAX_SIZE / sizeof (int)) - 4)
+
 enum
 {
   TUX_SS_ONSTACK = 1,
@@ -250,6 +253,84 @@ typedef struct sigaltstack {
     int ss_flags;
     size_t ss_size;
 } stack_t;
+
+typedef union tux_sigval
+  {
+    int sival_int;
+    void *sival_ptr;
+  } tux_sigval_t;
+
+typedef struct {
+    int si_signo;		/* Signal number.  */
+    int si_errno;		/* If non-zero, an errno value associated with
+                   this signal, as defined in <errno.h>.  */
+    int si_code;		/* Signal code.  */
+
+    union
+      {
+    int _pad[__SI_PAD_SIZE];
+
+     /* kill().  */
+    struct
+      {
+        int32_t si_pid;	/* Sending process ID.  */
+        uint32_t si_uid;	/* Real user ID of sending process.  */
+      } _kill;
+
+    /* POSIX.1b timers.  */
+    struct
+      {
+        int si_tid;		/* Timer ID.  */
+        int si_overrun;	/* Overrun count.  */
+        tux_sigval_t si_sigval;	/* Signal value.  */
+      } _timer;
+
+    /* POSIX.1b signals.  */
+    struct
+      {
+        int32_t si_pid;	/* Sending process ID.  */
+        uint32_t si_uid;	/* Real user ID of sending process.  */
+        tux_sigval_t si_sigval;	/* Signal value.  */
+      } _rt;
+
+    /* SIGCHLD.  */
+    struct
+      {
+        int32_t si_pid;	/* Which child.  */
+        uint32_t si_uid;	/* Real user ID of sending process.  */
+        int si_status;	/* Exit value or signal.  */
+        unsigned long si_utime;
+        unsigned long si_stime;
+      } _sigchld;
+
+    /* SIGILL, SIGFPE, SIGSEGV, SIGBUS.  */
+    struct
+      {
+        void *si_addr;	/* Faulting insn/memory ref.  */
+        short int si_addr_lsb;	/* Valid LSB of the reported address.  */
+        struct
+          {
+        void *_lower;
+        void *_upper;
+          } si_addr_bnd;
+      } _sigfault;
+
+    /* SIGPOLL.  */
+    struct
+      {
+        long int si_band;	/* Band event for SIGPOLL.  */
+        int si_fd;
+      } _sigpoll;
+
+    /* SIGSYS.  */
+    struct
+      {
+        void *_call_addr;	/* Calling user insn.  */
+        int _syscall;	/* Triggering system call number.  */
+        unsigned int _arch; /* AUDIT_ARCH_* of syscall.  */
+      } _sigsys;
+    } _sifields;
+} tux_siginfo_t;
 
 static inline uint64_t set_msr(unsigned long nbr){
     uint32_t bitset = *((volatile uint32_t*)0xfb503280 + 4);
@@ -416,7 +497,10 @@ long     tux_arch_prctl       (unsigned long nbr, int code, unsigned long addr);
 long     tux_futex            (unsigned long nbr, int32_t* uaddr, int opcode, uint32_t val, uintptr_t val2, int32_t* uaddr2, uint32_t val3);
 
 long     tux_rt_sigaction     (unsigned long nbr, int sig, const struct tux_sigaction* act, struct tux_sigaction* old_act, uint64_t set_size);
+long     tux_rt_sigprocmask   (unsigned long nbr, int how, const sigset_t *set, sigset_t *oset);
+long     tux_rt_sigtimedwait  (unsigned long nbr, const sigset_t* uthese, tux_siginfo_t *uinfo, const struct timespec *uts, size_t sigsetsize);
 long     tux_alarm            (unsigned long nbr, unsigned int second);
+long     tux_pause            (unsigned long nbr);
 
 long     tux_select           (unsigned long nbr, int fd, struct tux_fd_set *r, struct tux_fd_set *w, struct tux_fd_set *e, struct timeval *timeout);
 

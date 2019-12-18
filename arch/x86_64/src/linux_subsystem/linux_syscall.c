@@ -69,8 +69,8 @@ syscall_t linux_syscall_action_table[500] = {
     (syscall_t)tux_success_stub, // XXX: SYS_mprotect Missing logic, how to protect flat memory space
     (syscall_t)tux_munmap,
     (syscall_t)tux_brk,
-    (syscall_t)tux_rt_sigaction, // SYS_re_sigaction
-    tux_local,
+    (syscall_t)tux_rt_sigaction, // SYS_rt_sigaction
+    (syscall_t)tux_rt_sigprocmask, // SYS_rt_sigprocmask
     tux_no_impl, // SYS_sigreturn,
     tux_file_delegate, // SYS_ioctl,
     tux_file_delegate, // SYS_pread,
@@ -90,7 +90,7 @@ syscall_t linux_syscall_action_table[500] = {
     (syscall_t)tux_shmctl, // SYS_shmctl,
     tux_file_delegate, // SYS_dup,
     tux_dup2_delegate, // SYS_dup2,
-    tux_no_impl, // SYS_pause,
+    (syscall_t)tux_pause, // SYS_pause,
     (syscall_t)tux_nanosleep,
     tux_no_impl, // SYS_getitimer,
     (syscall_t)tux_alarm, // SYS_alarm,
@@ -184,7 +184,7 @@ syscall_t linux_syscall_action_table[500] = {
     tux_delegate, // SYS_capget,
     tux_delegate, // SYS_capset,
     tux_local, // SYS_sigpending,
-    tux_local, // SYS_sigtimedwait,
+    (syscall_t)tux_rt_sigtimedwait, // SYS_sigtimedwait,
     tux_no_impl, // SYS_rt_sigqueueinfo,
     tux_local, // SYS_sigsuspend,
     (syscall_t)tux_sigaltstack, // SYS_sigaltstack,

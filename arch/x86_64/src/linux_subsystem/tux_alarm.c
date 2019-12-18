@@ -1,6 +1,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/sched.h>
+#include <nuttx/signal.h>
 
 #include <errno.h>
 
@@ -79,4 +80,45 @@ long tux_rt_sigaction(unsigned long nbr, int sig, const struct tux_sigaction* ac
     return ret;
 };
 
+long tux_rt_sigprocmask(unsigned long nbr, int how, const sigset_t *set, sigset_t *oset){
+    int ret;
+    sigset_t lset = (*set << 1);
+    sigset_t loset;
 
+    how += 1;
+
+    ret = nxsig_procmask(how, &lset, &loset);
+
+    *oset = (loset >> 1);
+
+    return ret;
+};
+
+long tux_pause(unsigned long nbr){
+    return pause();
+};
+
+long tux_rt_sigtimedwait(unsigned long nbr, const sigset_t* uthese, tux_siginfo_t *uinfo, const struct timespec *uts, size_t sigsetsize) {
+    int ret;
+    sigset_t luthese = (*uthese << 1);
+    siginfo_t luinfo;
+
+    ret = nxsig_timedwait(&luthese, &luinfo, uts);
+    if(ret != -1) {
+        // decode uinfo
+        memset(uinfo, 0, sizeof(*uinfo));
+
+        uinfo->si_signo = luinfo.si_signo;
+        uinfo->si_code = luinfo.si_code;
+        uinfo->si_errno = luinfo.si_errno;
+
+        if(ret == SIGCHLD) {
+            uinfo->_sifields._sigchld.si_pid = luinfo.si_pid;
+            uinfo->_sifields._sigchld.si_status = luinfo.si_status;
+        }
+
+        // XXX: other signals have the siginfo unfilled
+    }
+
+    return ret;
+}
