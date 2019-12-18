@@ -54,6 +54,7 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/net/arp.h>
 #include <nuttx/net/netdev.h>
+#include <nuttx/signal.h>
 
 #include <arch/io.h>
 #include <arch/irq.h>
@@ -716,14 +717,26 @@ int shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg)
   memset(buf, 0, sizeof(buf));
   shadow_proc_receive(priv, buf);
 
-  rtcb = (struct tcb_s *)buf[2];
+  if(buf[2] & (1ULL << 63)) {
+      // It is a signal
+      buf[2] &= ~(1ULL << 63);
 
-  if(rtcb){
-    rtcb->xcp.syscall_ret = buf[0];
-    nxsem_post(&rtcb->xcp.syscall_lock);
+      // XXX: this is an implicit usage of pidhook
+      // Send the signal via a kill
+      tux_pidhook(62, buf[2], buf[0], 0, 0, 0, 0);
+
+  } else {
+      buf[2] &= ~(1ULL << 63);
+
+      rtcb = (struct tcb_s *)buf[2];
+
+      if(rtcb){
+        rtcb->xcp.syscall_ret = buf[0];
+        nxsem_post(&rtcb->xcp.syscall_lock);
+      }
+
+      shadow_proc_enable_rx_irq(priv);
   }
-
-  shadow_proc_enable_rx_irq(priv);
 
   return OK;
 }
