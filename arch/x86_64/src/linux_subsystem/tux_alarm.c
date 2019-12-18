@@ -26,7 +26,7 @@ static inline void translate_to_tux_sigaction(struct tux_sigaction *out, const s
 }
 
 long tux_alarm(unsigned long nbr, unsigned int second){
-    int ret;
+    int ret = 0;
     struct itimerspec ti;
     struct itimerspec tip;
     ti.it_interval.tv_sec = 0;
@@ -46,7 +46,7 @@ long tux_alarm(unsigned long nbr, unsigned int second){
         if(!ret)
             ret = timer_settime(this_task()->xcp.alarm_timer, 0, &ti, NULL);
         else
-            _info("Timer Create Failed\n");
+            _info("Timer Create Failed %d\n", ret);
         if(!ret)
             ret = tip.it_value.tv_sec;
         else
