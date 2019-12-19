@@ -723,7 +723,10 @@ int shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg)
 
       // XXX: this is an implicit usage of pidhook
       // Send the signal via a kill
-      tux_pidhook(62, buf[2], buf[0], 0, 0, 0, 0);
+      int lpid;
+      lpid = get_nuttx_pid(buf[2]);
+      if(lpid > 0)
+      nxsig_kill(lpid, buf[0]);
 
   } else {
       buf[2] &= ~(1ULL << 63);
