@@ -474,7 +474,10 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
         for(i = 0; envp[i] != NULL; i++)
             kmm_free(envp[i]);
 
-
+#ifdef CONFIG_SIG_DEFAULT
+        /* Set up default signal actions */
+        nxsig_default_initialize(this_task());
+#endif
 
         /* We probelly need to close all fds */
         svcinfo("Starting, jumping to: 0x%llx\n", entry);
