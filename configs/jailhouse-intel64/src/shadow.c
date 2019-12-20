@@ -723,6 +723,8 @@ int shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg)
   memset(buf, 0, sizeof(buf));
   shadow_proc_receive(priv, buf);
 
+  shadow_proc_enable_rx_irq(priv);
+
   if(buf[2] & (1ULL << 63)) {
       // It is a signal
       buf[2] &= ~(1ULL << 63);
@@ -743,8 +745,6 @@ int shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg)
         rtcb->xcp.syscall_ret = buf[0];
         nxsem_post(&rtcb->xcp.syscall_lock);
       }
-
-      shadow_proc_enable_rx_irq(priv);
   }
 
   return OK;
