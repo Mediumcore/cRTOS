@@ -1,6 +1,7 @@
 #include <nuttx/arch.h>
 #include <string.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <sys/mman.h>
 
 #include "tux.h"
@@ -477,6 +478,24 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
 #ifdef CONFIG_SIG_DEFAULT
         /* Set up default signal actions */
         nxsig_default_initialize(this_task());
+
+        struct sigaction sa;
+
+        /* Attach the signal handler.
+        *
+        * NOTE: nxsig_action will call nxsig_default(tcb, action, false).
+        * Don't be surprised.
+        */
+
+        memset(&sa, 0, sizeof(sa));
+        sa.sa_handler = tux_abnormal_termination;
+        sa.sa_flags   = SA_SIGINFO;
+        (void)nxsig_action(SIGKILL, &sa, NULL, true);
+        (void)sigaddset(&this_task()->group->tg_sigdefault, (int)SIGKILL);
+
+        (void)nxsig_action(SIGINT,  &sa, NULL, true);
+        (void)sigaddset(&this_task()->group->tg_sigdefault, (int)SIGINT);
+
 #endif
 
         /* We probelly need to close all fds */

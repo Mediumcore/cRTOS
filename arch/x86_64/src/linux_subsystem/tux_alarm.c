@@ -11,6 +11,7 @@
 
 #include <arch/irq.h>
 #include <sys/mman.h>
+#include <string.h>
 
 static inline void translate_from_tux_sigaction(struct sigaction *out, const struct tux_sigaction *in){
     memcpy(out, in, sizeof(struct sigaction)); // Copy the function pointer.
@@ -121,4 +122,28 @@ long tux_rt_sigtimedwait(unsigned long nbr, const sigset_t* uthese, tux_siginfo_
     }
 
     return ret;
+}
+
+extern int group_killchildren(struct task_tcb_s *tcb);
+
+void tux_abnormal_termination(int signo) {
+  struct tcb_s *rtcb = (struct tcb_s *)this_task();
+
+  _info("abnormal 2 of %d\n", rtcb->pid);
+
+  /* Careful:  In the multi-threaded task, the signal may be handled on a
+   * child pthread.
+   */
+
+  /* Kill of of the children of the task.  This will not kill the currently
+   * running task/pthread (this_task).  It will kill the main thread of the
+   * task group if the this_task is a
+   * pthread.
+   */
+
+  group_killchildren((FAR struct task_tcb_s *)rtcb);
+
+  /* Exit to terminate the task (note that exit() vs. _exit() is used. */
+
+  tux_syscall(60, 255, 0, 0, 0, 0, 0);
 }

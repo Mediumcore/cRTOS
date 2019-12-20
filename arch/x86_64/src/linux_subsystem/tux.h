@@ -506,6 +506,9 @@ long     tux_rt_sigtimedwait  (unsigned long nbr, const sigset_t* uthese, tux_si
 long     tux_alarm            (unsigned long nbr, unsigned int second);
 long     tux_pause            (unsigned long nbr);
 
+
+void     tux_abnormal_termination(int signo);
+
 long     tux_select           (unsigned long nbr, int fd, struct tux_fd_set *r, struct tux_fd_set *w, struct tux_fd_set *e, struct timeval *timeout);
 
 long      tux_poll(unsigned long nbr, struct tux_pollfd *fds, tux_nfds_t nfds, int timeout);
