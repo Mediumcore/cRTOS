@@ -414,6 +414,10 @@ typedef long (*syscall_t)(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
 void*   find_free_slot(void);
 void    release_slot(void* slot);
 
+long tux_syscall(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
+                          uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+                          uintptr_t parm6);
+
 static inline long tux_success_stub(void){
     return 0;
 }
