@@ -52,6 +52,8 @@
 #include "up_internal.h"
 #include "up_arch.h"
 
+#include <arch/board/shadow.h>
+
 #ifndef CONFIG_DISABLE_SIGNALS
 
 /****************************************************************************
@@ -95,6 +97,10 @@ void up_sigdeliver(void)
 
   int saved_errno = rtcb->pterrno;
 
+  int saved_prio = shadow_proc_get_prio(gshadow);
+
+  shadow_proc_set_prio(gshadow, rtcb->sched_priority);
+
   board_autoled_on(LED_SIGNAL);
 
   sinfo("rtcb=%p sigdeliver=%p sigpendactionq.head=%p\n",
@@ -131,6 +137,8 @@ void up_sigdeliver(void)
   sinfo("Resuming\n");
   (void)up_irq_save();
   rtcb->pterrno = saved_errno;
+
+  shadow_proc_set_prio(gshadow, saved_prio);
 
   if(rtcb->xcp.saved_rsp){
     regs[REG_RSP]      = rtcb->xcp.saved_rsp;
