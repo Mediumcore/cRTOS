@@ -244,7 +244,6 @@ void shadow_proc_enable_tx_irq(struct shadow_proc_driver_s *in)
 
 void shadow_proc_set_prio(struct shadow_proc_driver_s *in, uint64_t prio)
 {
-    return;
   *((volatile uint64_t*)(in->shm[SHADOW_PROC_REGION_TX] + in->shmlen)) = prio;
   wmb();
 }
