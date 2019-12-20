@@ -249,6 +249,13 @@ void shadow_proc_set_prio(struct shadow_proc_driver_s *in, uint64_t prio)
   wmb();
 }
 
+int shadow_proc_get_prio(struct shadow_proc_driver_s *in)
+{
+  int prio = *((volatile uint64_t*)(in->shm[SHADOW_PROC_REGION_TX] + in->shmlen));
+  rmb();
+  return prio;
+}
+
 /*************************************
  *  ivshmem-net vring syntax sugars  *
  *************************************/

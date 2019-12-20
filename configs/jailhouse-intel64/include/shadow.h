@@ -124,6 +124,7 @@ int  shadow_proc_ifdown(FAR struct net_driver_s *dev);
 void shadow_proc_txavail_work(FAR void *arg);
 
 void shadow_proc_set_prio(struct shadow_proc_driver_s *in, uint64_t prio);
+int shadow_proc_get_prio(struct shadow_proc_driver_s *in);
 
 struct shadow_proc_driver_s *gshadow;
 
