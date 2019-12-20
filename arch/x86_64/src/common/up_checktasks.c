@@ -84,7 +84,23 @@ void up_checktasks(void)//struct tcb_s *from, struct tcb_* to)
   flags = enter_critical_section();
 
   while(shadow_proc_rx_avail(gshadow)) {
-      shadow_proc_receive(gshadow, buf);
+    memset(buf, 0, sizeof(buf));
+
+    shadow_proc_receive(gshadow, buf);
+
+    if(buf[2] & (1ULL << 63)) {
+      // It is a signal
+      buf[2] &= ~(1ULL << 63);
+
+      if(buf[0]){
+        int lpid;
+        lpid = get_nuttx_pid(buf[2]);
+        if(lpid > 0)
+        nxsig_kill(lpid, buf[0]);
+      }
+
+    } else {
+      buf[2] &= ~(1ULL << 63);
 
       rtcb = (struct tcb_s *)buf[2];
 
@@ -110,6 +126,7 @@ void up_checktasks(void)//struct tcb_s *from, struct tcb_* to)
         sched_addprioritized(rtcb, (FAR dq_queue_t *)&g_pendingtasks);
         rtcb->task_state = TSTATE_TASK_PENDING;
       }
+    }
   }
 
   shadow_proc_enable_rx_irq(gshadow);
