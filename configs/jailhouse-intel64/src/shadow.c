@@ -727,12 +727,12 @@ int shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg)
       // It is a signal
       buf[2] &= ~(1ULL << 63);
 
-      // XXX: this is an implicit usage of pidhook
-      // Send the signal via a kill
-      int lpid;
-      lpid = get_nuttx_pid(buf[2]);
-      if(lpid > 0)
-      nxsig_kill(lpid, buf[0]);
+      if(buf[0]){
+        int lpid;
+        lpid = get_nuttx_pid(buf[2]);
+        if(lpid > 0)
+        nxsig_kill(lpid, buf[0]);
+      }
 
   } else {
       buf[2] &= ~(1ULL << 63);
