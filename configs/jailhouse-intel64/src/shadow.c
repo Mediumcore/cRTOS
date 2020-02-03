@@ -687,7 +687,7 @@ void shadow_proc_receive(FAR struct shadow_proc_driver_s *priv, uint64_t *buf)
     return;
   }
 
-  memcpy(buf, data, sizeof(uint64_t) * 3);
+  memcpy(buf, data, sizeof(uint64_t) * 2);
 
   shadow_proc_rx_finish(priv, desc); /* Release the read descriptor in to the used ring */
   return;
@@ -715,7 +715,7 @@ void shadow_proc_receive(FAR struct shadow_proc_driver_s *priv, uint64_t *buf)
 int shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct shadow_proc_driver_s *priv = (FAR struct shadow_proc_driver_s *)arg;
-  uint64_t buf[3];
+  uint64_t buf[2];
   struct tcb_s *rtcb;
 
   DEBUGASSERT(priv != NULL);
@@ -725,21 +725,19 @@ int shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg)
 
   shadow_proc_enable_rx_irq(priv);
 
-  if(buf[2] & (1ULL << 63)) {
+  if(buf[1] & (1ULL << 63)) {
       // It is a signal
-      buf[2] &= ~(1ULL << 63);
+      buf[1] &= ~(1ULL << 63);
 
       if(buf[0]){
         int lpid;
-        lpid = get_nuttx_pid(buf[2]);
+        lpid = get_nuttx_pid(buf[1]);
         if(lpid > 0)
         nxsig_kill(lpid, buf[0]);
       }
 
   } else {
-      buf[2] &= ~(1ULL << 63);
-
-      rtcb = (struct tcb_s *)buf[2];
+      rtcb = (struct tcb_s *)buf[1];
 
       if(rtcb){
         rtcb->xcp.syscall_ret = buf[0];
