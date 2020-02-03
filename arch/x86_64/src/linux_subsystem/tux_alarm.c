@@ -144,6 +144,11 @@ void tux_abnormal_termination(int signo) {
   group_killchildren((FAR struct task_tcb_s *)rtcb);
 
   /* Exit to terminate the task (note that exit() vs. _exit() is used. */
-
-  tux_syscall(60, 255, 0, 0, 0, 0, 0);
+  /* Hack the unused parameter of exit call to make the exit procedure
+   * skip signaling and wait for the shadow process to end, because on SIGKILL
+   * the shadow process is already gone. */
+  if(signo == 9)
+      tux_syscall(60, 255, 0, 0, 0, 0xdeadbeef, 0xabcedf);
+  else
+      tux_syscall(60, 255, 0, 0, 0, 0, 0);
 }
