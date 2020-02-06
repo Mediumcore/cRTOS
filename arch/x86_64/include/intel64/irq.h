@@ -220,6 +220,7 @@ struct xcptcontext
   uint16_t linux_tid;
   uint64_t syscall_ret;
   sem_t syscall_lock;
+  struct pollfd* syscall_pollfd;
 
   uint32_t fd[3];
 

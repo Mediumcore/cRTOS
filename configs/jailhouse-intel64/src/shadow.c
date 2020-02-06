@@ -47,6 +47,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <debug.h>
+#include <poll.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
@@ -731,8 +732,14 @@ int shadow_proc_interrupt(int irq, FAR void *context, FAR void *arg)
       rtcb = (struct tcb_s *)buf[1];
 
       if(rtcb){
-        rtcb->xcp.syscall_ret = buf[0];
-        nxsem_post(&rtcb->xcp.syscall_lock);
+          rtcb->xcp.syscall_ret = buf[0];
+          nxsem_post(&rtcb->xcp.syscall_lock);
+
+          if(rtcb->xcp.syscall_pollfd) {
+            // Someone is waiting
+            rtcb->xcp.syscall_pollfd->revents |= POLLIN;
+            nxsem_post(rtcb->xcp.syscall_pollfd->sem);
+          }
       }
   }
 
@@ -839,10 +846,50 @@ static ssize_t shadow_proc_write(file_t *filep, FAR const char *buf, size_t bufl
     priv  = (struct shadow_proc_driver_s *)inode->i_private;
 
     ret = shadow_proc_transmit(priv, buf);
-    ((uint64_t*)buf)[0] = ret;
 
-    return ret;
+    return buflen;
 }
+
+#ifndef CONFIG_DISABLE_POLL
+static int shadow_proc_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
+{
+    struct inode* inode = filep->f_inode;
+    struct shadow_proc_driver_s* priv = (struct shadow_proc_driver_s *)inode->i_private;
+    int size;
+    int rd;
+    uint64_t ret;
+
+    /* Are we setting up the poll?  Or tearing it down? */
+
+    if (setup) {
+        if(((fds->events & POLLOUT) == 1))
+            fds->revents |= POLLOUT;
+
+        if(((fds->events & POLLIN) == 1)) {
+            nxsem_getvalue(&this_task()->xcp.syscall_lock, &rd);
+
+            if(rd > 0) {
+                fds->revents |= POLLIN;
+                nxsem_post(fds->sem);
+                return OK;
+            }
+        }
+
+        ASSERT(this_task()->xcp.syscall_pollfd == NULL);
+
+        this_task()->xcp.syscall_pollfd = fds;
+    }
+  else /* Tear it down */
+    {
+        this_task()->xcp.syscall_pollfd = NULL;
+    }
+  return OK;
+}
+#endif
+
+#ifdef CONFIG_DISABLE_POLL
+#error "Shadow process require poll function"
+#endif
 
 static const struct file_operations shadow_proc_ops = {
     shadow_proc_open,      /* open */
@@ -851,6 +898,7 @@ static const struct file_operations shadow_proc_ops = {
     shadow_proc_write,     /* write */
     shadow_proc_seek,      /* seek */
     shadow_proc_ioctl,     /* ioctl */
+    shadow_proc_poll       /* poll */
 };
 
 int shadow_proc_probe(uint16_t bdf)
