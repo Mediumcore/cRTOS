@@ -42,6 +42,7 @@
 #include <stdbool.h>
 #include <sched.h>
 #include <debug.h>
+#include <poll.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/sched.h>
@@ -71,7 +72,7 @@
 
 void up_checktasks(void)//struct tcb_s *from, struct tcb_* to)
 {
-  uint64_t buf[3];
+  uint64_t buf[2];
   struct tcb_s *rtcb;
   irqstate_t flags;
 
@@ -86,35 +87,46 @@ void up_checktasks(void)//struct tcb_s *from, struct tcb_* to)
 
     shadow_proc_receive(gshadow, buf);
 
-    if(buf[2] & (1ULL << 63)) {
+    rtcb = (struct tcb_s *)buf[1];
+
+    if(buf[1] & (1ULL << 63)) {
       // It is a signal
-      buf[2] &= ~(1ULL << 63);
+      buf[1] &= ~(1ULL << 63);
 
       if(buf[0]){
         int lpid;
-        lpid = get_nuttx_pid(buf[2]);
+        lpid = get_nuttx_pid(buf[1]);
         if(lpid > 0)
         nxsig_kill(lpid, buf[0]);
       }
 
     } else {
-      buf[2] &= ~(1ULL << 63);
+      buf[1] &= ~(1ULL << 63);
 
-      rtcb = (struct tcb_s *)buf[2];
+      rtcb = (struct tcb_s *)buf[1];
 
       if(rtcb){
+        // Write the return value
         rtcb->xcp.syscall_ret = buf[0];
 
-        nxsem_releaseholder(&rtcb->xcp.syscall_lock);
-        rtcb->xcp.syscall_lock.semcount++;
+        if(rtcb->xcp.syscall_pollfd) {
+          // Someone is waiting
+          rtcb->xcp.syscall_pollfd->revents |= POLLIN;
+        }
+
+        // The sem to unblock, either the poll sem or the syscall_lock sem
+        sem_t* to_unlock = rtcb->waitsem;
+
+        /* It is, let the task take the semaphore */
+        rtcb->waitsem = NULL;
+
+        nxsem_releaseholder(to_unlock);
+        to_unlock->semcount++;
 
         /* The task will be the new holder of the semaphore when
          * it is awakened.
          */
-        nxsem_addholder_tcb(rtcb, &rtcb->xcp.syscall_lock);
-
-        /* It is, let the task take the semaphore */
-        rtcb->waitsem = NULL;
+        nxsem_addholder_tcb(rtcb, to_unlock);
 
         sched_removeblocked(rtcb);
 
