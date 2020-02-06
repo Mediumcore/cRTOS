@@ -641,16 +641,7 @@ uint64_t shadow_proc_transmit(FAR struct shadow_proc_driver_s *priv, uint64_t *d
 
   shadow_proc_tx_frame(priv, buf, sizeof(buf));
 
-  flags = enter_critical_section();
-
-  do {
-    ret = nxsem_wait(&rtcb->xcp.syscall_lock);
-  }while(ret);
-
-  ret = rtcb->xcp.syscall_ret;
-  leave_critical_section(flags);
-
-  return ret;
+  return OK;
 }
 
 /****************************************************************************
@@ -817,7 +808,21 @@ static off_t shadow_proc_seek(file_t *filep, off_t offset, int whence)
 
 static ssize_t shadow_proc_read(file_t *filep, FAR char *buf, size_t buflen)
 {
-    return 0;
+  struct tcb_s *rtcb = (struct tcb_s *)this_task();
+  long ret;
+  irqstate_t flags;
+
+  flags = enter_critical_section();
+
+  do {
+    ret = nxsem_wait(&rtcb->xcp.syscall_lock);
+  }while(ret);
+
+  ((uint64_t*)buf)[0] = rtcb->xcp.syscall_ret;
+
+  leave_critical_section(flags);
+
+  return 8;
 }
 
 static ssize_t shadow_proc_write(file_t *filep, FAR const char *buf, size_t buflen)

@@ -209,6 +209,7 @@ long tux_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
   struct tcb_s *rtcb = this_task();
   uint64_t params[7];
   uint64_t syscall_ret;
+  int ret;
   svcinfo("Delegating syscall %d to linux\n", nbr);
 
   if(rtcb->xcp.is_linux && rtcb->xcp.linux_sock)
@@ -221,13 +222,14 @@ long tux_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
     params[5] = parm5;
     params[6] = parm6;
 
-    syscall_ret = write(rtcb->xcp.linux_sock, params, sizeof(params));
+    ret = write(rtcb->xcp.linux_sock, params, sizeof(params));
+    ret = read(rtcb->xcp.linux_sock, &syscall_ret, sizeof(uint64_t));
 
   } else {
     _err("Non-linux process calling linux syscall or invalid sock fd %d, %d\n", rtcb->xcp.is_linux, rtcb->xcp.linux_sock);
     PANIC();
   }
-  return params[0];
+  return syscall_ret;
 }
 
 long tux_file_delegate(unsigned long nbr, uintptr_t parm1, uintptr_t parm2,
