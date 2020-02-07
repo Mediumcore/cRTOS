@@ -15,132 +15,147 @@
 #include <semaphore.h>
 #include <errno.h>
 #include <poll.h>
+#include <string.h>
 
 #include "up_internal.h"
 #include "sched/sched.h"
 
 #include "tux.h"
 
-int fd_set_tux_split(fd_set* out, struct tux_fd_set *in){
+struct tux_pollfd* make_pollfds(struct tux_fd_set *r, struct tux_fd_set *w, struct tux_fd_set *e, int* rcount) {
     int i, j;
     int ret = 0;
 
-    if(!in || !out)
-        return 0;
+    struct tux_fd_set clear_set;
+    memset(&clear_set, 0, sizeof(clear_set));
 
-    for(i = 0; i < CONFIG_TUX_FD_RESERVE / TUX_NFDBITS; i++){
-      if(in->__fds_bits[i]){
-        ret = 1;
-      }
+    if(r == NULL) r = &clear_set;
+    if(w == NULL) w = &clear_set;
+    if(e == NULL) e = &clear_set;
+
+    // Count number FDs
+    int count = 0;
+
+    // Those set fits
+    for(i = 0; i < (CONFIG_TUX_FD_RESERVE + FD_SETSIZE) / TUX_NFDBITS; i++) {
+      count += __builtin_popcount((r->__fds_bits[i] | w->__fds_bits[i] | e->__fds_bits[i]));
     }
 
-    for(j = 0; j < CONFIG_TUX_FD_RESERVE % TUX_NFDBITS; j++){
-      if((in->__fds_bits[i] >> j) & 0x1){
-          ret = 1;
+    // Remaining bits in the last set
+    // Mask and popcount, make sure to preserve the size after masking
+    count += __builtin_popcount((typeof(r->__fds_bits[i]))((r->__fds_bits[i] | w->__fds_bits[i] | e->__fds_bits[i]) & ((1ULL << ((CONFIG_TUX_FD_RESERVE + FD_SETSIZE) % TUX_NFDBITS)) - 1)));
+
+    struct tux_pollfd* tux_fds = NULL;
+
+    int k = 0;
+    if(count) {
+      tux_fds = (struct tux_pollfd*)kmm_malloc(sizeof(struct tux_pollfd) * (count));
+      if(!tux_fds) {
+        _err("Failed to allocate tux_fds!\n");
+        return -ENOMEM;
       }
-    }
 
-    for(; j < TUX_NFDBITS; j++)
-    {
-      if((in->__fds_bits[i] >> j) & 0x1){
+      memset(tux_fds, 0, sizeof(struct tux_pollfd) * (count));
 
-        in->__fds_bits[i] &=  ~(1 << j);
+      for(i = 0; i < (CONFIG_TUX_FD_RESERVE + FD_SETSIZE) / TUX_NFDBITS; i++) {
+        for(j = 0; j < TUX_NFDBITS; j++) {
 
-        FD_SET((TUX_NFDBITS * i + j) - CONFIG_TUX_FD_RESERVE, out);
-
-        ret |= 2;
+          if(((r->__fds_bits[i] | w->__fds_bits[i] | e->__fds_bits[i]) >> j) & 0x1) {
+            tux_fds[k].fd = i * TUX_NFDBITS + j;
+            if(r->__fds_bits[i] >> j)
+              tux_fds[k].events |= TUX_POLLIN;
+            if(w->__fds_bits[i] >> j)
+              tux_fds[k].events |= TUX_POLLOUT;
+            if(e->__fds_bits[i] >> j)
+              tux_fds[k].events |= TUX_POLLERR;
+            k++;
+          }
+        }
       }
-    }
 
-    for(i++; i < (CONFIG_TUX_FD_RESERVE + FD_SETSIZE) / TUX_NFDBITS; i++)
-    {
-      for(j = 0; j < TUX_NFDBITS; j++){
-        if((in->__fds_bits[i] >> j) & 0x1){
-
-          in->__fds_bits[i] &=  ~(1 << j);
-
-          FD_SET((TUX_NFDBITS * i + j) - CONFIG_TUX_FD_RESERVE, out);
-
-          ret |= 2;
+      for(j = 0; j < (CONFIG_TUX_FD_RESERVE + FD_SETSIZE) % TUX_NFDBITS; j++) {
+        if(((r->__fds_bits[i] | w->__fds_bits[i] | e->__fds_bits[i]) >> j) & 0x1) {
+          tux_fds[k].fd = i * TUX_NFDBITS + j;
+          if(r->__fds_bits[i] >> j)
+            tux_fds[k].events |= TUX_POLLIN;
+          if(w->__fds_bits[i] >> j)
+            tux_fds[k].events |= TUX_POLLOUT;
+          if(e->__fds_bits[i] >> j)
+            tux_fds[k].events |= TUX_POLLERR;
+          k++;
         }
       }
     }
 
-    for(j = 0; j < (CONFIG_TUX_FD_RESERVE + FD_SETSIZE) % TUX_NFDBITS; j++)
-    {
-      if((in->__fds_bits[i] >> j) & 0x1){
+    ASSERT(k == count);
 
-        in->__fds_bits[i] &=  ~(1 << j);
+    *rcount = count;
 
-        FD_SET((TUX_NFDBITS * i + j) - CONFIG_TUX_FD_RESERVE, out);
+    return tux_fds;
+}
 
-        ret |= 2;
-      }
+int recover_fdset(struct tux_fd_set* r, struct tux_fd_set* w, struct tux_fd_set* e, struct tux_pollfd* in, int count){
+    int i, j;
+
+    int ret = 0;
+
+    if(!in)
+        return -EINVAL;
+
+    struct tux_fd_set clear_set;
+    memset(&clear_set, 0, sizeof(clear_set));
+
+    if(r == NULL) r = &clear_set;
+    if(w == NULL) w = &clear_set;
+    if(e == NULL) e = &clear_set;
+
+    for(i = 0; i < count; i++) {
+        if(in[i].revents & TUX_POLLIN) {
+            r->__fds_bits[(in[i].fd) / TUX_NFDBITS] |=  1 << (in[i].fd) % TUX_NFDBITS;
+            ret++;
+        } else {
+            r->__fds_bits[(in[i].fd) / TUX_NFDBITS] &=  ~(1 << (in[i].fd) % TUX_NFDBITS);
+        }
+
+        if(in[i].revents & TUX_POLLOUT) {
+            w->__fds_bits[(in[i].fd) / TUX_NFDBITS] |=  1 << (in[i].fd) % TUX_NFDBITS;
+            ret++;
+        } else {
+            w->__fds_bits[(in[i].fd) / TUX_NFDBITS] &=  ~(1 << (in[i].fd) % TUX_NFDBITS);
+        }
+
+        if(in[i].revents & TUX_POLLERR) {
+            e->__fds_bits[(in[i].fd) / TUX_NFDBITS] |=  1 << (in[i].fd) % TUX_NFDBITS;
+            ret++;
+        } else {
+            e->__fds_bits[(in[i].fd) / TUX_NFDBITS] &=  ~(1 << (in[i].fd) % TUX_NFDBITS);
+        }
     }
 
     return ret;
 }
 
-int fd_set_tux_merge(struct tux_fd_set* out, fd_set *in){
-    int i, j;
-
-    if(!in || !out)
-        return -1;
-
-    for(i = 0; i < __SELECT_NUINT32; i++){
-        for(j = 0; j < 32; j++){
-            if((in->arr[i] >> j) & 0x1){
-                out->__fds_bits[((i * 32 + j) + CONFIG_TUX_FD_RESERVE) / TUX_NFDBITS] |=  1 << ((i * 32 + j) + CONFIG_TUX_FD_RESERVE) % TUX_NFDBITS;
-            }
-        }
-    }
-
-    return 0;
-}
-
 long tux_select (unsigned long nbr, int fd, struct tux_fd_set *r, struct tux_fd_set *w, struct tux_fd_set *e, struct timeval *timeout)
 {
   int ret;
-  int rr, wr, er;
-
-  fd_set lr;
-  fd_set lw;
-  fd_set le;
 
   svcinfo("Select syscall %d, fd: %d\n", nbr, fd);
 
-  FD_ZERO(&lr);
-  FD_ZERO(&lw);
-  FD_ZERO(&le);
+  int count;
+  struct tux_pollfd* pfd = make_pollfds(r, w, e, &count);
 
-  rr = fd_set_tux_split(&lr, r);
-  wr = fd_set_tux_split(&lw, w);
-  er = fd_set_tux_split(&le, e);
-
-  if((rr | wr | er) == 3) return -1; // Not support mixing fds from 2 realms
-
-  if((rr | wr | er) == 1){
-    ret = tux_delegate(nbr, fd, (uintptr_t)r, (uintptr_t)w, (uintptr_t)e, (uintptr_t)timeout, 0);
-  }else if((rr | wr | er) == 2){
-    svcinfo("local select\n");
-    ret = select(fd - CONFIG_TUX_FD_RESERVE, &lr, &lw, &le, timeout);
-    if(ret < 0)
-      ret = -errno;
-    if(ret == -ETIMEDOUT)
-        ret = -EAGAIN;
-  }else{
-    ret = select(0, NULL, NULL, NULL, timeout);
-    if(ret < 0)
-      ret = -errno;
-    if(ret == -ETIMEDOUT)
-        ret = -EAGAIN;
+  int msec;
+  if (timeout) {
+    msec = timeout->tv_sec * 1000 + timeout->tv_usec / 1000;
+  } else {
+    msec = -1;
   }
 
-  svcinfo("ret: %d\n", ret);
+  ret = tux_poll(7, pfd, count, msec);
 
-  fd_set_tux_merge(r, &lr);
-  fd_set_tux_merge(w, &lw);
-  fd_set_tux_merge(e, &le);
+  svcinfo("poll ret: %d\n", ret);
+
+  ret = recover_fdset(r, w, e, pfd, count);
 
   return ret;
 }
