@@ -286,9 +286,9 @@ long _tux_exec(char* path, char *argv[], char* envp[]){
     /* fds we assume 4096 is the max
      * let stdin, stdout, stderr and shadow process retain*/
     /* Skip Linux part, we do it in a single execve call */
-    /*for(i = 3; i < _POSIX_OPEN_MAX; i++)*/
-        /*if(i != rtcb->xcp.linux_sock)*/
-            /*close(i);*/
+    for(i = 3; i < _POSIX_OPEN_MAX; i++)
+        if(i != rtcb->xcp.linux_sock)
+            close(i);
 
     /* memory */
     svcinfo("Wiping Memory Map: \n");
