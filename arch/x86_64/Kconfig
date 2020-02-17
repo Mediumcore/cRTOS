@@ -17,6 +17,7 @@ config ARCH_INTEL64
     select ARCH_HAVE_TICKLESS
     select ARCH_HAVE_STACKCHECK
     select ARCH_HAVE_VFORK
+	select ARCH_HAVE_RNG
 	---help---
 		Intel x86_64 architecture
 
