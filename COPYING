@@ -260,3 +260,35 @@ drivers/video/ov2640
   content of those tables and still retain this BSD license.  I am guessing
   so, but I am not a copyright attorney so you should use this driver in
   products at your own risk.
+
+configs/jailhouse-intel64/
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  WAGINIG: The shadow process, ivshmem, ivshmem-net driver are ported from
+  Linux. They are licensed as GPL v2.
+
+  Jailhouse house related booting code are ported from the inmate library of 
+  Jailhouse hypervisor.
+
+  The ported driver and jailhouse related code contains copyright of
+    
+    Copyright (c) Siemens AG, 2014 Jan Kiszka <jan.kiszka@siemens.com>
+
+
+drivers/pcie/
+^^^^^^^^^^^^^
+
+  This pcie enumerate framework and API are ported from the inmate library of 
+  Jailhouse hypervisor.
+    
+    Copyright (c) Siemens AG, 2014 Jan Kiszka <jan.kiszka@siemens.com>
+
+arch/x86_64/src/linux_subsystem
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  WARNING: The Linux compatibility layer contains code copied from Linux and 
+  GNU C library headers. More specifically, the "tux.h" file is licensed 
+  in GPL v2.
+
+  Other files contains solely API compatibility toward Linux.
+
